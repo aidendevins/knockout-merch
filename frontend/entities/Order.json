@@ -1,0 +1,85 @@
+{
+    "name": "Order",
+    "type": "object",
+    "properties": {
+      "design_id": {
+        "type": "string",
+        "description": "Reference to the design purchased"
+      },
+      "customer_email": {
+        "type": "string"
+      },
+      "customer_name": {
+        "type": "string"
+      },
+      "shipping_address": {
+        "type": "object",
+        "properties": {
+          "line1": {
+            "type": "string"
+          },
+          "line2": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "postal_code": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
+        }
+      },
+      "product_type": {
+        "type": "string",
+        "enum": [
+          "tshirt",
+          "hoodie",
+          "poster"
+        ]
+      },
+      "size": {
+        "type": "string",
+        "enum": [
+          "S",
+          "M",
+          "L",
+          "XL",
+          "2XL"
+        ]
+      },
+      "quantity": {
+        "type": "number",
+        "default": 1
+      },
+      "total_amount": {
+        "type": "number"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "paid",
+          "processing",
+          "shipped",
+          "delivered"
+        ],
+        "default": "pending"
+      },
+      "stripe_payment_id": {
+        "type": "string"
+      },
+      "printify_order_id": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "design_id",
+      "customer_email"
+    ]
+  }

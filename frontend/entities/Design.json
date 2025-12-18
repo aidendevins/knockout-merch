@@ -1,0 +1,72 @@
+{
+    "name": "Design",
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string",
+        "description": "Name of the design"
+      },
+      "design_image_url": {
+        "type": "string",
+        "description": "The AI-generated design image"
+      },
+      "mockup_urls": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Product mockup images"
+      },
+      "prompt_used": {
+        "type": "string",
+        "description": "The AI prompt used to generate this design"
+      },
+      "stills_used": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "IDs of fight stills used"
+      },
+      "canvas_data": {
+        "type": "object",
+        "description": "Position and size data for the design on the product"
+      },
+      "is_published": {
+        "type": "boolean",
+        "default": false,
+        "description": "Whether this design is public in the community"
+      },
+      "is_featured": {
+        "type": "boolean",
+        "default": false,
+        "description": "Admin-featured design for landing page"
+      },
+      "price": {
+        "type": "number",
+        "default": 29.99,
+        "description": "Price of the product"
+      },
+      "sales_count": {
+        "type": "number",
+        "default": 0,
+        "description": "Number of times this design has been purchased"
+      },
+      "product_type": {
+        "type": "string",
+        "enum": [
+          "tshirt",
+          "hoodie"
+        ],
+        "default": "tshirt"
+      },
+      "creator_name": {
+        "type": "string",
+        "description": "Display name of the creator"
+      }
+    },
+    "required": [
+      "title",
+      "design_image_url"
+    ]
+  }

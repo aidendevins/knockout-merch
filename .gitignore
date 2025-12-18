@@ -67,8 +67,11 @@ web_modules/
 
 # dotenv environment variable files
 .env
-.env.*
+.env.local
+.env.development
+.env.production
 !.env.example
+!.env.sample
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -137,3 +140,12 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+
+# Backend uploads
+backend/uploads/*
+!backend/uploads/.gitkeep

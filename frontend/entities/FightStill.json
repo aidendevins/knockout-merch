@@ -1,0 +1,32 @@
+{
+    "name": "FightStill",
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string",
+        "description": "Name/description of the still"
+      },
+      "image_url": {
+        "type": "string",
+        "description": "URL of the uploaded fight still image"
+      },
+      "round": {
+        "type": "string",
+        "description": "Which round this still is from"
+      },
+      "is_featured": {
+        "type": "boolean",
+        "default": false,
+        "description": "Whether to feature this still prominently"
+      },
+      "usage_count": {
+        "type": "number",
+        "default": 0,
+        "description": "How many times this still has been used in designs"
+      }
+    },
+    "required": [
+      "title",
+      "image_url"
+    ]
+  }
