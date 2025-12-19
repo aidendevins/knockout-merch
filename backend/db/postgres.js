@@ -1,5 +1,12 @@
 const { Pool } = require('pg');
 
+// Debug: Check if DATABASE_URL is loaded
+console.log('🔍 DATABASE_URL exists:', !!process.env.DATABASE_URL);
+console.log('🔍 NODE_ENV:', process.env.NODE_ENV);
+if (!process.env.DATABASE_URL) {
+  console.error('❌ DATABASE_URL is not set! Check your environment variables.');
+}
+
 // Create connection pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
