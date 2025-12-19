@@ -133,8 +133,6 @@ export default function Checkout() {
     setIsProcessing(true);
 
     try {
-      const stripe = await stripePromise;
-
       // Create checkout session
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/stripe/create-checkout-session`, {
         method: 'POST',
@@ -156,13 +154,11 @@ export default function Checkout() {
         return;
       }
 
-      // Redirect to Stripe Checkout
-      const result = await stripe.redirectToCheckout({
-        sessionId: session.sessionId,
-      });
-
-      if (result.error) {
-        toast.error(result.error.message);
+      // Redirect to Stripe Checkout (modern approach)
+      if (session.url) {
+        window.location.href = session.url;
+      } else {
+        toast.error('Failed to create checkout session');
         setIsProcessing(false);
       }
     } catch (error) {
