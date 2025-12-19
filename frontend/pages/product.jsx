@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,8 +30,7 @@ const PRODUCT_TYPES = [
 export default function Product() {
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  const urlParams = new URLSearchParams(window.location.search);
-  const designId = urlParams.get('id');
+  const { designId } = useParams();
 
   const [selectedSize, setSelectedSize] = useState('M');
   const [selectedColor, setSelectedColor] = useState('black');
