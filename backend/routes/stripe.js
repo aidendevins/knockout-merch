@@ -159,6 +159,8 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     const session = event.data.object;
 
     try {
+      console.log('🔔 Webhook received: checkout.session.completed for session:', session.id);
+      
       // Retrieve the full session with line items
       const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
         expand: ['line_items', 'line_items.data.price.product'],
@@ -167,8 +169,12 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       const lineItems = fullSession.line_items.data;
       const shippingDetails = fullSession.shipping_details || fullSession.customer_details;
       
+      console.log('📦 Line items:', lineItems.length);
+      console.log('🔑 Metadata:', session.metadata);
+      
       // Get design IDs from metadata
-      const designIds = session.metadata.design_ids ? session.metadata.design_ids.split(',') : [];
+      const designIds = session.metadata?.design_ids ? session.metadata.design_ids.split(',') : [];
+      console.log('🎨 Design IDs from metadata:', designIds);
       
       // Get the total amount paid (after discounts)
       const totalPaid = (fullSession.amount_total / 100).toFixed(2);
@@ -177,10 +183,13 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       const productItems = lineItems.filter(item => 
         !(item.description && item.description.includes('Shipping'))
       );
+      console.log('🛍️ Product items:', productItems.length);
+      
       const itemCount = productItems.reduce((sum, item) => sum + item.quantity, 0);
       const pricePerItem = itemCount > 0 ? (parseFloat(totalPaid) / itemCount).toFixed(2) : totalPaid;
 
       // Create orders in database for each item (excluding shipping)
+      let ordersCreated = 0;
       for (let i = 0; i < productItems.length; i++) {
         const item = productItems[i];
         // Parse product info from description
@@ -200,9 +209,13 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
         // If we can't find design_id, skip this order
         if (!designId) {
-          console.warn('Skipping order creation - no design_id for item:', item.description);
+          console.warn('⚠️ Skipping order creation - no design_id for item:', item.description);
+          console.warn('   Available design IDs:', designIds);
+          console.warn('   Item index:', i);
           continue;
         }
+
+        console.log(`📝 Creating order ${i + 1}/${productItems.length}: design_id=${designId}, quantity=${item.quantity}`);
 
         await db.query(
           `INSERT INTO orders 
@@ -223,11 +236,20 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
             size,
           ]
         );
+        
+        ordersCreated++;
+        
+        // Update sales count
+        await db.query(
+          `UPDATE designs SET sales_count = sales_count + $1 WHERE id = $2`,
+          [item.quantity, designId]
+        );
       }
 
-      console.log('✅ Order created for session:', session.id);
+      console.log(`✅ Created ${ordersCreated} order(s) for session: ${session.id}`);
     } catch (error) {
-      console.error('Error creating order:', error);
+      console.error('❌ Error creating order:', error);
+      console.error('Error stack:', error.stack);
     }
   }
 
