@@ -8,6 +8,7 @@ import DesignStudio from './pages/designStudio';
 import Community from './pages/community';
 import Checkout from './pages/checkout';
 import Admin from './pages/admin';
+import About from './pages/about';
 import './index.css';
 import { createPageUrl } from './utils';
 
@@ -41,6 +42,7 @@ root.render(
             <Route path="/community" element={<Community />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/about" element={<About />} />
           </Routes>
         </Layout>
       </BrowserRouter>

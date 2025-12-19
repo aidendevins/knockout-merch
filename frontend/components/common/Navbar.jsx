@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Flame, Users, Palette, ShieldCheck } from 'lucide-react';
+import { Flame, Palette, ShieldCheck, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -12,7 +12,7 @@ export default function Navbar({ user }) {
   const navLinks = [
     { name: 'Home', page: 'Home', icon: Flame },
     { name: 'Design', page: 'DesignStudio', icon: Palette },
-    { name: 'Community', page: 'Community', icon: Users },
+    { name: 'About', page: 'About', icon: Info },
   ];
 
   const isAdmin = user?.role === 'admin';
@@ -20,19 +20,9 @@ export default function Navbar({ user }) {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-b border-gray-800/50">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to={createPageUrl('Home')} className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
-              <Flame className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-black text-white text-lg tracking-tight hidden sm:block">
-              KO MERCH
-            </span>
-          </Link>
-
-          {/* Nav links */}
-          <div className="flex items-center gap-1">
+        <div className="relative flex items-center h-16">
+          {/* Left side: Nav links */}
+          <div className="flex items-center gap-1 flex-1">
             {navLinks.map(({ name, page, icon: Icon }) => {
               const url = createPageUrl(page);
               const isActive = currentPath === url || currentPath === `/${page}`;
@@ -68,15 +58,27 @@ export default function Navbar({ user }) {
             )}
           </div>
 
-          {/* CTA */}
-          <Link to={createPageUrl('DesignStudio')}>
-            <Button 
-              size="sm" 
-              className="bg-red-600 hover:bg-red-700 text-white rounded-full font-bold hidden sm:flex"
-            >
-              Create Design
-            </Button>
+          {/* Center: Logo */}
+          <Link to={createPageUrl('Home')} className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
+            <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+              <Flame className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-black text-white text-lg tracking-tight hidden sm:block">
+              KNOCKOUT CLUB
+            </span>
           </Link>
+
+          {/* Right side: CTA */}
+          <div className="flex items-center justify-end flex-1">
+            <Link to={createPageUrl('DesignStudio')}>
+              <Button 
+                size="sm" 
+                className="bg-red-600 hover:bg-red-700 text-white rounded-full font-bold hidden sm:flex"
+              >
+                Create Design
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     </nav>

@@ -17,18 +17,13 @@ async function generateImage(prompt, referenceImageUrls = []) {
   }
 
   try {
-    // Use Gemini 2.0 Flash for image generation
-    // Note: As of 2024, Gemini's image generation is through Imagen 3
-    // We'll use the generative model with image output
+    // Use Gemini 3 Pro Image Preview model for image generation
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.0-flash-exp",
-      generationConfig: {
-        responseModalities: ["image", "text"],
-      },
+      model: "gemini-3-pro-image-preview"
     });
 
     // Build the prompt with design-specific instructions
-    const designPrompt = `Create a bold, high-contrast t-shirt design image based on this description:
+    let designPrompt = `Create a bold, high-contrast t-shirt design image based on this description:
 
 ${prompt}
 
@@ -43,32 +38,36 @@ Style requirements:
 
 Generate only the design image, no mockups.`;
 
-    // If we have reference images, we could include them
-    // Note: Gemini 2.0 can take images as input for context
-    let parts = [{ text: designPrompt }];
-    
-    // For reference images, we'd need to fetch and encode them
-    // This is a simplified version - in production, you'd want to:
-    // 1. Fetch the reference images
-    // 2. Convert to base64
-    // 3. Include as image parts
+    // Add reference image context if provided
     if (referenceImageUrls.length > 0) {
-      // Add context about reference images
-      parts[0].text += `\n\nUse these reference images as inspiration for the boxing/knockout theme: ${referenceImageUrls.join(', ')}`;
+      designPrompt += `\n\nUse these reference images as inspiration for the boxing/knockout theme: ${referenceImageUrls.join(', ')}`;
     }
 
-    const response = await model.generateContent(parts);
-    const result = await response.response;
+    // Generate image with image generation configuration
+    const result = await model.generateContent({
+      contents: [{ parts: [{ text: designPrompt }] }],
+      generationConfig: {
+        responseModalities: ['Image'],
+        imageConfig: {
+          aspectRatio: '1:1', // Square aspect ratio for t-shirt designs
+          imageSize: '2K', // 2K resolution
+        },
+      },
+    });
+
+    const response = result.response;
     
     // Check if we got an image in the response
-    if (result.candidates && result.candidates[0]?.content?.parts) {
-      for (const part of result.candidates[0].content.parts) {
+    // The response structure may vary, so check multiple possible locations
+    if (response.candidates && response.candidates[0]?.content?.parts) {
+      for (const part of response.candidates[0].content.parts) {
+        // Check for inline image data (base64 encoded)
         if (part.inlineData && part.inlineData.mimeType?.startsWith('image/')) {
-          // We got an image! Upload to S3
           const imageBuffer = Buffer.from(part.inlineData.data, 'base64');
+          const filename = `generated-design-${Date.now()}.png`;
           const uploaded = await s3.uploadBuffer(
             imageBuffer, 
-            'generated-design.png', 
+            filename, 
             'designs', 
             part.inlineData.mimeType
           );
@@ -77,24 +76,59 @@ Generate only the design image, no mockups.`;
             url: uploaded.url,
             key: uploaded.key,
             prompt: prompt,
-            model: 'gemini-2.0-flash-exp'
+            model: 'gemini-3-pro-image-preview'
           };
         }
       }
     }
     
-    // If no image was generated, throw error
+    // Also check response.parts directly
+    if (response.parts && response.parts.length > 0) {
+      for (const part of response.parts) {
+        if (part.inlineData && part.inlineData.mimeType?.startsWith('image/')) {
+          const imageBuffer = Buffer.from(part.inlineData.data, 'base64');
+          const filename = `generated-design-${Date.now()}.png`;
+          const uploaded = await s3.uploadBuffer(
+            imageBuffer, 
+            filename, 
+            'designs', 
+            part.inlineData.mimeType
+          );
+          
+          return {
+            url: uploaded.url,
+            key: uploaded.key,
+            prompt: prompt,
+            model: 'gemini-3-pro-image-preview'
+          };
+        }
+      }
+    }
+    
+    // If no image was generated, throw error with details for debugging
+    console.error('No image found in response:', JSON.stringify(response, null, 2));
     throw new Error('No image was generated. The model may not support image generation or the prompt was rejected.');
     
   } catch (error) {
     console.error('Gemini image generation error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      status: error.status,
+      stack: error.stack
+    });
     
-    // If Gemini fails, provide a fallback message
+    // Provide more detailed error message
+    let errorMessage = 'Failed to generate image. ';
     if (error.message?.includes('not supported') || error.message?.includes('PERMISSION_DENIED')) {
-      throw new Error('Image generation is not available. Please check your Gemini API configuration and ensure you have access to image generation features.');
+      errorMessage += 'Image generation is not available. Please check your Gemini API configuration and ensure you have access to image generation features.';
+    } else if (error.message) {
+      errorMessage += error.message;
+    } else {
+      errorMessage += 'Please try again.';
     }
     
-    throw error;
+    throw new Error(errorMessage);
   }
 }
 

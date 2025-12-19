@@ -7,6 +7,7 @@ export function createPageUrl(page, params = '') {
     'Community': '/community',
     'Checkout': '/checkout',
     'Admin': '/admin',
+    'About': '/about',
   };
   const baseUrl = routes[page] || '/';
   // Handle both string params and query string format

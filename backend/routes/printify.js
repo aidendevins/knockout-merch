@@ -41,7 +41,7 @@ router.get('/blueprints', async (req, res) => {
 router.get('/shops', async (req, res) => {
   try {
     if (!printify.isConfigured()) {
-      return res.json([{ id: 'mock-shop', name: 'KO Merch (Development)' }]);
+      return res.json([{ id: 'mock-shop', name: 'Knockout Club (Development)' }]);
     }
     
     const shops = await printify.getShops();
@@ -73,7 +73,7 @@ router.post('/products', async (req, res) => {
       const mockProduct = {
         id: `mock-${Date.now()}`,
         printify_product_id: `mock-${Date.now()}`,
-        title: title || 'KO Merch Design',
+        title: title || 'Knockout Club Design',
         mockup_urls: [
           'https://via.placeholder.com/800x800/1a1a1a/DC2626?text=T-Shirt+Front',
           'https://via.placeholder.com/800x800/1a1a1a/DC2626?text=T-Shirt+Back',

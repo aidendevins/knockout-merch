@@ -125,7 +125,7 @@ export default function MockupPreview({
                   <Badge className="bg-red-600 text-white">
                     {productType === 'tshirt' ? 'T-Shirt' : 'Hoodie'}
                   </Badge>
-                  <span className="text-gray-400 text-sm">Limited Edition KO Merch</span>
+                  <span className="text-gray-400 text-sm">Limited Edition Knockout Club</span>
                 </div>
               </div>
               <div className="text-right">

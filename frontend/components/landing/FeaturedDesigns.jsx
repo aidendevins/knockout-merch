@@ -6,7 +6,7 @@ import { ShoppingBag, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
-export default function FeaturedDesigns({ designs }) {
+export default function FeaturedDesigns({ designs, onViewAll }) {
   if (!designs?.length) return null;
 
   return (
@@ -96,16 +96,17 @@ export default function FeaturedDesigns({ designs }) {
         </div>
 
         {/* View all link */}
-        <div className="text-center mt-12">
-          <Link to={createPageUrl('Community')}>
+        {onViewAll && (
+          <div className="text-center mt-12">
             <Button 
               variant="ghost" 
+              onClick={onViewAll}
               className="text-gray-400 hover:text-white hover:bg-white/5 text-lg"
             >
               View All Community Designs →
             </Button>
-          </Link>
-        </div>
+          </div>
+        )}
       </div>
     </section>
   );

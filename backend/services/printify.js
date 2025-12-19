@@ -240,7 +240,7 @@ async function createOrder({ productId, variantId, quantity, shippingAddress, ex
     method: 'POST',
     body: JSON.stringify({
       external_id: externalId,
-      label: `KO Merch Order`,
+      label: `Knockout Club Order`,
       line_items: [
         {
           product_id: productId,

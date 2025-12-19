@@ -44,6 +44,8 @@ export default function DesignStudio() {
     },
     onSuccess: (design) => {
       queryClient.invalidateQueries(['designs']);
+      queryClient.invalidateQueries(['community-designs']);
+      queryClient.invalidateQueries(['featured-designs']);
       setCurrentDesign(design);
       return design;
     },
