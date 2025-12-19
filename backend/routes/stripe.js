@@ -101,8 +101,10 @@ router.post('/create-checkout-session', async (req, res) => {
         const total = subtotal + shippingCost;
         const discountAmount = Math.max(0, total - 0.50); // Discount to make it $0.50
         
+        // Use a unique coupon ID to avoid conflicts with old coupons
+        const couponId = 'TEST99_V2_50';
         sessionConfig.discounts = [{
-          coupon: await getOrCreateCoupon('TEST99', { 
+          coupon: await getOrCreateCoupon(couponId, { 
             amount_off: Math.round(discountAmount * 100), // In cents
             currency: 'usd'
           }),
