@@ -10,6 +10,7 @@ const ordersRouter = require('./routes/orders');
 const uploadRouter = require('./routes/upload');
 const printifyRouter = require('./routes/printify');
 const seedRouter = require('./routes/seed');
+const stripeRouter = require('./routes/stripe');
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -54,6 +55,7 @@ app.use('/api/orders', ordersRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/printify', printifyRouter);
 app.use('/api/seed', seedRouter);
+app.use('/api/stripe', stripeRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

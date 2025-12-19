@@ -9,6 +9,7 @@ import DesignStudio from './pages/designStudio';
 import Community from './pages/community';
 import Product from './pages/product';
 import Checkout from './pages/checkout';
+import CheckoutSuccess from './pages/checkoutSuccess';
 import Admin from './pages/admin';
 import About from './pages/about';
 import './index.css';
@@ -43,8 +44,9 @@ root.render(
               <Route path="/" element={<Home />} />
               <Route path="/design" element={<DesignStudio />} />
               <Route path="/community" element={<Community />} />
-              <Route path="/product" element={<Product />} />
+              <Route path="/product/:designId" element={<Product />} />
               <Route path="/checkout" element={<Checkout />} />
+              <Route path="/checkout/success" element={<CheckoutSuccess />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/about" element={<About />} />
             </Routes>
