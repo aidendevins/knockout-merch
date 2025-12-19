@@ -9,6 +9,7 @@ const stillsRouter = require('./routes/stills');
 const ordersRouter = require('./routes/orders');
 const uploadRouter = require('./routes/upload');
 const printifyRouter = require('./routes/printify');
+const seedRouter = require('./routes/seed');
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -17,6 +18,9 @@ const PORT = process.env.PORT || 8000;
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
+  'https://influencerboxingiscooked.com',
+  'https://www.influencerboxingiscooked.com',
+  'https://knockout-merch.vercel.app',
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
@@ -49,6 +53,7 @@ app.use('/api/stills', stillsRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/printify', printifyRouter);
+app.use('/api/seed', seedRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
