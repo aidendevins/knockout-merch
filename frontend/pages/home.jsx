@@ -45,23 +45,34 @@ export default function Home() {
   });
 
   // Studio Designs query (unpublished)
-  const { data: studioDesigns = [], isLoading: studioLoading } = useQuery({
+  const { data: studioDesigns = [], isLoading: studioLoading, error: studioError } = useQuery({
     queryKey: ['studio-designs', productFilter],
     queryFn: async () => {
-      // Fetch unpublished designs
-      const allDesigns = await base44.entities.Design.filter(
-        { is_published: false },
-        '-created_date',
-        null
-      );
-      // Filter by product type if needed
-      if (productFilter !== 'all') {
-        return allDesigns.filter((d) => d.product_type === productFilter).slice(0, 6);
+      try {
+        // Fetch unpublished designs
+        const allDesigns = await base44.entities.Design.filter(
+          { is_published: false },
+          '-created_date',
+          null
+        );
+        console.log('Studio designs fetched:', allDesigns);
+        // Filter by product type if needed
+        if (productFilter !== 'all') {
+          return allDesigns.filter((d) => d.product_type === productFilter).slice(0, 6);
+        }
+        return allDesigns.slice(0, 6);
+      } catch (error) {
+        console.error('Error fetching studio designs:', error);
+        throw error;
       }
-      return allDesigns.slice(0, 6);
     },
     enabled: viewType === 'studio',
   });
+
+  // Log any errors
+  if (studioError) {
+    console.error('Studio designs query error:', studioError);
+  }
 
   // Smooth scroll function
   const scrollToCommunity = () => {
@@ -199,8 +210,18 @@ export default function Home() {
           {/* Designs grid */}
           {viewType === 'studio' ? (
             // Studio Designs: 2 rows x 3 columns (6 designs)
-            studioLoading ? (
-              <div className="grid grid-cols-3 gap-4 md:gap-6">
+            studioError ? (
+              <div className="text-center py-20">
+                <div className="w-20 h-20 bg-red-900/20 rounded-full mx-auto mb-4 flex items-center justify-center">
+                  <Filter className="w-8 h-8 text-red-600" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Error loading studio designs</h3>
+                <p className="text-gray-500">
+                  {studioError.message || 'Something went wrong'}
+                </p>
+              </div>
+            ) : studioLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {Array(6).fill(0).map((_, i) => (
                   <div key={i} className="bg-gray-900 rounded-xl overflow-hidden">
                     <Skeleton className="aspect-square bg-gray-800" />
@@ -222,7 +243,7 @@ export default function Home() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-4 md:gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {filteredStudioDesigns.map((design, index) => (
                   <DesignCard key={design.id} design={design} index={index} />
                 ))}

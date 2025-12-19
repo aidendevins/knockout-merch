@@ -71,7 +71,9 @@ export default function DesignCard({ design, index = 0 }) {
             
             <div className="flex items-center justify-between">
               <span className="text-xl font-black text-white">
-                ${design.price?.toFixed(2) || '29.99'}
+                ${typeof design.price === 'number' 
+                  ? design.price.toFixed(2) 
+                  : parseFloat(design.price || 29.99).toFixed(2)}
               </span>
               <Button 
                 size="sm" 
