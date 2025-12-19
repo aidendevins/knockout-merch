@@ -5,10 +5,32 @@ const db = require('../db/postgres');
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
+// Helper function to get or create a coupon
+async function getOrCreateCoupon(code, config) {
+  try {
+    // Try to retrieve existing coupon
+    const coupon = await stripe.coupons.retrieve(code);
+    return coupon.id;
+  } catch (error) {
+    // Coupon doesn't exist, create it
+    try {
+      const newCoupon = await stripe.coupons.create({
+        id: code,
+        name: code,
+        ...config,
+      });
+      return newCoupon.id;
+    } catch (createError) {
+      console.error('Error creating coupon:', createError);
+      throw createError;
+    }
+  }
+}
+
 // Create Checkout Session
 router.post('/create-checkout-session', async (req, res) => {
   try {
-    const { cartItems, shippingInfo } = req.body;
+    const { cartItems, shippingInfo, discountCode } = req.body;
 
     if (!cartItems || cartItems.length === 0) {
       return res.status(400).json({ error: 'Cart is empty' });
@@ -45,8 +67,8 @@ router.post('/create-checkout-session', async (req, res) => {
       quantity: 1,
     });
 
-    // Create Stripe checkout session
-    const session = await stripe.checkout.sessions.create({
+    // Handle discount codes
+    const sessionConfig = {
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
@@ -54,12 +76,42 @@ router.post('/create-checkout-session', async (req, res) => {
       cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/checkout`,
       customer_email: shippingInfo.email,
       metadata: {
-        // Store minimal data - just what we need to create orders
         shipping_name: shippingInfo.name,
         shipping_email: shippingInfo.email,
         order_count: cartItems.length.toString(),
+        discount_code: discountCode || 'none',
       },
-    });
+    };
+
+    // Apply discount if provided
+    if (discountCode) {
+      const code = discountCode.toUpperCase();
+      
+      if (code === 'KNOCKOUT10') {
+        // Create or retrieve coupon for 10% off
+        sessionConfig.discounts = [{
+          coupon: await getOrCreateCoupon('KNOCKOUT10', { percent_off: 10 }),
+        }];
+      } else if (code === 'TEST99') {
+        // For TEST99, create a coupon that makes total $1
+        // Calculate total before discount
+        const subtotal = cartItems.reduce((sum, item) => 
+          sum + (parseFloat(item.design.price) * item.quantity), 0
+        );
+        const total = subtotal + shippingCost;
+        const discountAmount = Math.max(0, total - 1.00); // Discount to make it $1
+        
+        sessionConfig.discounts = [{
+          coupon: await getOrCreateCoupon('TEST99', { 
+            amount_off: Math.round(discountAmount * 100), // In cents
+            currency: 'usd'
+          }),
+        }];
+      }
+    }
+
+    // Create Stripe checkout session
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     res.json({ sessionId: session.id, url: session.url });
   } catch (error) {
