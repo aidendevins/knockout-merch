@@ -11,6 +11,7 @@ import Product from './pages/product';
 import Checkout from './pages/checkout';
 import CheckoutSuccess from './pages/checkoutSuccess';
 import Admin from './pages/admin';
+import AdminOrders from './pages/adminOrders';
 import About from './pages/about';
 import './index.css';
 import { createPageUrl } from './utils';
@@ -48,6 +49,7 @@ root.render(
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/checkout/success" element={<CheckoutSuccess />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/orders" element={<AdminOrders />} />
               <Route path="/about" element={<About />} />
             </Routes>
           </Layout>
