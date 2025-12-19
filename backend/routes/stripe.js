@@ -80,6 +80,7 @@ router.post('/create-checkout-session', async (req, res) => {
         shipping_email: shippingInfo.email,
         order_count: cartItems.length.toString(),
         discount_code: discountCode || 'none',
+        design_ids: cartItems.map(item => item.design?.id || '').filter(Boolean).join(','), // Comma-separated design IDs
       },
     };
 
@@ -166,6 +167,9 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       const lineItems = fullSession.line_items.data;
       const shippingDetails = fullSession.shipping_details || fullSession.customer_details;
       
+      // Get design IDs from metadata
+      const designIds = session.metadata.design_ids ? session.metadata.design_ids.split(',') : [];
+      
       // Get the total amount paid (after discounts)
       const totalPaid = (fullSession.amount_total / 100).toFixed(2);
       
@@ -177,38 +181,46 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       const pricePerItem = itemCount > 0 ? (parseFloat(totalPaid) / itemCount).toFixed(2) : totalPaid;
 
       // Create orders in database for each item (excluding shipping)
-      for (const item of productItems) {
+      for (let i = 0; i < productItems.length; i++) {
+        const item = productItems[i];
         // Parse product info from description
         const description = item.description || '';
         const matches = description.match(/(.+) - (.+) - (.+)/);
         
         let productType = 'tshirt';
-        let color = 'Black';
         let size = 'M';
         
         if (matches) {
           productType = matches[1].toLowerCase();
-          color = matches[2];
           size = matches[3];
+        }
+
+        // Get design_id from metadata array (in same order as line items)
+        const designId = designIds[i] || null;
+
+        // If we can't find design_id, skip this order
+        if (!designId) {
+          console.warn('Skipping order creation - no design_id for item:', item.description);
+          continue;
         }
 
         await db.query(
           `INSERT INTO orders 
-           (customer_email, customer_name, shipping_address, 
-            quantity, total_price, payment_status, stripe_session_id, 
-            product_type, size, color)
+           (design_id, customer_email, customer_name, shipping_address, 
+            quantity, total_amount, status, stripe_session_id, 
+            product_type, size)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
           [
+            designId, // REQUIRED
             session.customer_details?.email || shippingDetails?.email,
             session.customer_details?.name || shippingDetails?.name,
             JSON.stringify(shippingDetails?.address || {}),
             item.quantity,
-            pricePerItem, // Use calculated price per item
+            parseFloat(pricePerItem), // Use calculated price per item
             'paid',
             session.id,
             productType,
             size,
-            color,
           ]
         );
       }

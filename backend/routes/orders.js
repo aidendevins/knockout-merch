@@ -17,6 +17,8 @@ router.get('/', async (req, res) => {
       ...row,
       shipping_address: row.shipping_address || {},
       created_date: row.created_at,
+      payment_status: row.status, // Map status to payment_status for frontend
+      total_price: row.total_amount, // Map total_amount to total_price for frontend
     }));
     
     res.json(orders);
@@ -38,6 +40,8 @@ router.get('/:id', async (req, res) => {
       ...row,
       shipping_address: row.shipping_address || {},
       created_date: row.created_at,
+      payment_status: row.status, // Map status to payment_status for frontend
+      total_price: row.total_amount, // Map total_amount to total_price for frontend
     });
   } catch (error) {
     console.error('Error fetching order:', error);
@@ -205,7 +209,12 @@ router.post('/free', async (req, res) => {
         ]
       );
 
-      orders.push(result);
+      // Map for frontend compatibility
+      orders.push({
+        ...result,
+        payment_status: result.status,
+        total_price: result.total_amount,
+      });
 
       // Update sales count if design_id exists
       if (designId) {
