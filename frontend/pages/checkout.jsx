@@ -102,6 +102,12 @@ export default function Checkout() {
         type: 'fixed',
         value: cartTotal + shipping - 0.50, // Makes total = $0.50
         description: 'Test discount - $0.50 total'
+      },
+      'FREE': {
+        code: 'FREE',
+        type: 'fixed',
+        value: cartTotal + shipping - 0.50, // Makes total = $0.50 (Stripe minimum)
+        description: 'Free order - $0.50 minimum charge'
       }
     };
     

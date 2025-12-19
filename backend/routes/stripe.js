@@ -109,6 +109,23 @@ router.post('/create-checkout-session', async (req, res) => {
             currency: 'usd'
           }),
         }];
+      } else if (code === 'FREE') {
+        // For FREE, create a coupon that makes total $0.50 (Stripe minimum)
+        // Calculate total before discount
+        const subtotal = cartItems.reduce((sum, item) => 
+          sum + (parseFloat(item.design.price) * item.quantity), 0
+        );
+        const total = subtotal + shippingCost;
+        const discountAmount = Math.max(0, total - 0.50); // Discount to make it $0.50
+        
+        // Use a unique coupon ID
+        const couponId = 'FREE_V1_50';
+        sessionConfig.discounts = [{
+          coupon: await getOrCreateCoupon(couponId, { 
+            amount_off: Math.round(discountAmount * 100), // In cents
+            currency: 'usd'
+          }),
+        }];
       }
     }
 
