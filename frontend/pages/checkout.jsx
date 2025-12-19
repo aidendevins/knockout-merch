@@ -51,9 +51,16 @@ export default function Checkout() {
   const [appliedDiscount, setAppliedDiscount] = useState(null);
   const [isApplyingDiscount, setIsApplyingDiscount] = useState(false);
 
+  // Debug logs
+  console.log('Checkout mounted');
+  console.log('Cart items:', cartItems);
+  console.log('Total price:', totalPrice);
+  console.log('Stripe key:', import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ? 'Set' : 'Missing');
+
   // Redirect if cart is empty
   useEffect(() => {
     if (cartItems.length === 0) {
+      console.log('Cart is empty, redirecting...');
       toast.error('Your cart is empty');
       navigate(createPageUrl('Home'));
     }
