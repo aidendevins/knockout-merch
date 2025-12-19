@@ -18,6 +18,9 @@ const PORT = process.env.PORT || 8000;
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
+  'https://influencerboxingiscooked.com',
+  'https://www.influencerboxingiscooked.com',
+  'https://knockout-merch.vercel.app',
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
