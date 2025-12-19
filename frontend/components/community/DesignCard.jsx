@@ -1,20 +1,41 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import { ShoppingBag, TrendingUp, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useCart } from '@/context/CartContext';
+import { toast } from 'sonner';
 
 export default function DesignCard({ design, index = 0 }) {
+  const { addToCart } = useCart();
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Add to cart with default size M
+    addToCart(design, 'M', 1);
+    
+    // Show success toast
+    toast.success('Added to cart!', {
+      description: `${design.title} (Size: M)`,
+      duration: 2000,
+    });
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
       className="group"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <Link to={createPageUrl(`Checkout?designId=${design.id}`)}>
+      <Link to={createPageUrl('Product', `id=${design.id}`)}>
         <div className="relative bg-gray-900 rounded-xl overflow-hidden border border-gray-800 hover:border-red-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-red-500/10">
           {/* Product preview */}
           <div className="aspect-square bg-gradient-to-br from-gray-800 to-gray-900 p-6 flex items-center justify-center">
@@ -77,10 +98,11 @@ export default function DesignCard({ design, index = 0 }) {
               </span>
               <Button 
                 size="sm" 
+                onClick={handleAddToCart}
                 className="bg-white text-black hover:bg-gray-100 rounded-full h-8 text-xs font-semibold [&_svg]:text-black"
               >
                 <ShoppingBag className="w-3 h-3 mr-1" />
-                Buy
+                Add to Cart
               </Button>
             </div>
           </div>

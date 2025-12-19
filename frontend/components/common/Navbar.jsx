@@ -1,13 +1,15 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Flame, Palette, ShieldCheck, Info } from 'lucide-react';
+import { Flame, Palette, ShieldCheck, Info, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useCart } from '@/context/CartContext';
 
 export default function Navbar({ user }) {
   const location = useLocation();
   const currentPath = location.pathname;
+  const { cartCount, setIsCartOpen } = useCart();
 
   const navLinks = [
     { name: 'Home', page: 'Home', icon: Flame },
@@ -68,8 +70,21 @@ export default function Navbar({ user }) {
             </span>
           </Link>
 
-          {/* Right side: CTA */}
-          <div className="flex items-center justify-end flex-1">
+          {/* Right side: Cart + CTA */}
+          <div className="flex items-center justify-end gap-2 flex-1">
+            {/* Cart Icon with Badge */}
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="relative text-gray-400 hover:text-white transition-colors p-2"
+            >
+              <ShoppingCart className="w-5 h-5" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                  {cartCount > 9 ? '9+' : cartCount}
+                </span>
+              )}
+            </button>
+
             <Link to={createPageUrl('DesignStudio')}>
               <Button 
                 size="sm" 

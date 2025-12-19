@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Toaster } from 'sonner';
 import Navbar from '@/components/common/Navbar';
+import CartDrawer from '@/components/cart/CartDrawer';
 import { base44 } from '@/api/base44Client';
 
 export default function Layout({ children }) {
@@ -32,6 +33,7 @@ export default function Layout({ children }) {
         }}
       />
       <Navbar user={user} />
+      <CartDrawer />
       <main>
         {children}
       </main>

@@ -5,6 +5,7 @@ export function createPageUrl(page, params = '') {
     'Home': '/',
     'DesignStudio': '/design',
     'Community': '/community',
+    'Product': '/product',
     'Checkout': '/checkout',
     'Admin': '/admin',
     'About': '/about',
