@@ -93,13 +93,13 @@ router.post('/create-checkout-session', async (req, res) => {
           coupon: await getOrCreateCoupon('KNOCKOUT10', { percent_off: 10 }),
         }];
       } else if (code === 'TEST99') {
-        // For TEST99, create a coupon that makes total $1
+        // For TEST99, create a coupon that makes total $0.50
         // Calculate total before discount
         const subtotal = cartItems.reduce((sum, item) => 
           sum + (parseFloat(item.design.price) * item.quantity), 0
         );
         const total = subtotal + shippingCost;
-        const discountAmount = Math.max(0, total - 1.00); // Discount to make it $1
+        const discountAmount = Math.max(0, total - 0.50); // Discount to make it $0.50
         
         sessionConfig.discounts = [{
           coupon: await getOrCreateCoupon('TEST99', { 

@@ -100,8 +100,8 @@ export default function Checkout() {
       'TEST99': {
         code: 'TEST99',
         type: 'fixed',
-        value: cartTotal + shipping - 1.00, // Makes total = $1
-        description: 'Test discount - $1 total'
+        value: cartTotal + shipping - 0.50, // Makes total = $0.50
+        description: 'Test discount - $0.50 total'
       }
     };
     
