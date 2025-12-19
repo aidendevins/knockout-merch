@@ -165,12 +165,19 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
       const lineItems = fullSession.line_items.data;
       const shippingDetails = fullSession.shipping_details || fullSession.customer_details;
+      
+      // Get the total amount paid (after discounts)
+      const totalPaid = (fullSession.amount_total / 100).toFixed(2);
+      
+      // Count non-shipping items to divide total
+      const productItems = lineItems.filter(item => 
+        !(item.description && item.description.includes('Shipping'))
+      );
+      const itemCount = productItems.reduce((sum, item) => sum + item.quantity, 0);
+      const pricePerItem = itemCount > 0 ? (parseFloat(totalPaid) / itemCount).toFixed(2) : totalPaid;
 
       // Create orders in database for each item (excluding shipping)
-      for (const item of lineItems) {
-        // Skip shipping line item
-        if (item.description && item.description.includes('Shipping')) continue;
-
+      for (const item of productItems) {
         // Parse product info from description
         const description = item.description || '';
         const matches = description.match(/(.+) - (.+) - (.+)/);
@@ -196,7 +203,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
             session.customer_details?.name || shippingDetails?.name,
             JSON.stringify(shippingDetails?.address || {}),
             item.quantity,
-            (item.amount_total / 100).toFixed(2), // Convert cents to dollars
+            pricePerItem, // Use calculated price per item
             'paid',
             session.id,
             productType,
