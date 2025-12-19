@@ -164,6 +164,13 @@ router.post('/free', async (req, res) => {
 
     // Create an order for each cart item
     for (const item of cartItems) {
+      // Extract design info - handle different cart item structures
+      const designId = item.design?.id || item.design_id || null;
+      const productType = item.productType || item.product_type || item.design?.product_type || 'tshirt';
+      const size = item.size || 'M';
+      const color = item.color || 'Black';
+      const quantity = item.quantity || 1;
+
       const result = await db.get(
         `INSERT INTO orders (
           customer_email, customer_name, shipping_address,
@@ -182,35 +189,37 @@ router.post('/free', async (req, res) => {
             postal_code: shippingInfo.postal_code,
             country: shippingInfo.country || 'US',
           }),
-          item.quantity,
+          quantity,
           '0.00', // Free order
           'paid', // Mark as paid since it's free
           'free-order',
-          item.productType || 'tshirt',
-          item.size || 'M',
-          item.color || 'Black',
-          item.design?.id || null,
+          productType,
+          size,
+          color,
+          designId,
         ]
       );
 
       orders.push(result);
 
       // Update sales count if design_id exists
-      if (item.design?.id) {
+      if (designId) {
         await db.query(
           `UPDATE designs SET sales_count = sales_count + $1 WHERE id = $2`,
-          [item.quantity, item.design.id]
+          [quantity, designId]
         );
       }
     }
 
+    console.log('✅ Successfully created', orders.length, 'free order(s)');
     res.json({ 
       success: true, 
       orders,
       message: `Successfully created ${orders.length} free order(s)`
     });
   } catch (error) {
-    console.error('Error creating free order:', error);
+    console.error('❌ Error creating free order:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ error: 'Failed to create free order', details: error.message });
   }
 });
