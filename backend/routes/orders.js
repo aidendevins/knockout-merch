@@ -165,20 +165,27 @@ router.post('/free', async (req, res) => {
     // Create an order for each cart item
     for (const item of cartItems) {
       // Extract design info - handle different cart item structures
-      const designId = item.design?.id || item.design_id || null;
+      const designId = item.design?.id || item.design_id;
+      
+      // design_id is REQUIRED - if missing, skip this item
+      if (!designId) {
+        console.warn('Skipping cart item without design_id:', item);
+        continue;
+      }
+      
       const productType = item.productType || item.product_type || item.design?.product_type || 'tshirt';
       const size = item.size || 'M';
-      const color = item.color || 'Black';
       const quantity = item.quantity || 1;
 
       const result = await db.get(
         `INSERT INTO orders (
-          customer_email, customer_name, shipping_address,
-          quantity, total_price, payment_status, stripe_session_id,
-          product_type, size, color, design_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          design_id, customer_email, customer_name, shipping_address,
+          quantity, total_amount, status, stripe_session_id,
+          product_type, size
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *`,
         [
+          designId, // REQUIRED - cannot be null
           shippingInfo.email,
           shippingInfo.name || null,
           JSON.stringify({
@@ -190,13 +197,11 @@ router.post('/free', async (req, res) => {
             country: shippingInfo.country || 'US',
           }),
           quantity,
-          '0.00', // Free order
+          0.00, // Free order (use number, not string)
           'paid', // Mark as paid since it's free
           'free-order',
           productType,
           size,
-          color,
-          designId,
         ]
       );
 
