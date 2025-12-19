@@ -27,7 +27,7 @@ export default function Home() {
   });
 
   // Community state
-  const [viewType, setViewType] = useState('fan'); // 'fan' or 'studio'
+  const [viewType, setViewType] = useState('studio'); // 'fan' or 'studio'
   const [sortBy, setSortBy] = useState('sales');
   const [productFilter, setProductFilter] = useState('all');
 
