@@ -89,7 +89,6 @@ router.post('/studio-designs', async (req, res) => {
          (title, design_image_url, mockup_urls, product_type, prompt_used, 
           creator_name, is_published, is_featured, price, sales_count)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-         ON CONFLICT (title) DO NOTHING
          RETURNING id, title`,
         [
           design.title,
