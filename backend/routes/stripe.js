@@ -52,9 +52,12 @@ router.post('/create-checkout-session', async (req, res) => {
       mode: 'payment',
       success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/checkout`,
+      customer_email: shippingInfo.email,
       metadata: {
-        cartItems: JSON.stringify(cartItems),
-        shippingInfo: JSON.stringify(shippingInfo),
+        // Store minimal data - just what we need to create orders
+        shipping_name: shippingInfo.name,
+        shipping_email: shippingInfo.email,
+        order_count: cartItems.length.toString(),
       },
     });
 
@@ -84,36 +87,51 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     const session = event.data.object;
 
     try {
-      const cartItems = JSON.parse(session.metadata.cartItems);
-      const shippingInfo = JSON.parse(session.metadata.shippingInfo);
+      // Retrieve the full session with line items
+      const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
+        expand: ['line_items', 'line_items.data.price.product'],
+      });
 
-      // Create orders in database
-      for (const item of cartItems) {
+      const lineItems = fullSession.line_items.data;
+      const shippingDetails = fullSession.shipping_details || fullSession.customer_details;
+
+      // Create orders in database for each item (excluding shipping)
+      for (const item of lineItems) {
+        // Skip shipping line item
+        if (item.description && item.description.includes('Shipping')) continue;
+
+        // Parse product info from description
+        const description = item.description || '';
+        const matches = description.match(/(.+) - (.+) - (.+)/);
+        
+        let productType = 'tshirt';
+        let color = 'Black';
+        let size = 'M';
+        
+        if (matches) {
+          productType = matches[1].toLowerCase();
+          color = matches[2];
+          size = matches[3];
+        }
+
         await db.query(
           `INSERT INTO orders 
-           (design_id, customer_email, customer_name, shipping_address, 
+           (customer_email, customer_name, shipping_address, 
             quantity, total_price, payment_status, stripe_session_id, 
             product_type, size, color)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
           [
-            item.design.id,
-            session.customer_details.email,
-            session.customer_details.name,
-            JSON.stringify(shippingInfo),
+            session.customer_details?.email || shippingDetails?.email,
+            session.customer_details?.name || shippingDetails?.name,
+            JSON.stringify(shippingDetails?.address || {}),
             item.quantity,
-            parseFloat(item.design.price) * item.quantity,
+            (item.amount_total / 100).toFixed(2), // Convert cents to dollars
             'paid',
             session.id,
-            item.productType,
-            item.size,
-            item.color,
+            productType,
+            size,
+            color,
           ]
-        );
-
-        // Update sales count
-        await db.query(
-          `UPDATE designs SET sales_count = sales_count + $1 WHERE id = $2`,
-          [item.quantity, item.design.id]
         );
       }
 
