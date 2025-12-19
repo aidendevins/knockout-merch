@@ -82,14 +82,24 @@ export default function Checkout() {
     setIsApplyingDiscount(true);
     const code = discountCode.toUpperCase();
     
-    // Only KNOCKOUT10 is valid
-    if (code === 'KNOCKOUT10') {
-      setAppliedDiscount({
+    // Valid discount codes
+    const validCodes = {
+      'KNOCKOUT10': {
         code: 'KNOCKOUT10',
         type: 'percentage',
         value: 0.10,
         description: '10% off your order'
-      });
+      },
+      'TEST99': {
+        code: 'TEST99',
+        type: 'fixed',
+        value: totalPrice + shipping - 1.00, // Makes total = $1
+        description: 'Test discount - $1 total'
+      }
+    };
+    
+    if (validCodes[code]) {
+      setAppliedDiscount(validCodes[code]);
       toast.success('Discount code applied!');
     } else {
       toast.error('Invalid discount code');
