@@ -1,40 +1,42 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { motion } from 'framer-motion';
 import { 
   ShoppingBag, Package, Truck, CreditCard, Check, 
   ArrowLeft, ChevronRight, Loader2, AlertCircle,
-  Shirt, User, MapPin
+  MapPin, Mail, User as UserIcon, Phone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
 
-const SIZES = ['S', 'M', 'L', 'XL', '2XL'];
-const PRODUCT_PRICES = {
-  tshirt: 29.99,
-  hoodie: 49.99,
-};
+// US States for dropdown
+const US_STATES = [
+  'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+  'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+  'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+  'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+  'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
+];
 
 export default function Checkout() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const designId = urlParams.get('designId');
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { cartItems, cartTotal, clearCart } = useCart();
   
   const [step, setStep] = useState(1);
-  const [size, setSize] = useState('M');
-  const [quantity, setQuantity] = useState(1);
   const [customerInfo, setCustomerInfo] = useState({
     name: '',
     email: '',
+    phone: '',
     line1: '',
     line2: '',
     city: '',
@@ -44,17 +46,15 @@ export default function Checkout() {
   });
   const [orderComplete, setOrderComplete] = useState(false);
 
-  // Fetch design
-  const { data: design, isLoading, error } = useQuery({
-    queryKey: ['design', designId],
-    queryFn: async () => {
-      const designs = await base44.entities.Design.filter({ id: designId });
-      return designs[0];
-    },
-    enabled: !!designId,
-  });
+  // Redirect if cart is empty
+  useEffect(() => {
+    if (cartItems.length === 0 && !orderComplete) {
+      toast.error('Your cart is empty');
+      navigate(createPageUrl('Home'));
+    }
+  }, [cartItems, navigate, orderComplete]);
 
-  // Load user data
+  // Load user data if available
   useEffect(() => {
     const loadUser = async () => {
       try {
@@ -71,38 +71,60 @@ export default function Checkout() {
     loadUser();
   }, []);
 
-  // Create order mutation
-  const createOrderMutation = useMutation({
+  // Calculate shipping: $4.75 for first item, $2.50 for each additional
+  const calculateShipping = () => {
+    const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    if (totalItems === 0) return 0;
+    return 4.75 + (totalItems - 1) * 2.50;
+  };
+
+  const shipping = calculateShipping();
+  const total = cartTotal + shipping;
+
+  // Create orders mutation
+  const createOrdersMutation = useMutation({
     mutationFn: async () => {
-      const order = await base44.entities.Order.create({
-        design_id: designId,
-        customer_email: customerInfo.email,
-        customer_name: customerInfo.name,
-        shipping_address: {
-          line1: customerInfo.line1,
-          line2: customerInfo.line2,
-          city: customerInfo.city,
-          state: customerInfo.state,
-          postal_code: customerInfo.postal_code,
-          country: customerInfo.country,
-        },
-        product_type: design?.product_type || 'tshirt',
-        size,
-        quantity,
-        total_amount: (PRODUCT_PRICES[design?.product_type || 'tshirt'] * quantity) + 5.99,
-        status: 'paid',
-      });
+      const orders = [];
+      
+      // Create an order for each cart item
+      for (const item of cartItems) {
+        const price = typeof item.design.price === 'number' 
+          ? item.design.price 
+          : parseFloat(item.design.price || 0);
+          
+        const order = await base44.entities.Order.create({
+          design_id: item.design.id,
+          customer_email: customerInfo.email,
+          customer_name: customerInfo.name,
+          shipping_address: {
+            line1: customerInfo.line1,
+            line2: customerInfo.line2,
+            city: customerInfo.city,
+            state: customerInfo.state,
+            postal_code: customerInfo.postal_code,
+            country: customerInfo.country,
+          },
+          product_type: item.design.product_type || 'tshirt',
+          size: item.size,
+          quantity: item.quantity,
+          total_amount: price * item.quantity,
+          status: 'pending', // Will be 'paid' after Stripe integration
+        });
 
-      // Update design sales count and publish it
-      await base44.entities.Design.update(designId, {
-        sales_count: (design?.sales_count || 0) + quantity,
-        is_published: true,
-      });
+        // Update design sales count and publish it
+        await base44.entities.Design.update(item.design.id, {
+          sales_count: (item.design.sales_count || 0) + item.quantity,
+          is_published: true,
+        });
 
-      return order;
+        orders.push(order);
+      }
+
+      return orders;
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['designs']);
+      clearCart(); // Clear the cart
       setOrderComplete(true);
     },
     onError: (err) => {
@@ -115,38 +137,9 @@ export default function Checkout() {
     setCustomerInfo(prev => ({ ...prev, [field]: value }));
   };
 
-  const canProceedStep2 = size && quantity > 0;
-  const canProceedStep3 = customerInfo.name && customerInfo.email && 
-    customerInfo.line1 && customerInfo.city && 
+  const canProceedStep2 = customerInfo.name && customerInfo.email && 
+    customerInfo.phone && customerInfo.line1 && customerInfo.city && 
     customerInfo.state && customerInfo.postal_code;
-
-  const subtotal = PRODUCT_PRICES[design?.product_type || 'tshirt'] * quantity;
-  const shipping = 5.99;
-  const total = subtotal + shipping;
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-black pt-20 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-red-500" />
-      </div>
-    );
-  }
-
-  if (!design) {
-    return (
-      <div className="min-h-screen bg-black pt-20 flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-white mb-2">Design not found</h2>
-          <Link to={createPageUrl('Community')}>
-            <Button variant="outline" className="mt-4">
-              Browse Designs
-            </Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   if (orderComplete) {
     return (
@@ -165,7 +158,7 @@ export default function Checkout() {
             Your knockout merch is on its way!
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to={createPageUrl('Community')}>
+            <Link to={createPageUrl('Home')}>
               <Button className="bg-red-600 hover:bg-red-700">
                 Browse More Designs
               </Button>
@@ -181,61 +174,110 @@ export default function Checkout() {
     );
   }
 
+  if (cartItems.length === 0) {
+    return null; // Will redirect via useEffect
+  }
+
   return (
     <div className="min-h-screen bg-black pt-20 pb-12 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Back button */}
-        <Link to={createPageUrl('Community')}>
-          <Button variant="ghost" className="text-gray-400 hover:text-white mb-6">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to designs
-          </Button>
-        </Link>
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
 
         <div className="grid lg:grid-cols-2 gap-8">
-          {/* Left - Product preview */}
-          <div>
+          {/* Left - Order Summary (Sticky) */}
+          <div className="lg:order-2">
             <Card className="bg-gray-900 border-gray-800 overflow-hidden sticky top-24">
-              <div className="aspect-square bg-gradient-to-br from-gray-800 to-gray-900 p-8 flex items-center justify-center">
-                {design.mockup_urls?.[0] ? (
-                  <img 
-                    src={design.mockup_urls[0]} 
-                    alt={design.title}
-                    className="w-full h-full object-contain"
-                  />
-                ) : design.design_image_url ? (
-                  <div className="relative w-64 h-80 bg-gray-800 rounded-lg shadow-xl flex items-center justify-center overflow-hidden">
-                    <img 
-                      src={design.design_image_url} 
-                      alt={design.title}
-                      className="w-48 h-48 object-contain"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-64 h-80 bg-gray-800 rounded-lg flex items-center justify-center">
-                    <Shirt className="w-24 h-24 text-gray-600" />
-                  </div>
-                )}
-              </div>
+              <CardHeader className="border-b border-gray-800">
+                <CardTitle className="text-white flex items-center gap-2">
+                  <ShoppingBag className="w-5 h-5 text-red-500" />
+                  Order Summary ({cartItems.reduce((sum, item) => sum + item.quantity, 0)} items)
+                </CardTitle>
+              </CardHeader>
               <CardContent className="p-6">
-                <h2 className="text-xl font-bold text-white mb-2">{design.title}</h2>
-                <div className="flex items-center gap-2 text-gray-400 text-sm">
-                  <Badge variant="outline" className="border-gray-700 capitalize">
-                    {design.product_type || 'T-Shirt'}
-                  </Badge>
-                  {design.creator_name && (
-                    <span>by {design.creator_name}</span>
-                  )}
+                {/* Cart Items */}
+                <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
+                  {cartItems.map((item, index) => {
+                    const price = typeof item.design.price === 'number' 
+                      ? item.design.price 
+                      : parseFloat(item.design.price || 0);
+                    
+                    return (
+                      <div key={`${item.design.id}-${item.size}`} className="flex gap-3 p-3 bg-gray-800/50 rounded-lg">
+                        <div className="w-16 h-16 bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
+                          {item.design.mockup_urls?.[0] ? (
+                            <img 
+                              src={item.design.mockup_urls[0]} 
+                              alt={item.design.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Package className="w-6 h-6 text-gray-600" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-white font-semibold text-sm truncate">{item.design.title}</h4>
+                          <p className="text-gray-400 text-xs capitalize">
+                            {item.design.product_type} • {item.design.selectedColor || 'Black'} • Size {item.size}
+                          </p>
+                          <p className="text-gray-500 text-xs">Qty: {item.quantity}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-white font-bold text-sm">${(price * item.quantity).toFixed(2)}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <Separator className="bg-gray-800 mb-4" />
+
+                {/* Price Breakdown */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-gray-400">
+                    <span>Subtotal</span>
+                    <span>${cartTotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-400">
+                    <div>
+                      <p>Shipping</p>
+                      <p className="text-xs text-gray-500">
+                        ($4.75 first + $2.50 each additional)
+                      </p>
+                    </div>
+                    <span>${shipping.toFixed(2)}</span>
+                  </div>
+                  <Separator className="bg-gray-800" />
+                  <div className="flex justify-between text-white text-2xl font-black pt-2">
+                    <span>Total</span>
+                    <span>${total.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {/* US Shipping Notice */}
+                <div className="mt-4 p-3 bg-blue-600/10 border border-blue-600/30 rounded-lg">
+                  <p className="text-blue-400 text-xs flex items-start gap-2">
+                    <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span>We currently ship within the United States only.</span>
+                  </p>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Right - Checkout flow */}
-          <div className="space-y-6">
+          {/* Right - Checkout Flow */}
+          <div className="lg:order-1 space-y-6">
             {/* Progress indicator */}
             <div className="flex items-center gap-2 mb-8">
-              {[1, 2, 3].map((s) => (
+              {[1, 2].map((s) => (
                 <React.Fragment key={s}>
                   <div 
                     className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-colors ${
@@ -246,110 +288,15 @@ export default function Checkout() {
                   >
                     {step > s ? <Check className="w-4 h-4" /> : s}
                   </div>
-                  {s < 3 && (
+                  {s < 2 && (
                     <div className={`flex-1 h-0.5 ${step > s ? 'bg-red-600' : 'bg-gray-800'}`} />
                   )}
                 </React.Fragment>
               ))}
             </div>
 
-            {/* Step 1: Size & Quantity */}
+            {/* Step 1: Shipping Information */}
             {step === 1 && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-              >
-                <Card className="bg-gray-900 border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Package className="w-5 h-5 text-red-500" />
-                      Select Options
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* Size selection */}
-                    <div>
-                      <Label className="text-gray-400 mb-3 block">Size</Label>
-                      <RadioGroup 
-                        value={size} 
-                        onValueChange={setSize}
-                        className="flex gap-2 flex-wrap"
-                      >
-                        {SIZES.map((s) => (
-                          <Label
-                            key={s}
-                            className={`flex items-center justify-center w-12 h-12 rounded-lg border-2 cursor-pointer transition-all ${
-                              size === s 
-                                ? 'border-red-500 bg-red-500/20 text-white' 
-                                : 'border-gray-700 text-gray-400 hover:border-gray-600'
-                            }`}
-                          >
-                            <RadioGroupItem value={s} className="sr-only" />
-                            {s}
-                          </Label>
-                        ))}
-                      </RadioGroup>
-                    </div>
-
-                    {/* Quantity */}
-                    <div>
-                      <Label className="text-gray-400 mb-3 block">Quantity</Label>
-                      <div className="flex items-center gap-3">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                          className="border-gray-700 text-white"
-                        >
-                          -
-                        </Button>
-                        <span className="text-white text-xl font-bold w-12 text-center">
-                          {quantity}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setQuantity(quantity + 1)}
-                          className="border-gray-700 text-white"
-                        >
-                          +
-                        </Button>
-                      </div>
-                    </div>
-
-                    <Separator className="bg-gray-800" />
-
-                    {/* Price summary */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-gray-400">
-                        <span>Subtotal</span>
-                        <span>${subtotal.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-gray-400">
-                        <span>Shipping</span>
-                        <span>${shipping.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-white text-xl font-bold pt-2">
-                        <span>Total</span>
-                        <span>${total.toFixed(2)}</span>
-                      </div>
-                    </div>
-
-                    <Button
-                      onClick={() => setStep(2)}
-                      disabled={!canProceedStep2}
-                      className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6"
-                    >
-                      Continue to Shipping
-                      <ChevronRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Step 2: Shipping */}
-            {step === 2 && (
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -362,72 +309,154 @@ export default function Checkout() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {/* Contact Info */}
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div>
-                        <Label className="text-gray-400">Full Name</Label>
+                        <Label className="text-gray-400">Full Name *</Label>
                         <Input
                           value={customerInfo.name}
                           onChange={(e) => handleInputChange('name', e.target.value)}
+                          placeholder="John Doe"
                           className="bg-gray-800 border-gray-700 text-white mt-1"
                         />
                       </div>
                       <div>
-                        <Label className="text-gray-400">Email</Label>
+                        <Label className="text-gray-400">Email *</Label>
                         <Input
                           type="email"
                           value={customerInfo.email}
                           onChange={(e) => handleInputChange('email', e.target.value)}
+                          placeholder="john@example.com"
                           className="bg-gray-800 border-gray-700 text-white mt-1"
                         />
                       </div>
                     </div>
-                    
+
                     <div>
-                      <Label className="text-gray-400">Address Line 1</Label>
+                      <Label className="text-gray-400">Phone Number *</Label>
+                      <Input
+                        type="tel"
+                        value={customerInfo.phone}
+                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        placeholder="(555) 123-4567"
+                        className="bg-gray-800 border-gray-700 text-white mt-1"
+                      />
+                    </div>
+                    
+                    <Separator className="bg-gray-800" />
+
+                    {/* Address */}
+                    <div>
+                      <Label className="text-gray-400">Street Address *</Label>
                       <Input
                         value={customerInfo.line1}
                         onChange={(e) => handleInputChange('line1', e.target.value)}
+                        placeholder="123 Main Street"
                         className="bg-gray-800 border-gray-700 text-white mt-1"
                       />
                     </div>
                     
                     <div>
-                      <Label className="text-gray-400">Address Line 2 (Optional)</Label>
+                      <Label className="text-gray-400">Apartment, suite, etc. (Optional)</Label>
                       <Input
                         value={customerInfo.line2}
                         onChange={(e) => handleInputChange('line2', e.target.value)}
+                        placeholder="Apt 4B"
                         className="bg-gray-800 border-gray-700 text-white mt-1"
                       />
                     </div>
                     
                     <div className="grid sm:grid-cols-3 gap-4">
                       <div>
-                        <Label className="text-gray-400">City</Label>
+                        <Label className="text-gray-400">City *</Label>
                         <Input
                           value={customerInfo.city}
                           onChange={(e) => handleInputChange('city', e.target.value)}
+                          placeholder="New York"
                           className="bg-gray-800 border-gray-700 text-white mt-1"
                         />
                       </div>
                       <div>
-                        <Label className="text-gray-400">State</Label>
-                        <Input
+                        <Label className="text-gray-400">State *</Label>
+                        <select
                           value={customerInfo.state}
                           onChange={(e) => handleInputChange('state', e.target.value)}
-                          className="bg-gray-800 border-gray-700 text-white mt-1"
-                        />
+                          className="w-full h-10 px-3 rounded-md bg-gray-800 border border-gray-700 text-white mt-1"
+                        >
+                          <option value="">Select...</option>
+                          {US_STATES.map(state => (
+                            <option key={state} value={state}>{state}</option>
+                          ))}
+                        </select>
                       </div>
                       <div>
-                        <Label className="text-gray-400">ZIP Code</Label>
+                        <Label className="text-gray-400">ZIP Code *</Label>
                         <Input
                           value={customerInfo.postal_code}
                           onChange={(e) => handleInputChange('postal_code', e.target.value)}
+                          placeholder="10001"
                           className="bg-gray-800 border-gray-700 text-white mt-1"
                         />
                       </div>
                     </div>
 
-                    <div className="flex gap-4 pt-4">
+                    <div>
+                      <Label className="text-gray-400">Country</Label>
+                      <Input
+                        value="United States"
+                        disabled
+                        className="bg-gray-800 border-gray-700 text-gray-500 mt-1"
+                      />
+                    </div>
+
+                    <Button
+                      onClick={() => setStep(2)}
+                      disabled={!canProceedStep2}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6 mt-4"
+                    >
+                      Continue to Review
+                      <ChevronRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* Step 2: Review & Complete */}
+            {step === 2 && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+              >
+                <Card className="bg-gray-900 border-gray-800">
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <CreditCard className="w-5 h-5 text-red-500" />
+                      Review Order
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Shipping Details Review */}
+                    <div className="p-4 bg-gray-800/50 rounded-lg">
+                      <div className="flex items-center gap-2 text-gray-400 mb-3">
+                        <MapPin className="w-4 h-4" />
+                        <span className="text-sm font-semibold">Shipping To</span>
+                      </div>
+                      <p className="text-white font-medium">{customerInfo.name}</p>
+                      <p className="text-gray-400 text-sm">{customerInfo.email}</p>
+                      <p className="text-gray-400 text-sm">{customerInfo.phone}</p>
+                      <div className="mt-2 pt-2 border-t border-gray-700">
+                        <p className="text-gray-300 text-sm">
+                          {customerInfo.line1}{customerInfo.line2 && `, ${customerInfo.line2}`}
+                        </p>
+                        <p className="text-gray-300 text-sm">
+                          {customerInfo.city}, {customerInfo.state} {customerInfo.postal_code}
+                        </p>
+                        <p className="text-gray-300 text-sm">United States</p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4">
                       <Button
                         variant="outline"
                         onClick={() => setStep(1)}
@@ -437,106 +466,18 @@ export default function Checkout() {
                         Back
                       </Button>
                       <Button
-                        onClick={() => setStep(3)}
-                        disabled={!canProceedStep3}
-                        className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold"
-                      >
-                        Continue to Payment
-                        <ChevronRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Step 3: Payment */}
-            {step === 3 && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-              >
-                <Card className="bg-gray-900 border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <CreditCard className="w-5 h-5 text-red-500" />
-                      Order Summary
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* Order details */}
-                    <div className="space-y-4">
-                      <div className="flex gap-4 p-4 bg-gray-800/50 rounded-lg">
-                        <div className="w-16 h-16 bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
-                          {design.design_image_url && (
-                            <img 
-                              src={design.design_image_url} 
-                              alt=""
-                              className="w-full h-full object-contain"
-                            />
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-white font-medium">{design.title}</p>
-                          <p className="text-gray-400 text-sm capitalize">
-                            {design.product_type || 'T-Shirt'} • Size {size} • Qty: {quantity}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="p-4 bg-gray-800/50 rounded-lg">
-                        <div className="flex items-center gap-2 text-gray-400 mb-2">
-                          <MapPin className="w-4 h-4" />
-                          <span className="text-sm">Shipping to</span>
-                        </div>
-                        <p className="text-white">{customerInfo.name}</p>
-                        <p className="text-gray-400 text-sm">
-                          {customerInfo.line1}{customerInfo.line2 && `, ${customerInfo.line2}`}<br />
-                          {customerInfo.city}, {customerInfo.state} {customerInfo.postal_code}
-                        </p>
-                      </div>
-                    </div>
-
-                    <Separator className="bg-gray-800" />
-
-                    {/* Price summary */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-gray-400">
-                        <span>Subtotal</span>
-                        <span>${subtotal.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-gray-400">
-                        <span>Shipping</span>
-                        <span>${shipping.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-white text-xl font-bold pt-2">
-                        <span>Total</span>
-                        <span>${total.toFixed(2)}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-4">
-                      <Button
-                        variant="outline"
-                        onClick={() => setStep(2)}
-                        className="flex-1 border-gray-700 text-white"
-                      >
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back
-                      </Button>
-                      <Button
-                        onClick={() => createOrderMutation.mutate()}
-                        disabled={createOrderMutation.isPending}
+                        onClick={() => createOrdersMutation.mutate()}
+                        disabled={createOrdersMutation.isPending}
                         className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-6"
                       >
-                        {createOrderMutation.isPending ? (
+                        {createOrdersMutation.isPending ? (
                           <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                             Processing...
                           </>
                         ) : (
                           <>
-                            <CreditCard className="w-4 h-4 mr-2" />
+                            <Check className="w-4 h-4 mr-2" />
                             Complete Order • ${total.toFixed(2)}
                           </>
                         )}
@@ -544,7 +485,7 @@ export default function Checkout() {
                     </div>
 
                     <p className="text-xs text-gray-500 text-center">
-                      Demo checkout - no real payment will be processed
+                      Demo mode - Stripe payment will be added next
                     </p>
                   </CardContent>
                 </Card>
