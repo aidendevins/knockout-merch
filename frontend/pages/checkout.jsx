@@ -44,6 +44,9 @@ export default function Checkout() {
     postal_code: '',
     country: 'US',
   });
+  const [discountCode, setDiscountCode] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState(null);
+  const [isCheckingDiscount, setIsCheckingDiscount] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
 
   // Redirect if cart is empty
@@ -79,7 +82,15 @@ export default function Checkout() {
   };
 
   const shipping = calculateShipping();
-  const total = cartTotal + shipping;
+  
+  // Calculate discount
+  const discountAmount = appliedDiscount 
+    ? (appliedDiscount.type === 'percentage' 
+        ? (cartTotal * appliedDiscount.value / 100) 
+        : appliedDiscount.value)
+    : 0;
+  
+  const total = cartTotal + shipping - discountAmount;
 
   // Create orders mutation
   const createOrdersMutation = useMutation({
@@ -140,6 +151,43 @@ export default function Checkout() {
   const canProceedStep2 = customerInfo.name && customerInfo.email && 
     customerInfo.phone && customerInfo.line1 && customerInfo.city && 
     customerInfo.state && customerInfo.postal_code;
+
+  // Handle discount code application
+  const handleApplyDiscount = async () => {
+    if (!discountCode.trim()) {
+      toast.error('Please enter a discount code');
+      return;
+    }
+
+    setIsCheckingDiscount(true);
+    
+    // Valid discount codes
+    const validCodes = {
+      'KNOCKOUT10': { type: 'percentage', value: 10, description: '10% off' },
+    };
+
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const code = validCodes[discountCode.toUpperCase()];
+    
+    if (code) {
+      setAppliedDiscount({ ...code, code: discountCode.toUpperCase() });
+      toast.success(`Discount applied: ${code.description}`, {
+        duration: 3000,
+      });
+    } else {
+      toast.error('Invalid discount code');
+    }
+    
+    setIsCheckingDiscount(false);
+  };
+
+  const handleRemoveDiscount = () => {
+    setAppliedDiscount(null);
+    setDiscountCode('');
+    toast.info('Discount removed');
+  };
 
   if (orderComplete) {
     return (
@@ -240,6 +288,50 @@ export default function Checkout() {
 
                 <Separator className="bg-gray-800 mb-4" />
 
+                {/* Discount Code Section */}
+                <div className="mb-4">
+                  <Label className="text-gray-400 mb-2 block">Discount Code</Label>
+                  {appliedDiscount ? (
+                    <div className="flex items-center justify-between p-3 bg-green-600/10 border border-green-600/30 rounded-lg">
+                      <div>
+                        <p className="text-green-400 font-semibold">{appliedDiscount.code}</p>
+                        <p className="text-green-400/70 text-xs">{appliedDiscount.description}</p>
+                      </div>
+                      <button
+                        onClick={handleRemoveDiscount}
+                        className="text-gray-400 hover:text-white text-sm underline"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        value={discountCode}
+                        onChange={(e) => setDiscountCode(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleApplyDiscount()}
+                        placeholder="Enter code"
+                        className="bg-gray-800 border-gray-700 text-white uppercase"
+                        disabled={isCheckingDiscount}
+                      />
+                      <Button
+                        onClick={handleApplyDiscount}
+                        disabled={isCheckingDiscount || !discountCode.trim()}
+                        variant="outline"
+                        className="border-gray-700 text-white hover:bg-gray-800 whitespace-nowrap"
+                      >
+                        {isCheckingDiscount ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          'Apply'
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <Separator className="bg-gray-800 mb-4" />
+
                 {/* Price Breakdown */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-gray-400">
@@ -255,6 +347,12 @@ export default function Checkout() {
                     </div>
                     <span>${shipping.toFixed(2)}</span>
                   </div>
+                  {appliedDiscount && (
+                    <div className="flex justify-between text-green-400">
+                      <span>Discount ({appliedDiscount.code})</span>
+                      <span>-${discountAmount.toFixed(2)}</span>
+                    </div>
+                  )}
                   <Separator className="bg-gray-800" />
                   <div className="flex justify-between text-white text-2xl font-black pt-2">
                     <span>Total</span>
