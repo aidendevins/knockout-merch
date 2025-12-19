@@ -42,16 +42,21 @@ async function uploadBuffer(buffer, filename, folder = 'uploads', contentType = 
 
   const key = generateKey(filename, folder);
   
+  // Upload without ACL (bucket policies handle public access)
+  // Modern S3 buckets often have ACLs disabled for security
   await s3Client.send(new PutObjectCommand({
     Bucket: BUCKET_NAME,
     Key: key,
     Body: buffer,
     ContentType: contentType,
-    // Make publicly readable
-    ACL: 'public-read',
+    // Don't set ACL - let bucket policy handle access
+    // If bucket is public, objects will be accessible
+    // If bucket is private, use presigned URLs instead
   }));
 
-  // Return the public URL
+  // Check if bucket allows public access
+  // If not, we'll need to use presigned URLs
+  // For now, return the public URL (will work if bucket policy allows public read)
   const url = `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${key}`;
   
   return { url, key };

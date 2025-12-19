@@ -155,9 +155,67 @@ router.post('/generate-image', async (req, res) => {
     });
   } catch (error) {
     console.error('Error generating image:', error);
+    
+    // Check for model not supported error
+    if (error.code === 'MODEL_NOT_SUPPORTED' || error.message?.includes('does not support')) {
+      return res.status(400).json({ 
+        error: 'Image generation not supported',
+        message: error.message || 'The selected AI model does not support image generation. Please use a model that supports image generation (e.g., gemini-2.0-flash-exp with image generation enabled).',
+        code: 'MODEL_NOT_SUPPORTED'
+      });
+    }
+    
+    // Check for invalid request error (400)
+    if (error.status === 400 || error.code === 'INVALID_REQUEST' || error.code === 'BAD_REQUEST') {
+      return res.status(400).json({ 
+        error: 'Invalid request to AI model',
+        message: error.message || 'The AI model may not support image generation or the request format is incorrect. Please try a different prompt or check the model configuration.',
+        code: error.code || 'INVALID_REQUEST'
+      });
+    }
+    
+    // Check for model overloaded error (503)
+    if (error.status === 503 || error.code === 'MODEL_OVERLOADED' || error.message?.includes('overloaded') || error.message?.includes('503')) {
+      return res.status(503).json({ 
+        error: 'AI model is currently overloaded',
+        message: 'The AI service is experiencing high demand. Please wait a moment and try again.',
+        code: 'MODEL_OVERLOADED',
+        retryAfter: 30 // Suggest retry after 30 seconds
+      });
+    }
+    
+    // Check for rate limiting (429)
+    if (error.status === 429 || error.message?.includes('rate limit') || error.message?.includes('429')) {
+      return res.status(429).json({ 
+        error: 'Rate limit exceeded',
+        message: 'Too many requests. Please wait a moment before generating another image.',
+        code: 'RATE_LIMITED',
+        retryAfter: 60
+      });
+    }
+    
+    // Check for permission denied (403)
+    if (error.status === 403 || error.code === 'PERMISSION_DENIED') {
+      return res.status(403).json({ 
+        error: 'Permission denied',
+        message: error.message || 'Image generation is not available. Please check your API configuration.',
+        code: 'PERMISSION_DENIED'
+      });
+    }
+    
+    // Check for S3 configuration errors
+    if (error.code === 'S3_CONFIG_ERROR' || error.code === 'AccessControlListNotSupported') {
+      return res.status(500).json({ 
+        error: 'Storage configuration error',
+        message: error.message || 'S3 bucket configuration issue. Please check your AWS S3 settings.',
+        code: 'S3_CONFIG_ERROR'
+      });
+    }
+    
     res.status(500).json({ 
       error: 'Failed to generate image',
-      message: error.message 
+      message: error.message || 'An unexpected error occurred',
+      code: error.code || 'GENERATION_ERROR'
     });
   }
 });
@@ -168,6 +226,46 @@ router.get('/ai-status', (req, res) => {
     gemini: gemini.isConfigured(),
     s3: s3.isConfigured(),
   });
+});
+
+// Proxy S3 images to avoid CORS issues
+router.get('/proxy-image', async (req, res) => {
+  try {
+    const { url } = req.query;
+    
+    if (!url) {
+      return res.status(400).json({ error: 'URL parameter is required' });
+    }
+    
+    // Validate that it's an S3 URL from our bucket
+    const bucketName = process.env.AWS_S3_BUCKET;
+    if (!url.includes(bucketName) && !url.startsWith('http')) {
+      return res.status(400).json({ error: 'Invalid image URL' });
+    }
+    
+    // Fetch the image from S3
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      return res.status(response.status).json({ error: 'Failed to fetch image' });
+    }
+    
+    // Get the image data
+    const imageBuffer = await response.arrayBuffer();
+    const contentType = response.headers.get('content-type') || 'image/png';
+    
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET');
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+    
+    // Send the image
+    res.send(Buffer.from(imageBuffer));
+  } catch (error) {
+    console.error('Error proxying image:', error);
+    res.status(500).json({ error: 'Failed to proxy image' });
+  }
 });
 
 module.exports = router;

@@ -53,8 +53,30 @@ export default function AIPanel({
         onImageGenerated(result.url);
       }
     } catch (err) {
-      setError('Failed to generate image. Please try again.');
-      console.error(err);
+      console.error('Generation error:', err);
+      
+      // Check for specific error codes/messages/status
+      const errorMessage = err.message?.toLowerCase() || '';
+      const errorCode = err.code;
+      const errorStatus = err.status;
+      
+      if (errorCode === 'S3_CONFIG_ERROR' || errorMessage.includes('does not allow ACLs') || errorMessage.includes('S3 bucket')) {
+        setError('☁️ Storage configuration error. Please contact support to fix the S3 bucket settings.');
+      } else if (errorCode === 'MODEL_NOT_SUPPORTED' || errorMessage.includes('does not support')) {
+        setError('🚫 Image generation is not supported by the current AI model. Please contact support to enable image generation capabilities.');
+      } else if (errorCode === 'INVALID_REQUEST' || errorCode === 'BAD_REQUEST' || errorStatus === 400) {
+        setError('⚠️ Invalid request. The AI model may not support this type of image generation. Please try a different prompt or contact support.');
+      } else if (errorCode === 'MODEL_OVERLOADED' || errorStatus === 503 || errorMessage.includes('overloaded')) {
+        setError('🔥 AI model is overloaded due to high demand. Please wait 30 seconds and try again.');
+      } else if (errorCode === 'RATE_LIMITED' || errorStatus === 429 || errorMessage.includes('rate limit')) {
+        setError('⏳ Too many requests. Please wait a minute before generating another image.');
+      } else if (errorCode === 'PERMISSION_DENIED' || errorStatus === 403) {
+        setError('🔒 Image generation is not available. Please check your API configuration.');
+      } else if (errorCode === 'NETWORK_ERROR' || errorMessage.includes('network') || errorMessage.includes('connect')) {
+        setError('📡 Network error. Please check your connection and try again.');
+      } else {
+        setError('Failed to generate image. Please try again.');
+      }
     } finally {
       setIsGenerating(false);
     }

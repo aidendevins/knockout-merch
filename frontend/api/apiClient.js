@@ -1,4 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+// Ensure API base URL always ends with /api
+const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
 
 // Helper function for API calls
 async function apiCall(endpoint, options = {}) {
@@ -20,8 +22,13 @@ async function apiCall(endpoint, options = {}) {
     const response = await fetch(url, config);
     
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Request failed' }));
-      throw new Error(error.error || error.message || `HTTP error! status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
+      // Create an error with additional properties for better error handling
+      const error = new Error(errorData.error || errorData.message || `HTTP error! status: ${response.status}`);
+      error.code = errorData.code;
+      error.status = response.status;
+      error.retryAfter = errorData.retryAfter;
+      throw error;
     }
     
     return response.json();
@@ -29,7 +36,9 @@ async function apiCall(endpoint, options = {}) {
     // Handle network errors (like connection refused)
     if (error instanceof TypeError && error.message.includes('fetch')) {
       console.warn('Backend connection failed:', error.message);
-      throw new Error('Cannot connect to backend server. Please make sure it is running.');
+      const networkError = new Error('Cannot connect to backend server. Please make sure it is running.');
+      networkError.code = 'NETWORK_ERROR';
+      throw networkError;
     }
     throw error;
   }
