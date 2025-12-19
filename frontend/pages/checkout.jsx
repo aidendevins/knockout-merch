@@ -32,7 +32,7 @@ const US_STATES = [
 
 export default function Checkout() {
   const navigate = useNavigate();
-  const { cartItems, totalPrice, clearCart } = useCart();
+  const { cartItems, cartTotal, clearCart } = useCart();
   
   const [step, setStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -54,7 +54,7 @@ export default function Checkout() {
   // Debug logs
   console.log('Checkout mounted');
   console.log('Cart items:', cartItems);
-  console.log('Total price:', totalPrice);
+  console.log('Total price:', cartTotal);
   console.log('Stripe key:', import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ? 'Set' : 'Missing');
 
   // Redirect if cart is empty
@@ -78,11 +78,11 @@ export default function Checkout() {
   // Calculate discount
   const discountAmount = appliedDiscount 
     ? (appliedDiscount.type === 'percentage' 
-        ? totalPrice * appliedDiscount.value 
+        ? cartTotal * appliedDiscount.value 
         : appliedDiscount.value)
     : 0;
   
-  const total = totalPrice + shipping - discountAmount;
+  const total = cartTotal + shipping - discountAmount;
 
   // Apply discount code
   const applyDiscount = () => {
@@ -100,7 +100,7 @@ export default function Checkout() {
       'TEST99': {
         code: 'TEST99',
         type: 'fixed',
-        value: totalPrice + shipping - 1.00, // Makes total = $1
+        value: cartTotal + shipping - 1.00, // Makes total = $1
         description: 'Test discount - $1 total'
       }
     };
@@ -199,18 +199,18 @@ export default function Checkout() {
             <div className={`flex items-center gap-2 ${step >= 1 ? 'text-red-500' : 'text-gray-600'}`}>
               <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${step >= 1 ? 'bg-red-500 text-white' : 'bg-gray-800 text-gray-400'}`}>
                 {step > 1 ? <Check className="w-5 h-5" /> : '1'}
-              </div>
+                  </div>
               <span className="hidden sm:inline font-semibold">Shipping</span>
-            </div>
+                  </div>
             <ChevronRight className="text-gray-600" />
             <div className={`flex items-center gap-2 ${step >= 2 ? 'text-red-500' : 'text-gray-600'}`}>
               <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${step >= 2 ? 'bg-red-500 text-white' : 'bg-gray-800 text-gray-400'}`}>
                 2
               </div>
               <span className="hidden sm:inline font-semibold">Payment</span>
-            </div>
+                </div>
           </div>
-        </div>
+            </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Left Column: Forms */}
@@ -281,7 +281,7 @@ export default function Checkout() {
                         required
                       />
                     </div>
-
+                    
                     <div>
                       <Label htmlFor="line2" className="text-gray-400">Apartment, suite, etc.</Label>
                       <Input
@@ -293,7 +293,7 @@ export default function Checkout() {
                         className="bg-gray-800 border-gray-700 text-white"
                       />
                     </div>
-
+                    
                     <div className="grid md:grid-cols-3 gap-4">
                       <div>
                         <Label htmlFor="city" className="text-gray-400">City *</Label>
@@ -337,13 +337,13 @@ export default function Checkout() {
                       </div>
                     </div>
 
-                    <Button
+                      <Button
                       onClick={() => setStep(2)}
                       className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6"
-                    >
-                      Continue to Payment
+                      >
+                        Continue to Payment
                       <ChevronRight className="w-5 h-5 ml-2" />
-                    </Button>
+                      </Button>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -364,7 +364,7 @@ export default function Checkout() {
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {/* Shipping Address Review */}
-                    <div>
+                        <div>
                       <h3 className="text-white font-semibold mb-2">Shipping Address</h3>
                       <div className="text-gray-400 text-sm space-y-1">
                         <p>{customerInfo.name}</p>
@@ -400,16 +400,16 @@ export default function Checkout() {
                               <p className="text-gray-400 text-xs capitalize">
                                 {item.productType} • {item.color} • {item.size} • Qty: {item.quantity}
                               </p>
-                            </div>
+                      </div>
                             <p className="text-white font-bold">
                               ${(parseFloat(item.design.price) * item.quantity).toFixed(2)}
                             </p>
-                          </div>
+                      </div>
                         ))}
                       </div>
                     </div>
 
-                    <Button
+                      <Button
                       onClick={handleCheckout}
                       disabled={isProcessing}
                       className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6 text-lg"
@@ -417,15 +417,15 @@ export default function Checkout() {
                       {isProcessing ? (
                         <>
                           <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
+                            Processing...
+                          </>
+                        ) : (
+                          <>
                           <CreditCard className="w-5 h-5 mr-2" />
                           Pay ${total.toFixed(2)}
-                        </>
-                      )}
-                    </Button>
+                          </>
+                        )}
+                      </Button>
 
                     <p className="text-gray-500 text-xs text-center">
                       Secure payment powered by Stripe
@@ -446,7 +446,7 @@ export default function Checkout() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-gray-400">
                     <span>Subtotal</span>
-                    <span>${totalPrice.toFixed(2)}</span>
+                    <span>${cartTotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-gray-400">
                     <span>Shipping</span>
