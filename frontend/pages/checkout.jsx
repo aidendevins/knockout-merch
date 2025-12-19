@@ -106,8 +106,8 @@ export default function Checkout() {
       'FREE': {
         code: 'FREE',
         type: 'fixed',
-        value: cartTotal + shipping - 0.50, // Makes total = $0.50 (Stripe minimum)
-        description: 'Free order - $0.50 minimum charge'
+        value: cartTotal + shipping, // Makes total = $0.00 (completely free)
+        description: 'Free order - no payment required'
       }
     };
     
@@ -139,7 +139,34 @@ export default function Checkout() {
     setIsProcessing(true);
 
     try {
-      // Create checkout session
+      // If FREE discount code, bypass Stripe and create order directly
+      if (appliedDiscount?.code === 'FREE') {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/orders/free`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            cartItems,
+            shippingInfo: customerInfo,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.error) {
+          toast.error(result.error);
+          setIsProcessing(false);
+          return;
+        }
+
+        // Clear cart and redirect to success page
+        clearCart();
+        navigate('/checkout/success?session_id=free-order');
+        return;
+      }
+
+      // Regular Stripe checkout
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/stripe/create-checkout-session`, {
         method: 'POST',
         headers: {
@@ -420,6 +447,11 @@ export default function Checkout() {
                         <>
                           <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                             Processing...
+                          </>
+                        ) : appliedDiscount?.code === 'FREE' ? (
+                          <>
+                          <Check className="w-5 h-5 mr-2" />
+                          Complete Free Order
                           </>
                         ) : (
                           <>

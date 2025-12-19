@@ -147,6 +147,74 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// Create free order (bypasses Stripe payment)
+router.post('/free', async (req, res) => {
+  try {
+    const { cartItems, shippingInfo } = req.body;
+
+    if (!cartItems || cartItems.length === 0) {
+      return res.status(400).json({ error: 'Cart is empty' });
+    }
+
+    if (!shippingInfo || !shippingInfo.email) {
+      return res.status(400).json({ error: 'Shipping information is required' });
+    }
+
+    const orders = [];
+
+    // Create an order for each cart item
+    for (const item of cartItems) {
+      const result = await db.get(
+        `INSERT INTO orders (
+          customer_email, customer_name, shipping_address,
+          quantity, total_price, payment_status, stripe_session_id,
+          product_type, size, color, design_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        RETURNING *`,
+        [
+          shippingInfo.email,
+          shippingInfo.name || null,
+          JSON.stringify({
+            line1: shippingInfo.line1,
+            line2: shippingInfo.line2,
+            city: shippingInfo.city,
+            state: shippingInfo.state,
+            postal_code: shippingInfo.postal_code,
+            country: shippingInfo.country || 'US',
+          }),
+          item.quantity,
+          '0.00', // Free order
+          'paid', // Mark as paid since it's free
+          'free-order',
+          item.productType || 'tshirt',
+          item.size || 'M',
+          item.color || 'Black',
+          item.design?.id || null,
+        ]
+      );
+
+      orders.push(result);
+
+      // Update sales count if design_id exists
+      if (item.design?.id) {
+        await db.query(
+          `UPDATE designs SET sales_count = sales_count + $1 WHERE id = $2`,
+          [item.quantity, item.design.id]
+        );
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      orders,
+      message: `Successfully created ${orders.length} free order(s)`
+    });
+  } catch (error) {
+    console.error('Error creating free order:', error);
+    res.status(500).json({ error: 'Failed to create free order', details: error.message });
+  }
+});
+
 // Delete order
 router.delete('/:id', async (req, res) => {
   try {
