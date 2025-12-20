@@ -35,7 +35,7 @@ export default function DesignCard({ design, index = 0 }) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Link to={createPageUrl('Product', `id=${design.id}`)}>
+      <Link to={`/product/${design.id}`}>
         <div className="relative bg-gray-900 rounded-xl overflow-hidden border border-gray-800 hover:border-red-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-red-500/10">
           {/* Product preview */}
           <div className="aspect-square bg-gradient-to-br from-gray-800 to-gray-900 p-6 flex items-center justify-center">

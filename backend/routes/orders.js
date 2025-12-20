@@ -17,6 +17,8 @@ router.get('/', async (req, res) => {
       ...row,
       shipping_address: row.shipping_address || {},
       created_date: row.created_at,
+      payment_status: row.status, // Map status to payment_status for frontend
+      total_price: row.total_amount, // Map total_amount to total_price for frontend
     }));
     
     res.json(orders);
@@ -38,6 +40,8 @@ router.get('/:id', async (req, res) => {
       ...row,
       shipping_address: row.shipping_address || {},
       created_date: row.created_at,
+      payment_status: row.status, // Map status to payment_status for frontend
+      total_price: row.total_amount, // Map total_amount to total_price for frontend
     });
   } catch (error) {
     console.error('Error fetching order:', error);
@@ -144,6 +148,93 @@ router.put('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error updating order:', error);
     res.status(500).json({ error: 'Failed to update order' });
+  }
+});
+
+// Create free order (bypasses Stripe payment)
+router.post('/free', async (req, res) => {
+  try {
+    const { cartItems, shippingInfo } = req.body;
+
+    if (!cartItems || cartItems.length === 0) {
+      return res.status(400).json({ error: 'Cart is empty' });
+    }
+
+    if (!shippingInfo || !shippingInfo.email) {
+      return res.status(400).json({ error: 'Shipping information is required' });
+    }
+
+    const orders = [];
+
+    // Create an order for each cart item
+    for (const item of cartItems) {
+      // Extract design info - handle different cart item structures
+      const designId = item.design?.id || item.design_id;
+      
+      // design_id is REQUIRED - if missing, skip this item
+      if (!designId) {
+        console.warn('Skipping cart item without design_id:', item);
+        continue;
+      }
+      
+      const productType = item.productType || item.product_type || item.design?.product_type || 'tshirt';
+      const size = item.size || 'M';
+      const quantity = item.quantity || 1;
+
+      const result = await db.get(
+        `INSERT INTO orders (
+          design_id, customer_email, customer_name, shipping_address,
+          quantity, total_amount, status, stripe_session_id,
+          product_type, size
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING *`,
+        [
+          designId, // REQUIRED - cannot be null
+          shippingInfo.email,
+          shippingInfo.name || null,
+          JSON.stringify({
+            line1: shippingInfo.line1,
+            line2: shippingInfo.line2,
+            city: shippingInfo.city,
+            state: shippingInfo.state,
+            postal_code: shippingInfo.postal_code,
+            country: shippingInfo.country || 'US',
+          }),
+          quantity,
+          0.00, // Free order (use number, not string)
+          'paid', // Mark as paid since it's free
+          'free-order',
+          productType,
+          size,
+        ]
+      );
+
+      // Map for frontend compatibility
+      orders.push({
+        ...result,
+        payment_status: result.status,
+        total_price: result.total_amount,
+      });
+
+      // Update sales count if design_id exists
+      if (designId) {
+        await db.query(
+          `UPDATE designs SET sales_count = sales_count + $1 WHERE id = $2`,
+          [quantity, designId]
+        );
+      }
+    }
+
+    console.log('✅ Successfully created', orders.length, 'free order(s)');
+    res.json({ 
+      success: true, 
+      orders,
+      message: `Successfully created ${orders.length} free order(s)`
+    });
+  } catch (error) {
+    console.error('❌ Error creating free order:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ error: 'Failed to create free order', details: error.message });
   }
 });
 
