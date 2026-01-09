@@ -41,7 +41,26 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Middleware
+// CRITICAL: Stripe webhook MUST be registered BEFORE express.json() middleware
+// because it needs the raw request body for signature verification
+// The raw body parser is essential for Stripe signature verification
+const handleStripeWebhook = require('./routes/stripe-webhook');
+
+// Register webhook route BEFORE express.json() middleware with raw body parser
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
+
+// Test endpoint to verify webhook route is accessible (for debugging)
+app.get('/api/stripe/webhook-test', (req, res) => {
+  res.json({ 
+    message: 'Webhook route is accessible',
+    timestamp: new Date().toISOString(),
+    webhook_secret_configured: !!process.env.STRIPE_WEBHOOK_SECRET,
+    webhook_secret_length: process.env.STRIPE_WEBHOOK_SECRET?.length || 0,
+    note: 'This endpoint verifies the webhook route is registered. The actual webhook endpoint is POST /api/stripe/webhook'
+  });
+});
+
+// Middleware (applied AFTER webhook route to preserve raw body for webhook)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
