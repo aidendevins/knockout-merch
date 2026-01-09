@@ -237,8 +237,9 @@ async function handleStripeWebhook(req, res) {
         console.log(`   Printify Product ID: ${design.printify_product_id || 'N/A'}`);
         
         // Get customer info
-        const customerEmail = session.customer_details?.email || session.metadata?.shipping_email;
-        const customerName = session.customer_details?.name || session.metadata?.shipping_name || 'Test Devins';
+        // Prioritize metadata (form data) over customer_details (saved payment method data)
+        const customerEmail = session.metadata?.shipping_email || session.customer_details?.email;
+        const customerName = session.metadata?.shipping_name || session.customer_details?.name || 'Test Devins';
         
         // Build shipping address from metadata (preferred) or Stripe's shipping_details (fallback)
         const shippingAddress = session.metadata?.shipping_line1 ? {
