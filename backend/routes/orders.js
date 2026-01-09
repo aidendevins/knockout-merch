@@ -29,6 +29,17 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Diagnostic endpoint to check email configuration (must be before /:id route)
+router.get('/email-status', (req, res) => {
+  res.json({
+    resend_configured: email.isConfigured(),
+    resend_api_key_present: !!process.env.RESEND_API_KEY,
+    resend_api_key_length: process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.length : 0,
+    test_domain_restriction: 'onboarding@resend.dev can only send to p.a.devins@gmail.com',
+    recommendation: 'For testing, use p.a.devins@gmail.com as the email address, or verify a custom domain in Resend',
+  });
+});
+
 // Get single order
 router.get('/:id', async (req, res) => {
   try {
@@ -271,17 +282,6 @@ router.post('/free', async (req, res) => {
     console.error('Error stack:', error.stack);
     res.status(500).json({ error: 'Failed to create free order', details: error.message });
   }
-});
-
-// Diagnostic endpoint to check email configuration
-router.get('/email-status', (req, res) => {
-  res.json({
-    resend_configured: email.isConfigured(),
-    resend_api_key_present: !!process.env.RESEND_API_KEY,
-    resend_api_key_length: process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.length : 0,
-    test_domain_restriction: 'onboarding@resend.dev can only send to p.a.devins@gmail.com',
-    recommendation: 'For testing, use p.a.devins@gmail.com as the email address, or verify a custom domain in Resend',
-  });
 });
 
 // Delete order
