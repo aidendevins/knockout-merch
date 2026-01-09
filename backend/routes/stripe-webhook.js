@@ -237,10 +237,21 @@ async function handleStripeWebhook(req, res) {
         console.log(`   Printify Product ID: ${design.printify_product_id || 'N/A'}`);
         
         // Get customer info
-        const customerEmail = session.customer_details?.email || shippingDetails?.email;
-        const customerName = session.customer_details?.name || shippingDetails?.name || 'Test Devins';
+        const customerEmail = session.customer_details?.email || session.metadata?.shipping_email;
+        const customerName = session.customer_details?.name || session.metadata?.shipping_name || 'Test Devins';
+        
+        // Build shipping address from metadata (preferred) or Stripe's shipping_details (fallback)
+        const shippingAddress = session.metadata?.shipping_line1 ? {
+          line1: session.metadata.shipping_line1,
+          line2: session.metadata.shipping_line2 || '',
+          city: session.metadata.shipping_city,
+          state: session.metadata.shipping_state,
+          postal_code: session.metadata.shipping_postal_code,
+          country: session.metadata.shipping_country || 'US',
+        } : (shippingDetails?.address || {});
         
         console.log(`   Customer: ${customerName} (${customerEmail})`);
+        console.log(`   Shipping: ${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.postal_code}`);
         
         // Create order in database with status 'paid' - payment has been verified above
         try {
@@ -255,7 +266,7 @@ async function handleStripeWebhook(req, res) {
               designId,
               customerEmail,
               customerName,
-              JSON.stringify(shippingDetails?.address || {}),
+              JSON.stringify(shippingAddress),
               item.quantity,
               parseFloat(pricePerItem),
               'paid', // Status is 'paid' because payment was verified above
@@ -308,7 +319,7 @@ async function handleStripeWebhook(req, res) {
             `UPDATE orders SET status = 'needs_fulfillment' WHERE id = $1`,
             [orderId]
           );
-        } else if (!shippingDetails?.address) {
+        } else if (!shippingAddress?.line1) {
           console.warn(`\n⚠️ ORDER ${orderId} CANNOT BE SENT TO PRINTIFY`);
           console.warn(`   Missing shipping address`);
           await db.query(
@@ -321,9 +332,6 @@ async function handleStripeWebhook(req, res) {
             console.log(`   Design: ${design.title} (${designId})`);
             console.log(`   Printify Product ID: ${design.printify_product_id}`);
             
-            const customerName = session.customer_details?.name || shippingDetails?.name || '';
-            const customerEmail = session.customer_details?.email || shippingDetails?.email || '';
-            
             const printifyOrder = await printify.createOrder({
               productId: design.printify_product_id,
               variantId: printify.getVariantId(productType, size),
@@ -332,12 +340,12 @@ async function handleStripeWebhook(req, res) {
                 name: customerName,
                 email: customerEmail,
                 phone: session.customer_details?.phone || '',
-                line1: shippingDetails.address?.line1 || shippingDetails.address?.street,
-                line2: shippingDetails.address?.line2 || '',
-                city: shippingDetails.address?.city || '',
-                state: shippingDetails.address?.state || '',
-                postal_code: shippingDetails.address?.postal_code || shippingDetails.address?.zip || '',
-                country: shippingDetails.address?.country || 'US',
+                line1: shippingAddress.line1,
+                line2: shippingAddress.line2 || '',
+                city: shippingAddress.city,
+                state: shippingAddress.state,
+                postal_code: shippingAddress.postal_code,
+                country: shippingAddress.country || 'US',
               },
               externalId: orderId,
             });

@@ -85,6 +85,12 @@ router.post('/create-checkout-session', async (req, res) => {
       metadata: {
         shipping_name: shippingInfo.name,
         shipping_email: shippingInfo.email,
+        shipping_line1: shippingInfo.line1,
+        shipping_line2: shippingInfo.line2 || '',
+        shipping_city: shippingInfo.city,
+        shipping_state: shippingInfo.state,
+        shipping_postal_code: shippingInfo.postal_code,
+        shipping_country: shippingInfo.country || 'US',
         order_count: cartItems.length.toString(),
         discount_code: discountCode || 'none',
         design_ids: cartItems.map(item => item.design?.id || '').filter(Boolean).join(','), // Comma-separated design IDs
