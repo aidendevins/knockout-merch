@@ -5,6 +5,9 @@ let resend = null;
 function getResendClient() {
   if (!resend && process.env.RESEND_API_KEY) {
     resend = new Resend(process.env.RESEND_API_KEY);
+    console.log('✅ Resend client initialized successfully');
+  } else if (!process.env.RESEND_API_KEY) {
+    console.warn('⚠️ RESEND_API_KEY environment variable is not set');
   }
   return resend;
 }
@@ -25,11 +28,16 @@ async function sendOrderConfirmation({
     // Check if Resend is configured
     const client = getResendClient();
     if (!client) {
-      console.log('ℹ️ Resend not configured - skipping email');
+      console.log('❌ Resend not configured - skipping email');
+      console.log('   RESEND_API_KEY present:', !!process.env.RESEND_API_KEY);
+      console.log('   To enable emails: Set RESEND_API_KEY in Railway environment variables');
       return null;
     }
     
-    console.log(`📧 Sending order confirmation email to ${customerEmail}...`);
+    console.log(`📧 Attempting to send order confirmation email...`);
+    console.log(`   To: ${customerEmail}`);
+    console.log(`   Order ID: ${orderId}`);
+    console.log(`   ⚠️  IMPORTANT: onboarding@resend.dev test domain can only send to p.a.devins@gmail.com`);
     
     // Build order items HTML
     const itemsHtml = orderItems.map(item => `
@@ -171,14 +179,22 @@ async function sendOrderConfirmation({
     });
 
     if (error) {
-      console.error('❌ Failed to send order confirmation email:', error);
+      console.error('❌ Failed to send order confirmation email via Resend API');
+      console.error('   Error details:', JSON.stringify(error, null, 2));
+      console.error('   Recipient email:', customerEmail);
+      console.error('   ⚠️  Reminder: Test domain can only send to p.a.devins@gmail.com');
       throw error;
     }
 
-    console.log('✅ Order confirmation email sent successfully:', data);
+    console.log('✅ Order confirmation email sent successfully!');
+    console.log('   Email ID:', data?.id);
+    console.log('   Sent to:', customerEmail);
     return data;
   } catch (error) {
-    console.error('❌ Error sending order confirmation email:', error);
+    console.error('❌ Exception occurred while sending email');
+    console.error('   Error message:', error.message);
+    console.error('   Error stack:', error.stack);
+    console.error('   Customer email:', customerEmail);
     // Don't throw - we don't want email failures to break order creation
     return null;
   }
