@@ -222,8 +222,13 @@ export default function AdminOrders() {
                             </span>
                             <span className="text-gray-500 text-xs flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
-                              {new Date(order.created_at || order.created_date).toLocaleDateString()}
+                              {new Date(order.created_at || order.created_date).toLocaleDateString()} at {new Date(order.created_at || order.created_date).toLocaleTimeString()}
                             </span>
+                            {order.stripe_session_id && (
+                              <span className="text-gray-600 text-xs font-mono bg-gray-800 px-2 py-0.5 rounded">
+                                {order.stripe_session_id.slice(0, 20)}...
+                              </span>
+                            )}
                           </div>
 
                           <div className="grid sm:grid-cols-2 gap-2 text-sm">

@@ -178,6 +178,30 @@ async function handleStripeWebhook(req, res) {
         console.log(`📊 Splitting $${totalPaid} across ${itemCount} item(s): $${pricePerItem} per item`);
       }
 
+      // Check for duplicate orders using stripe_session_id (idempotency)
+      console.log('\n🔍 Checking for existing orders with this session...');
+      const existingOrders = await db.query(
+        `SELECT id, status, created_at FROM orders WHERE stripe_session_id = $1`,
+        [session.id]
+      );
+      
+      if (existingOrders.rows && existingOrders.rows.length > 0) {
+        console.log(`⚠️ DUPLICATE WEBHOOK - Orders already exist for session ${session.id}`);
+        console.log(`   Found ${existingOrders.rows.length} existing order(s):`);
+        existingOrders.rows.forEach(order => {
+          console.log(`   - Order ID: ${order.id}, Status: ${order.status}, Created: ${order.created_at}`);
+        });
+        console.log('   Skipping order creation and returning success to prevent duplicates');
+        return res.json({ 
+          received: true, 
+          event: event.type,
+          message: 'Orders already exist for this session (duplicate webhook)',
+          existingOrderIds: existingOrders.rows.map(o => o.id)
+        });
+      }
+      
+      console.log('✅ No existing orders found - proceeding with order creation');
+      
       // Create orders in database for each item (excluding shipping)
       let ordersCreated = 0;
       const orderIds = [];
