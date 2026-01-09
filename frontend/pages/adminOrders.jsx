@@ -265,9 +265,16 @@ export default function AdminOrders() {
                             size="icon"
                             className="border-gray-700 hover:bg-gray-700"
                             onClick={() => {
-                              // View order details (could open a modal)
-                              console.log('Order details:', order);
+                              // Open Stripe payment in new tab if available
+                              if (order.stripe_payment_id) {
+                                window.open(`https://dashboard.stripe.com/payments/${order.stripe_payment_id}`, '_blank');
+                              } else if (order.stripe_session_id) {
+                                window.open(`https://dashboard.stripe.com/payments/${order.stripe_session_id}`, '_blank');
+                              } else {
+                                console.log('Order details:', order);
+                              }
                             }}
+                            title={order.stripe_payment_id || order.stripe_session_id ? "View in Stripe" : "View details"}
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
