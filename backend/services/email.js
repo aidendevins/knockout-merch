@@ -1,6 +1,13 @@
 const { Resend } = require('resend');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend only if API key is available
+let resend = null;
+function getResendClient() {
+  if (!resend && process.env.RESEND_API_KEY) {
+    resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resend;
+}
 
 /**
  * Send order confirmation email to customer
@@ -15,6 +22,13 @@ async function sendOrderConfirmation({
   discountCode 
 }) {
   try {
+    // Check if Resend is configured
+    const client = getResendClient();
+    if (!client) {
+      console.log('ℹ️ Resend not configured - skipping email');
+      return null;
+    }
+    
     console.log(`📧 Sending order confirmation email to ${customerEmail}...`);
     
     // Build order items HTML
@@ -149,7 +163,7 @@ async function sendOrderConfirmation({
 </html>
     `;
 
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await client.emails.send({
       from: 'Knockout Club <onboarding@resend.dev>', // Change this once domain is verified
       to: [customerEmail],
       subject: `Order Confirmation #${orderId.slice(-8)} - Knockout Club`,
