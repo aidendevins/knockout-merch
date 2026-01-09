@@ -314,23 +314,23 @@ async function handleStripeWebhook(req, res) {
         
         // Send order to Printify for fulfillment
         if (!design.printify_product_id) {
-          console.warn(`\n⚠️ ORDER ${orderId} CANNOT BE SENT TO PRINTIFY`);
+          console.warn(`\n⚠️ ORDER ${currentOrderId} CANNOT BE SENT TO PRINTIFY`);
           console.warn(`   Design "${design.title}" (${designId}) has no printify_product_id`);
           console.warn(`   Order was created in database but needs manual fulfillment`);
           await db.query(
             `UPDATE orders SET status = 'needs_fulfillment' WHERE id = $1`,
-            [orderId]
+            [currentOrderId]
           );
         } else if (!shippingAddress?.line1) {
-          console.warn(`\n⚠️ ORDER ${orderId} CANNOT BE SENT TO PRINTIFY`);
+          console.warn(`\n⚠️ ORDER ${currentOrderId} CANNOT BE SENT TO PRINTIFY`);
           console.warn(`   Missing shipping address`);
           await db.query(
             `UPDATE orders SET status = 'needs_fulfillment' WHERE id = $1`,
-            [orderId]
+            [currentOrderId]
           );
         } else {
           try {
-            console.log(`\n📦 SENDING ORDER ${orderId} TO PRINTIFY...`);
+            console.log(`\n📦 SENDING ORDER ${currentOrderId} TO PRINTIFY...`);
             console.log(`   Design: ${design.title} (${designId})`);
             console.log(`   Printify Product ID: ${design.printify_product_id}`);
             
@@ -349,7 +349,7 @@ async function handleStripeWebhook(req, res) {
                 postal_code: shippingAddress.postal_code,
                 country: shippingAddress.country || 'US',
               },
-              externalId: orderId,
+              externalId: currentOrderId,
             });
             
             // Update order with Printify order ID and status
@@ -358,20 +358,20 @@ async function handleStripeWebhook(req, res) {
                 printify_order_id = $1,
                 status = 'processing'
                WHERE id = $2`,
-              [printifyOrder.id, orderId]
+              [printifyOrder.id, currentOrderId]
             );
             
-            console.log(`\n✅ ORDER ${orderId} SENT TO PRINTIFY SUCCESSFULLY`);
+            console.log(`\n✅ ORDER ${currentOrderId} SENT TO PRINTIFY SUCCESSFULLY`);
             console.log(`   Printify Order ID: ${printifyOrder.id}`);
             console.log(`   Status updated to: processing`);
           } catch (printifyError) {
-            console.error(`\n❌ ERROR SENDING ORDER ${orderId} TO PRINTIFY`);
+            console.error(`\n❌ ERROR SENDING ORDER ${currentOrderId} TO PRINTIFY`);
             console.error('   Error:', printifyError.message);
             console.error('   Stack:', printifyError.stack);
             // Don't fail the whole webhook if Printify fails - order is still created in DB
             await db.query(
               `UPDATE orders SET status = 'payment_received' WHERE id = $1`,
-              [orderId]
+              [currentOrderId]
             );
             console.log(`   Order status updated to: payment_received (awaiting Printify retry)`);
           }
