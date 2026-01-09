@@ -1,6 +1,7 @@
 const Stripe = require('stripe');
 const db = require('../db/postgres');
 const printify = require('../services/printify');
+const email = require('../services/email');
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -382,6 +383,34 @@ async function handleStripeWebhook(req, res) {
       console.log(`   Created ${ordersCreated} order(s) for session: ${session.id}`);
       console.log(`   Order IDs: ${orderIds.join(', ') || 'None'}`);
       console.log('========================================\n');
+
+      // Send order confirmation email (don't await - let it happen in background)
+      if (ordersCreated > 0 && email.isConfigured()) {
+        // Prepare order items for email
+        const emailItems = productItems.map((item, i) => ({
+          title: item.description?.split(' - ')[0] || 'Product',
+          productType: productTypes[i] || 'tshirt',
+          color: colors[i] || 'black',
+          size: sizes[i] || 'M',
+          quantity: item.quantity,
+          price: pricePerItem,
+        }));
+
+        // Send email (async, don't block webhook response)
+        email.sendOrderConfirmation({
+          customerEmail,
+          customerName,
+          orderId: orderIds[0], // Use first order ID
+          orderItems: emailItems,
+          shippingAddress,
+          totalAmount: totalPaid,
+          discountCode,
+        }).catch(err => {
+          console.error('⚠️ Failed to send order confirmation email (non-blocking):', err.message);
+        });
+      } else if (!email.isConfigured()) {
+        console.log('ℹ️ Email service not configured (RESEND_API_KEY missing) - skipping confirmation email');
+      }
 
       return res.json({ 
         received: true, 
