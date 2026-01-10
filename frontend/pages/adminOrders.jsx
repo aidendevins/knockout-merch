@@ -222,8 +222,13 @@ export default function AdminOrders() {
                             </span>
                             <span className="text-gray-500 text-xs flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
-                              {new Date(order.created_at || order.created_date).toLocaleDateString()}
+                              {new Date(order.created_at || order.created_date).toLocaleDateString()} at {new Date(order.created_at || order.created_date).toLocaleTimeString()}
                             </span>
+                            {order.stripe_session_id && (
+                              <span className="text-gray-600 text-xs font-mono bg-gray-800 px-2 py-0.5 rounded">
+                                {order.stripe_session_id.slice(0, 20)}...
+                              </span>
+                            )}
                           </div>
 
                           <div className="grid sm:grid-cols-2 gap-2 text-sm">
@@ -265,9 +270,16 @@ export default function AdminOrders() {
                             size="icon"
                             className="border-gray-700 hover:bg-gray-700"
                             onClick={() => {
-                              // View order details (could open a modal)
-                              console.log('Order details:', order);
+                              // Open Stripe payment in new tab if available
+                              if (order.stripe_payment_id) {
+                                window.open(`https://dashboard.stripe.com/payments/${order.stripe_payment_id}`, '_blank');
+                              } else if (order.stripe_session_id) {
+                                window.open(`https://dashboard.stripe.com/payments/${order.stripe_session_id}`, '_blank');
+                              } else {
+                                console.log('Order details:', order);
+                              }
                             }}
+                            title={order.stripe_payment_id || order.stripe_session_id ? "View in Stripe" : "View details"}
                           >
                             <Eye className="w-4 h-4" />
                           </Button>

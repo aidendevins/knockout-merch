@@ -427,7 +427,7 @@ export default function Checkout() {
                             <div className="flex-1">
                               <p className="text-white font-medium">{item.design.title}</p>
                               <p className="text-gray-400 text-xs capitalize">
-                                {item.productType} • {item.color} • {item.size} • Qty: {item.quantity}
+                                {item.design?.product_type || 'tshirt'} • {item.design?.selectedColor || 'black'} • {item.size} • Qty: {item.quantity}
                               </p>
                       </div>
                             <p className="text-white font-bold">

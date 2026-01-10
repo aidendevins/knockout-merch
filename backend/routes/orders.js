@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db/postgres');
+const email = require('../services/email');
 
 // Get all orders
 router.get('/', async (req, res) => {
@@ -26,6 +27,17 @@ router.get('/', async (req, res) => {
     console.error('Error fetching orders:', error);
     res.status(500).json({ error: 'Failed to fetch orders' });
   }
+});
+
+// Diagnostic endpoint to check email configuration (must be before /:id route)
+router.get('/email-status', (req, res) => {
+  res.json({
+    resend_configured: email.isConfigured(),
+    resend_api_key_present: !!process.env.RESEND_API_KEY,
+    resend_api_key_length: process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.length : 0,
+    test_domain_restriction: 'onboarding@resend.dev can only send to p.a.devins@gmail.com',
+    recommendation: 'For testing, use p.a.devins@gmail.com as the email address, or verify a custom domain in Resend',
+  });
 });
 
 // Get single order
@@ -226,6 +238,40 @@ router.post('/free', async (req, res) => {
     }
 
     console.log('✅ Successfully created', orders.length, 'free order(s)');
+    
+    // Send order confirmation email
+    if (orders.length > 0 && email.isConfigured()) {
+      // Prepare order items for email
+      const emailItems = cartItems.map(item => ({
+        title: item.design?.title || 'Product',
+        productType: item.productType || item.product_type || item.design?.product_type || 'tshirt',
+        color: item.color || item.design?.selectedColor || 'black',
+        size: item.size || 'M',
+        quantity: item.quantity || 1,
+        price: '0.00',
+      }));
+
+      // Send email (async, don't block response)
+      email.sendOrderConfirmation({
+        customerEmail: shippingInfo.email,
+        customerName: shippingInfo.name || 'Customer',
+        orderId: orders[0].id,
+        orderItems: emailItems,
+        shippingAddress: {
+          line1: shippingInfo.line1,
+          line2: shippingInfo.line2 || '',
+          city: shippingInfo.city,
+          state: shippingInfo.state,
+          postal_code: shippingInfo.postal_code,
+          country: shippingInfo.country || 'US',
+        },
+        totalAmount: '0.00',
+        discountCode: 'FREE',
+      }).catch(err => {
+        console.error('⚠️ Failed to send free order confirmation email (non-blocking):', err.message);
+      });
+    }
+    
     res.json({ 
       success: true, 
       orders,
