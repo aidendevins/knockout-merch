@@ -11,6 +11,7 @@ export default function StudioCarousel({ designs }) {
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+  const [hasMoved, setHasMoved] = useState(false);
 
   if (!designs?.length) return null;
 
@@ -49,6 +50,7 @@ export default function StudioCarousel({ designs }) {
   // Handle mouse down
   const handleMouseDown = (e) => {
     setIsDragging(true);
+    setHasMoved(false);
     setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
     setScrollLeft(scrollContainerRef.current.scrollLeft);
     scrollContainerRef.current.style.cursor = 'grabbing';
@@ -58,13 +60,20 @@ export default function StudioCarousel({ designs }) {
   // Handle mouse leave
   const handleMouseLeave = () => {
     setIsDragging(false);
-    scrollContainerRef.current.style.cursor = 'grab';
+    setHasMoved(false);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.style.cursor = 'grab';
+    }
   };
 
   // Handle mouse up
   const handleMouseUp = () => {
     setIsDragging(false);
-    scrollContainerRef.current.style.cursor = 'grab';
+    // Reset hasMoved after a brief delay to allow click detection
+    setTimeout(() => setHasMoved(false), 50);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.style.cursor = 'grab';
+    }
   };
 
   // Handle mouse move
@@ -72,19 +81,25 @@ export default function StudioCarousel({ designs }) {
     if (!isDragging) return;
     e.preventDefault();
     const x = e.pageX - scrollContainerRef.current.offsetLeft;
-    const walk = (x - startX) * 2; // Scroll speed multiplier
+    const walk = (x - startX) * 1; // Reduced scroll speed (was 2, now 1 - half speed)
+    
+    // Track if mouse has moved more than 5px (to distinguish click from drag)
+    if (Math.abs(walk) > 5) {
+      setHasMoved(true);
+    }
+    
     scrollContainerRef.current.scrollLeft = scrollLeft - walk;
   };
 
   // Handle wheel scroll (trackpad horizontal scroll)
   const handleWheel = (e) => {
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-      // Horizontal scroll detected
+      // Horizontal scroll detected - reduced speed
       e.preventDefault();
-      scrollContainerRef.current.scrollLeft += e.deltaX;
+      scrollContainerRef.current.scrollLeft += e.deltaX * 0.5;
     } else {
-      // Allow vertical page scroll but add some horizontal scroll too
-      scrollContainerRef.current.scrollLeft += e.deltaY * 0.5;
+      // Allow vertical page scroll but add some horizontal scroll too - reduced speed
+      scrollContainerRef.current.scrollLeft += e.deltaY * 0.25;
     }
   };
 
@@ -128,23 +143,16 @@ export default function StudioCarousel({ designs }) {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: (index % designs.length) * 0.05, duration: 0.4 }}
             className="flex-shrink-0 w-[350px] md:w-[400px]"
-            onMouseDown={(e) => {
-              // Track if this is a drag or click
-              const startDragTime = Date.now();
-              const cleanup = () => {
-                const dragDuration = Date.now() - startDragTime;
-                // If it was a quick click (< 200ms), allow link navigation
-                if (dragDuration > 200) {
-                  e.preventDefault();
-                }
-                window.removeEventListener('mouseup', cleanup);
-              };
-              window.addEventListener('mouseup', cleanup);
-            }}
           >
             <Link 
               to={createPageUrl(`Checkout?designId=${design.id}`)}
               className="block"
+              onClick={(e) => {
+                // Prevent navigation if user was dragging
+                if (hasMoved) {
+                  e.preventDefault();
+                }
+              }}
               onDragStart={(e) => e.preventDefault()}
             >
               <div className="group relative bg-gradient-to-b from-gray-900 to-black rounded-2xl overflow-hidden border border-gray-800 hover:border-red-600/50 transition-all duration-500 shadow-2xl hover:shadow-red-600/20">
