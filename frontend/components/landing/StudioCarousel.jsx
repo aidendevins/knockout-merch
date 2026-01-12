@@ -12,29 +12,36 @@ export default function StudioCarousel({ designs }) {
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [hasMoved, setHasMoved] = useState(false);
+  const [isSnapping, setIsSnapping] = useState(false);
+  
+  const CARD_WIDTH = 400; // Width of each card
+  const GAP = 24; // Gap between cards
+  const CARD_WITH_GAP = CARD_WIDTH + GAP;
+  const SCROLL_THRESHOLD = 50; // Minimum scroll to trigger 3-card jump
 
   if (!designs?.length) return null;
 
   // Create infinite loop by tripling the designs array
   const infiniteDesigns = [...designs, ...designs, ...designs];
 
-  // Initialize scroll position to middle set on mount
+  // Initialize scroll position to middle set on mount, centered
   useEffect(() => {
     if (scrollContainerRef.current && designs.length > 0) {
       const container = scrollContainerRef.current;
-      const cardWidth = 400 + 24; // card width + gap
-      const middleStart = designs.length * cardWidth;
-      container.scrollLeft = middleStart;
+      const middleStart = designs.length * CARD_WITH_GAP;
+      // Center the first card by offsetting by half the container width minus half a card
+      const containerWidth = container.offsetWidth;
+      const centerOffset = (containerWidth / 2) - (CARD_WIDTH / 2);
+      container.scrollLeft = middleStart - centerOffset;
     }
   }, [designs.length]);
 
   // Handle infinite scroll loop
   const handleScroll = () => {
-    if (!scrollContainerRef.current || isDragging) return;
+    if (!scrollContainerRef.current || isDragging || isSnapping) return;
     
     const container = scrollContainerRef.current;
-    const cardWidth = 400 + 24; // card width + gap (400px + 24px gap)
-    const totalWidth = designs.length * cardWidth;
+    const totalWidth = designs.length * CARD_WITH_GAP;
     const scrollPos = container.scrollLeft;
 
     // If scrolled past the end of middle set, jump back to start of middle set
@@ -42,8 +49,8 @@ export default function StudioCarousel({ designs }) {
       container.scrollLeft = scrollPos - totalWidth;
     }
     // If scrolled before the start of middle set, jump to end of middle set
-    else if (scrollPos <= 0) {
-      container.scrollLeft = totalWidth + scrollPos;
+    else if (scrollPos <= totalWidth) {
+      container.scrollLeft = scrollPos + totalWidth;
     }
   };
 
@@ -66,9 +73,34 @@ export default function StudioCarousel({ designs }) {
     }
   };
 
-  // Handle mouse up
+  // Handle mouse up - snap to nearest 3-card interval
   const handleMouseUp = () => {
     setIsDragging(false);
+    
+    if (hasMoved && scrollContainerRef.current) {
+      const scrollDistance = scrollContainerRef.current.scrollLeft - scrollLeft;
+      
+      // Determine direction and snap to 3 cards in that direction
+      if (Math.abs(scrollDistance) > SCROLL_THRESHOLD) {
+        const direction = scrollDistance > 0 ? 1 : -1;
+        const targetScroll = scrollLeft + (direction * CARD_WITH_GAP * 3);
+        
+        setIsSnapping(true);
+        scrollContainerRef.current.scrollTo({
+          left: targetScroll,
+          behavior: 'smooth'
+        });
+        
+        setTimeout(() => setIsSnapping(false), 500);
+      } else {
+        // Snap back to original position if didn't move enough
+        scrollContainerRef.current.scrollTo({
+          left: scrollLeft,
+          behavior: 'smooth'
+        });
+      }
+    }
+    
     // Reset hasMoved after a brief delay to allow click detection
     setTimeout(() => setHasMoved(false), 50);
     if (scrollContainerRef.current) {
@@ -81,7 +113,7 @@ export default function StudioCarousel({ designs }) {
     if (!isDragging) return;
     e.preventDefault();
     const x = e.pageX - scrollContainerRef.current.offsetLeft;
-    const walk = (x - startX) * 1; // Reduced scroll speed (was 2, now 1 - half speed)
+    const walk = (x - startX) * 0.5; // Further reduced scroll speed (50% of previous)
     
     // Track if mouse has moved more than 5px (to distinguish click from drag)
     if (Math.abs(walk) > 5) {
@@ -91,15 +123,29 @@ export default function StudioCarousel({ designs }) {
     scrollContainerRef.current.scrollLeft = scrollLeft - walk;
   };
 
-  // Handle wheel scroll (trackpad horizontal scroll)
+  // Handle wheel scroll (trackpad horizontal scroll) - jump by 3 cards
   const handleWheel = (e) => {
-    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-      // Horizontal scroll detected - reduced speed
+    if (isSnapping) return; // Prevent scrolling during snap animation
+    
+    const container = scrollContainerRef.current;
+    const isHorizontalScroll = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+    const scrollAmount = isHorizontalScroll ? e.deltaX : e.deltaY;
+    
+    // Only trigger on significant scroll
+    if (Math.abs(scrollAmount) > 30) {
       e.preventDefault();
-      scrollContainerRef.current.scrollLeft += e.deltaX * 0.5;
-    } else {
-      // Allow vertical page scroll but add some horizontal scroll too - reduced speed
-      scrollContainerRef.current.scrollLeft += e.deltaY * 0.25;
+      
+      const direction = scrollAmount > 0 ? 1 : -1;
+      const currentScroll = container.scrollLeft;
+      const targetScroll = currentScroll + (direction * CARD_WITH_GAP * 3);
+      
+      setIsSnapping(true);
+      container.scrollTo({
+        left: targetScroll,
+        behavior: 'smooth'
+      });
+      
+      setTimeout(() => setIsSnapping(false), 500);
     }
   };
 
@@ -134,6 +180,9 @@ export default function StudioCarousel({ designs }) {
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
           WebkitOverflowScrolling: 'touch',
+          scrollSnapType: 'x mandatory',
+          scrollPaddingLeft: 'calc(50vw - 200px)', // Center cards (half viewport - half card width)
+          scrollPaddingRight: 'calc(50vw - 200px)',
         }}
       >
         {infiniteDesigns.map((design, index) => (
@@ -143,6 +192,7 @@ export default function StudioCarousel({ designs }) {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: (index % designs.length) * 0.05, duration: 0.4 }}
             className="flex-shrink-0 w-[350px] md:w-[400px]"
+            style={{ scrollSnapAlign: 'center' }}
           >
             <Link 
               to={createPageUrl(`Checkout?designId=${design.id}`)}
