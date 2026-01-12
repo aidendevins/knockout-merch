@@ -170,8 +170,11 @@ export default function StudioCarousel({ designs }) {
   };
 
   return (
-    <section className="py-24 bg-gradient-to-b from-red-950/30 via-red-950/15 to-transparent overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 mb-12">
+    <section className="py-24 bg-gradient-to-b from-red-950/30 via-red-950/15 to-transparent overflow-hidden relative">
+      {/* Warm ambient background glow */}
+      <div className="absolute inset-0 bg-gradient-to-r from-orange-950/20 via-red-950/30 to-pink-950/20" />
+      
+      <div className="max-w-7xl mx-auto px-4 mb-12 relative z-10">
         {/* Section header */}
         <div className="text-center">
           <Badge className="bg-gradient-to-r from-pink-600 to-red-600 text-white border-0 mb-4 text-sm px-4 py-1.5 shadow-lg shadow-pink-600/30">
@@ -195,7 +198,7 @@ export default function StudioCarousel({ designs }) {
         onMouseMove={handleMouseMove}
         onWheel={handleWheel}
         onScroll={handleScroll}
-        className="flex gap-6 overflow-x-auto px-4 md:px-12 scrollbar-hide cursor-grab active:cursor-grabbing"
+        className="flex gap-6 overflow-x-auto px-4 md:px-12 scrollbar-hide cursor-grab active:cursor-grabbing relative z-10"
         style={{
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
@@ -284,7 +287,7 @@ export default function StudioCarousel({ designs }) {
       </div>
 
       {/* Scroll hint */}
-      <div className="text-center mt-8">
+      <div className="text-center mt-8 relative z-10">
         <p className="text-pink-300/50 text-sm">
           ← Infinite scroll · Drag or scroll to explore →
         </p>
