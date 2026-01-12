@@ -78,7 +78,8 @@ export default function StudioCarousel({ designs }) {
     setIsDragging(false);
     
     if (hasMoved && scrollContainerRef.current) {
-      const scrollDistance = scrollContainerRef.current.scrollLeft - scrollLeft;
+      const container = scrollContainerRef.current;
+      const scrollDistance = container.scrollLeft - scrollLeft;
       
       // Determine direction and snap to 3 cards in that direction
       if (Math.abs(scrollDistance) > SCROLL_THRESHOLD) {
@@ -86,17 +87,23 @@ export default function StudioCarousel({ designs }) {
         const targetScroll = scrollLeft + (direction * CARD_WITH_GAP * 3);
         
         setIsSnapping(true);
-        scrollContainerRef.current.scrollTo({
-          left: targetScroll,
-          behavior: 'smooth'
+        
+        // Use requestAnimationFrame for smoother animation
+        requestAnimationFrame(() => {
+          container.scrollTo({
+            left: targetScroll,
+            behavior: 'smooth'
+          });
         });
         
-        setTimeout(() => setIsSnapping(false), 500);
+        setTimeout(() => setIsSnapping(false), 600);
       } else {
         // Snap back to original position if didn't move enough
-        scrollContainerRef.current.scrollTo({
-          left: scrollLeft,
-          behavior: 'smooth'
+        requestAnimationFrame(() => {
+          container.scrollTo({
+            left: scrollLeft,
+            behavior: 'smooth'
+          });
         });
       }
     }
@@ -133,19 +140,22 @@ export default function StudioCarousel({ designs }) {
     
     // Only trigger on significant scroll
     if (Math.abs(scrollAmount) > 30) {
-      e.preventDefault();
-      
+      // Don't preventDefault - let natural scroll happen but snap afterward
       const direction = scrollAmount > 0 ? 1 : -1;
       const currentScroll = container.scrollLeft;
       const targetScroll = currentScroll + (direction * CARD_WITH_GAP * 3);
       
       setIsSnapping(true);
-      container.scrollTo({
-        left: targetScroll,
-        behavior: 'smooth'
+      
+      // Use requestAnimationFrame for smoother animation
+      requestAnimationFrame(() => {
+        container.scrollTo({
+          left: targetScroll,
+          behavior: 'smooth'
+        });
       });
       
-      setTimeout(() => setIsSnapping(false), 500);
+      setTimeout(() => setIsSnapping(false), 600);
     }
   };
 
@@ -180,9 +190,6 @@ export default function StudioCarousel({ designs }) {
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
           WebkitOverflowScrolling: 'touch',
-          scrollSnapType: 'x mandatory',
-          scrollPaddingLeft: 'calc(50vw - 200px)', // Center cards (half viewport - half card width)
-          scrollPaddingRight: 'calc(50vw - 200px)',
         }}
       >
         {infiniteDesigns.map((design, index) => (
@@ -192,7 +199,6 @@ export default function StudioCarousel({ designs }) {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: (index % designs.length) * 0.05, duration: 0.4 }}
             className="flex-shrink-0 w-[350px] md:w-[400px]"
-            style={{ scrollSnapAlign: 'center' }}
           >
             <Link 
               to={createPageUrl(`Checkout?designId=${design.id}`)}
