@@ -174,7 +174,7 @@ export default function StudioCarousel({ designs }) {
       <div className="max-w-7xl mx-auto px-4 mb-12">
         {/* Section header */}
         <div className="text-center">
-          <Badge className="bg-gradient-to-r from-pink-600/20 to-red-600/20 text-pink-300 border-pink-500/30 mb-4 text-sm px-3 py-1">
+          <Badge className="bg-gradient-to-r from-pink-600 to-red-600 text-white border-0 mb-4 text-sm px-4 py-1.5 shadow-lg shadow-pink-600/30">
             Studio Collection
           </Badge>
           <h2 className="text-4xl md:text-6xl font-bold text-white tracking-tight mb-4">

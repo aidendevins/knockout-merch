@@ -83,7 +83,7 @@ export default function HeroSection() {
                 />
                 <Button
                   onClick={handleCreate}
-                  className="bg-red-600 hover:bg-red-700 text-white rounded-[20px] px-8 py-6 font-semibold text-base shadow-lg hover:shadow-red-600/50 transition-all flex-shrink-0"
+                  className="bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white rounded-[20px] px-8 py-6 font-semibold text-base shadow-lg hover:shadow-pink-600/50 transition-all flex-shrink-0"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
                   Create

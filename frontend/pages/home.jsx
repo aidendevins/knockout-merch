@@ -35,7 +35,7 @@ export default function Home() {
       {studioLoading ? (
         <section className="py-24 bg-gradient-to-b from-red-950/30 via-red-950/15 to-transparent">
           <div className="max-w-7xl mx-auto px-4 text-center mb-12">
-            <div className="inline-block bg-gradient-to-r from-pink-600/20 to-red-600/20 text-pink-300 border border-pink-500/30 rounded-full px-3 py-1 text-sm mb-4">
+            <div className="inline-block bg-gradient-to-r from-pink-600 to-red-600 text-white border-0 rounded-full px-4 py-1.5 text-sm mb-4 shadow-lg shadow-pink-600/30">
               Studio Collection
             </div>
             <h2 className="text-4xl md:text-6xl font-bold text-white tracking-tight mb-4">
