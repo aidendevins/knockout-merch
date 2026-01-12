@@ -11,8 +11,8 @@ export default function HeroSection() {
       {/* Background image - visible with subtle effects */}
       <div className="absolute inset-0 overflow-hidden">
         <img 
-          src="/boxing-ring-bg.jpg" 
-          alt="Boxing ring background"
+          src="/hero-bg.png" 
+          alt="Boxing background"
           className="w-full h-full object-cover"
           style={{
             filter: 'contrast(0.95) brightness(0.9) saturate(0.4)',
