@@ -48,25 +48,25 @@ export default function HeroSection() {
           className="space-y-8"
         >
           {/* Main headline */}
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-tight tracking-tight mb-4">
-            Make a Valentines Day shirt
+          <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold text-white leading-[1.1] tracking-tight mb-6">
+            Make a Valentine shirt
             <br />
             in 60 seconds
           </h1>
           
-          <p className="text-xl md:text-2xl text-white/90 max-w-3xl mx-auto mb-10 font-medium">
-            Upload photos, add custom text, and prompt an instant preview
+          <p className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-12 font-normal leading-relaxed">
+            Upload photos, type a prompt, and see an instant preview
             <br />
-            on a real shirt. Approve it - we print & ship.
+            on a real shirt. Approve it — we print & ship.
           </p>
           
           {/* Input Field with Create Button */}
           <div className="max-w-4xl mx-auto mb-8">
-            <div className="relative bg-black/40 backdrop-blur-md rounded-3xl p-4 border border-white/10 shadow-2xl">
-              <div className="flex items-center gap-3">
+            <div className="relative bg-black/50 backdrop-blur-xl rounded-[28px] p-4 border border-white/20 shadow-2xl">
+              <div className="flex items-center gap-4">
                 <button
                   onClick={handleCreate}
-                  className="flex items-center justify-center w-12 h-12 bg-white/10 hover:bg-white/20 rounded-2xl transition-colors"
+                  className="flex items-center justify-center w-14 h-14 bg-white/10 hover:bg-white/20 rounded-[20px] transition-colors flex-shrink-0"
                 >
                   <Sparkles className="w-5 h-5 text-white" />
                 </button>
@@ -76,11 +76,11 @@ export default function HeroSection() {
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-                  className="flex-1 bg-transparent text-white text-lg placeholder:text-white/50 outline-none"
+                  className="flex-1 bg-transparent text-white text-base md:text-lg placeholder:text-white/60 outline-none font-normal"
                 />
                 <Button
                   onClick={handleCreate}
-                  className="bg-red-600 hover:bg-red-700 text-white rounded-2xl px-8 py-6 font-bold text-base shadow-lg hover:shadow-red-600/50 transition-all"
+                  className="bg-red-600 hover:bg-red-700 text-white rounded-[20px] px-8 py-6 font-semibold text-base shadow-lg hover:shadow-red-600/50 transition-all flex-shrink-0"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
                   Create
@@ -89,14 +89,14 @@ export default function HeroSection() {
             </div>
 
             {/* Category Pills */}
-            <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+            <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
               {designCategories.map((category, index) => {
                 const Icon = category.icon;
                 return (
                   <button
                     key={index}
                     onClick={category.onClick || handleCreate}
-                    className="px-6 py-3 bg-black/30 hover:bg-black/50 backdrop-blur-sm rounded-full text-white/90 hover:text-white border border-white/10 hover:border-white/30 transition-all font-medium"
+                    className="px-6 py-3 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-white/80 hover:text-white border border-white/20 hover:border-white/40 transition-all font-normal text-sm"
                   >
                     {Icon && <Icon className="w-4 h-4 inline mr-2" />}
                     {category.label}
@@ -107,18 +107,18 @@ export default function HeroSection() {
           </div>
 
           {/* Feature Highlights */}
-          <div className="flex flex-wrap items-center justify-center gap-8 pt-8">
-            <div className="flex items-center gap-2 text-white/90">
+          <div className="flex flex-wrap items-center justify-center gap-12 pt-8">
+            <div className="flex items-center gap-2 text-white/80">
               <CheckCircle2 className="w-5 h-5 text-green-400" />
-              <span className="font-medium">AI-Powered Design</span>
+              <span className="font-normal text-sm">Proof in seconds</span>
             </div>
-            <div className="flex items-center gap-2 text-white/90">
+            <div className="flex items-center gap-2 text-white/80">
               <Truck className="w-5 h-5 text-blue-400" />
-              <span className="font-medium">Ships Fast</span>
+              <span className="font-normal text-sm">Ships fast</span>
             </div>
-            <div className="flex items-center gap-2 text-white/90">
+            <div className="flex items-center gap-2 text-white/80">
               <MapPin className="w-5 h-5 text-red-400" />
-              <span className="font-medium">Printed via Printify</span>
+              <span className="font-normal text-sm">Printed in the USA</span>
             </div>
           </div>
         </motion.div>

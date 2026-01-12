@@ -20,7 +20,7 @@ export default function Navbar({ user }) {
   const isAdmin = user?.role === 'admin';
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-b border-gray-800/50">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/90 to-black/70 backdrop-blur-xl border-b border-white/5">
       <div className="max-w-7xl mx-auto px-4">
         <div className="relative flex items-center h-16">
           {/* Left side: Nav links */}
@@ -35,7 +35,7 @@ export default function Navbar({ user }) {
                     variant="ghost"
                     size="sm"
                     className={cn(
-                      "text-gray-400 hover:text-white hover:bg-white/10 rounded-full gap-2",
+                      "text-white/60 hover:text-white hover:bg-white/5 rounded-full gap-2 font-normal",
                       isActive && "text-white bg-white/10"
                     )}
                   >
@@ -88,7 +88,7 @@ export default function Navbar({ user }) {
             <Link to={createPageUrl('DesignStudio')}>
               <Button 
                 size="sm" 
-                className="bg-red-600 hover:bg-red-700 text-white rounded-full font-bold hidden sm:flex"
+                className="bg-red-600 hover:bg-red-700 text-white rounded-full font-semibold hidden sm:flex px-6 shadow-lg shadow-red-600/20"
               >
                 Create Design
               </Button>
