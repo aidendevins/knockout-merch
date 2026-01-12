@@ -49,15 +49,15 @@ export default function HeroSection() {
         >
           {/* Main headline */}
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-tight tracking-tight mb-4">
-            Design Your Knockout Merch
+            Make a Valentines Day shirt
             <br />
-            <span className="text-red-500">In Seconds</span>
+            in 60 seconds
           </h1>
           
           <p className="text-xl md:text-2xl text-white/90 max-w-3xl mx-auto mb-10 font-medium">
-            Upload fight stills, generate AI designs, and see instant previews.
+            Upload photos, add custom text, and prompt an instant preview
             <br />
-            <span className="text-white/70">Approve it — we print & ship.</span>
+            on a real shirt. Approve it - we print & ship.
           </p>
           
           {/* Input Field with Create Button */}
