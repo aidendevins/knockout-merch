@@ -27,25 +27,25 @@ export default function Home() {
   });
 
   return (
-    <div className="bg-black min-h-screen">
+    <div className="bg-gradient-to-b from-black via-red-950/10 to-black min-h-screen">
       {/* Hero Section */}
       <HeroSection />
 
       {/* Studio Designs Carousel */}
       {studioLoading ? (
-        <section className="py-24 bg-black">
+        <section className="py-24 bg-gradient-to-b from-black via-red-950/20 to-black">
           <div className="max-w-7xl mx-auto px-4 text-center mb-12">
-            <div className="inline-block bg-red-600/10 text-red-400 border border-red-600/30 rounded-full px-3 py-1 text-sm mb-4">
+            <div className="inline-block bg-gradient-to-r from-pink-600/20 to-red-600/20 text-pink-300 border border-pink-500/30 rounded-full px-3 py-1 text-sm mb-4">
               Studio Collection
             </div>
-            <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight mb-4">
+            <h2 className="text-4xl md:text-6xl font-bold text-white tracking-tight mb-4">
               Loading...
             </h2>
           </div>
           <div className="flex gap-6 overflow-x-hidden px-4 md:px-12">
             {Array(6).fill(0).map((_, i) => (
               <div key={i} className="flex-shrink-0 w-[350px] md:w-[400px]">
-                <div className="bg-gray-900 rounded-2xl overflow-hidden">
+                <div className="bg-gradient-to-b from-gray-800 to-gray-900 rounded-2xl overflow-hidden border border-pink-900/30">
                   <Skeleton className="aspect-[3/4] bg-gray-800" />
                   <div className="p-6 space-y-3">
                     <Skeleton className="h-6 w-3/4 bg-gray-800" />
@@ -57,13 +57,13 @@ export default function Home() {
           </div>
         </section>
       ) : studioDesigns.length === 0 ? (
-        <section className="py-24 bg-black">
+        <section className="py-24 bg-gradient-to-b from-black via-red-950/20 to-black">
           <div className="max-w-3xl mx-auto px-4 text-center">
-            <div className="w-20 h-20 bg-gray-900 rounded-full mx-auto mb-6 flex items-center justify-center">
-              <span className="text-4xl">🥊</span>
+            <div className="w-20 h-20 bg-gradient-to-br from-pink-900/30 to-red-900/30 rounded-full mx-auto mb-6 flex items-center justify-center border border-pink-600/30">
+              <span className="text-4xl">💕</span>
             </div>
             <h3 className="text-2xl font-bold text-white mb-3">No Studio Designs Yet</h3>
-            <p className="text-gray-400 text-lg">
+            <p className="text-pink-300/70 text-lg">
               Check back soon for new studio designs!
             </p>
           </div>
@@ -73,13 +73,13 @@ export default function Home() {
       )}
       
       {/* Footer */}
-      <footer className="bg-black border-t border-gray-800 py-12 mt-24">
+      <footer className="bg-gradient-to-b from-transparent to-black border-t border-pink-900/20 py-12 mt-24">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-gray-500 text-sm">
-            © 2026 Knockout Club. Not affiliated with Jake Paul or any boxing organization.
+          <p className="text-pink-300/60 text-sm">
+            © 2026 LoveForge. Spread the love with custom Valentine's shirts.
           </p>
-          <p className="text-gray-600 text-xs mt-2">
-            All designs are fan-made commemorative merchandise.
+          <p className="text-pink-300/40 text-xs mt-2">
+            Made with 💕 for Valentine's Day
           </p>
         </div>
       </footer>

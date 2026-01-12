@@ -170,17 +170,17 @@ export default function StudioCarousel({ designs }) {
   };
 
   return (
-    <section className="py-24 bg-black overflow-hidden">
+    <section className="py-24 bg-gradient-to-b from-black via-red-950/20 to-black overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 mb-12">
         {/* Section header */}
         <div className="text-center">
-          <Badge className="bg-red-600/10 text-red-400 border-red-600/30 mb-4 text-sm px-3 py-1">
+          <Badge className="bg-gradient-to-r from-pink-600/20 to-red-600/20 text-pink-300 border-pink-500/30 mb-4 text-sm px-3 py-1">
             Studio Collection
           </Badge>
-          <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight mb-4">
+          <h2 className="text-4xl md:text-6xl font-bold text-white tracking-tight mb-4">
             Available Now
           </h2>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+          <p className="text-white/70 text-lg max-w-2xl mx-auto">
             Scroll to explore our studio designs. Click to purchase.
           </p>
         </div>
@@ -220,9 +220,9 @@ export default function StudioCarousel({ designs }) {
               className="block cursor-pointer"
               onDragStart={(e) => e.preventDefault()}
             >
-              <div className="group relative bg-gradient-to-b from-gray-900 to-black rounded-2xl overflow-hidden border border-gray-800 hover:border-red-600/50 transition-all duration-500 shadow-2xl hover:shadow-red-600/20">
+              <div className="group relative bg-gradient-to-b from-gray-800 via-gray-900 to-black rounded-2xl overflow-hidden border border-pink-900/30 hover:border-pink-600/50 transition-all duration-500 shadow-2xl hover:shadow-pink-600/20">
                 {/* Product mockup */}
-                <div className="aspect-[3/4] bg-gradient-to-br from-gray-800 via-gray-900 to-black p-8 flex items-center justify-center relative overflow-hidden">
+                <div className="aspect-[3/4] bg-gradient-to-br from-gray-800 via-red-950/30 to-black p-8 flex items-center justify-center relative overflow-hidden">
                   {/* Subtle gradient overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                   
@@ -250,8 +250,8 @@ export default function StudioCarousel({ designs }) {
                 </div>
                 
                 {/* Info panel */}
-                <div className="relative p-6 bg-black/40 backdrop-blur-sm border-t border-gray-800/50">
-                  <h3 className="text-white font-bold text-xl mb-3 group-hover:text-red-400 transition-colors line-clamp-1">
+                <div className="relative p-6 bg-gradient-to-b from-black/60 to-black/80 backdrop-blur-sm border-t border-pink-900/30">
+                  <h3 className="text-white font-bold text-xl mb-3 group-hover:text-pink-300 transition-colors line-clamp-1">
                     {design.title}
                   </h3>
                   <div className="flex items-center justify-between">
@@ -260,14 +260,14 @@ export default function StudioCarousel({ designs }) {
                         ${typeof design.price === 'number' ? design.price.toFixed(2) : (parseFloat(design.price) || 29.99).toFixed(2)}
                       </span>
                       {design.sales_count > 0 && (
-                        <p className="text-gray-500 text-sm mt-1">
+                        <p className="text-pink-300/60 text-sm mt-1">
                           {design.sales_count} sold
                         </p>
                       )}
                     </div>
                     <Button 
                       size="sm" 
-                      className="bg-red-600 hover:bg-red-700 text-white rounded-full font-semibold shadow-lg hover:shadow-red-600/50 transition-all"
+                      className="bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white rounded-full font-semibold shadow-lg hover:shadow-pink-600/50 transition-all"
                     >
                       <ShoppingBag className="w-4 h-4 mr-2" />
                       Buy Now
@@ -276,7 +276,7 @@ export default function StudioCarousel({ designs }) {
                 </div>
 
                 {/* Hover effect overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-red-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-t from-pink-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
               </div>
             </div>
           </motion.div>
@@ -285,7 +285,7 @@ export default function StudioCarousel({ designs }) {
 
       {/* Scroll hint */}
       <div className="text-center mt-8">
-        <p className="text-gray-600 text-sm">
+        <p className="text-pink-300/50 text-sm">
           ← Infinite scroll · Drag or scroll to explore →
         </p>
       </div>
