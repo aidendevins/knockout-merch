@@ -76,32 +76,17 @@ export default function HeroSection() {
             <span className="text-white"> Celebrate the moment.</span>
           </p>
           
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          {/* CTA Button */}
+          <div className="flex justify-center">
             <Link to={createPageUrl('DesignStudio')}>
               <Button 
                 size="lg" 
-                className="bg-red-600 hover:bg-red-700 text-white text-lg px-8 py-6 rounded-full font-bold tracking-wide group"
+                className="bg-red-600 hover:bg-red-700 text-white text-lg px-8 py-6 rounded-full font-bold tracking-wide group shadow-2xl shadow-red-600/20 hover:shadow-red-600/40 transition-all"
               >
                 Start Designing
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
-            <a href="#community" onClick={(e) => {
-              e.preventDefault();
-              const element = document.getElementById('community');
-              if (element) {
-                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }
-            }}>
-              <Button 
-                size="lg" 
-                variant="outline"
-                className="border-gray-700 text-white hover:bg-white hover:text-black text-lg px-8 py-6 rounded-full font-bold tracking-wide hover:[&_svg]:text-black"
-              >
-                Browse Designs
-              </Button>
-            </a>
           </div>
         </motion.div>
         
