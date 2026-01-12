@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import { ShoppingBag } from 'lucide-react';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 export default function StudioCarousel({ designs }) {
+  const navigate = useNavigate();
   const scrollContainerRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -56,6 +57,11 @@ export default function StudioCarousel({ designs }) {
 
   // Handle mouse down
   const handleMouseDown = (e) => {
+    // Don't interfere with button clicks
+    if (e.target.closest('button') || e.target.closest('a')) {
+      return;
+    }
+    
     setIsDragging(true);
     setHasMoved(false);
     setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
@@ -75,9 +81,12 @@ export default function StudioCarousel({ designs }) {
 
   // Handle mouse up - snap to nearest 3-card interval
   const handleMouseUp = () => {
+    const wasDragging = isDragging;
+    const didMove = hasMoved;
+    
     setIsDragging(false);
     
-    if (hasMoved && scrollContainerRef.current) {
+    if (didMove && wasDragging && scrollContainerRef.current) {
       const container = scrollContainerRef.current;
       const scrollDistance = container.scrollLeft - scrollLeft;
       
@@ -97,8 +106,8 @@ export default function StudioCarousel({ designs }) {
         });
         
         setTimeout(() => setIsSnapping(false), 600);
-      } else {
-        // Snap back to original position if didn't move enough
+      } else if (Math.abs(scrollDistance) > 5) {
+        // Snap back to original position if moved a little but not enough
         requestAnimationFrame(() => {
           container.scrollTo({
             left: scrollLeft,
@@ -108,8 +117,9 @@ export default function StudioCarousel({ designs }) {
       }
     }
     
-    // Reset hasMoved after a brief delay to allow click detection
-    setTimeout(() => setHasMoved(false), 50);
+    // Reset hasMoved immediately so clicks work
+    setHasMoved(false);
+    
     if (scrollContainerRef.current) {
       scrollContainerRef.current.style.cursor = 'grab';
     }
@@ -122,8 +132,8 @@ export default function StudioCarousel({ designs }) {
     const x = e.pageX - scrollContainerRef.current.offsetLeft;
     const walk = (x - startX) * 0.5; // Further reduced scroll speed (50% of previous)
     
-    // Track if mouse has moved more than 5px (to distinguish click from drag)
-    if (Math.abs(walk) > 5) {
+    // Track if mouse has moved more than 10px (to distinguish click from drag)
+    if (Math.abs(walk) > 10) {
       setHasMoved(true);
     }
     
@@ -200,15 +210,14 @@ export default function StudioCarousel({ designs }) {
             transition={{ delay: (index % designs.length) * 0.05, duration: 0.4 }}
             className="flex-shrink-0 w-[350px] md:w-[400px]"
           >
-            <Link 
-              to={createPageUrl(`Checkout?designId=${design.id}`)}
-              className="block"
+            <div
               onClick={(e) => {
-                // Prevent navigation if user was dragging
-                if (hasMoved) {
-                  e.preventDefault();
+                // Only navigate if not dragging
+                if (!hasMoved && !isDragging && !isSnapping) {
+                  navigate(createPageUrl(`Checkout?designId=${design.id}`));
                 }
               }}
+              className="block cursor-pointer"
               onDragStart={(e) => e.preventDefault()}
             >
               <div className="group relative bg-gradient-to-b from-gray-900 to-black rounded-2xl overflow-hidden border border-gray-800 hover:border-red-600/50 transition-all duration-500 shadow-2xl hover:shadow-red-600/20">
@@ -269,7 +278,7 @@ export default function StudioCarousel({ designs }) {
                 {/* Hover effect overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-red-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
               </div>
-            </Link>
+            </div>
           </motion.div>
         ))}
       </div>
