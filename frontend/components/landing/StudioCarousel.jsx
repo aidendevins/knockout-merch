@@ -170,7 +170,7 @@ export default function StudioCarousel({ designs }) {
   };
 
   return (
-    <section className="py-24 bg-gradient-to-b from-black via-red-950/20 to-black overflow-hidden">
+    <section className="py-24 bg-gradient-to-b from-red-950/30 via-red-950/15 to-transparent overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 mb-12">
         {/* Section header */}
         <div className="text-center">
