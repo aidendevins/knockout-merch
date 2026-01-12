@@ -151,7 +151,7 @@ export default function StudioCarousel({ designs }) {
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-3xl font-black text-white">
-                        ${design.price?.toFixed(2) || '29.99'}
+                        ${typeof design.price === 'number' ? design.price.toFixed(2) : (parseFloat(design.price) || 29.99).toFixed(2)}
                       </span>
                       {design.sales_count > 0 && (
                         <p className="text-gray-500 text-sm mt-1">
