@@ -14,6 +14,38 @@ export default function StudioCarousel({ designs }) {
 
   if (!designs?.length) return null;
 
+  // Create infinite loop by tripling the designs array
+  const infiniteDesigns = [...designs, ...designs, ...designs];
+
+  // Initialize scroll position to middle set on mount
+  useEffect(() => {
+    if (scrollContainerRef.current && designs.length > 0) {
+      const container = scrollContainerRef.current;
+      const cardWidth = 400 + 24; // card width + gap
+      const middleStart = designs.length * cardWidth;
+      container.scrollLeft = middleStart;
+    }
+  }, [designs.length]);
+
+  // Handle infinite scroll loop
+  const handleScroll = () => {
+    if (!scrollContainerRef.current || isDragging) return;
+    
+    const container = scrollContainerRef.current;
+    const cardWidth = 400 + 24; // card width + gap (400px + 24px gap)
+    const totalWidth = designs.length * cardWidth;
+    const scrollPos = container.scrollLeft;
+
+    // If scrolled past the end of middle set, jump back to start of middle set
+    if (scrollPos >= totalWidth * 2) {
+      container.scrollLeft = scrollPos - totalWidth;
+    }
+    // If scrolled before the start of middle set, jump to end of middle set
+    else if (scrollPos <= 0) {
+      container.scrollLeft = totalWidth + scrollPos;
+    }
+  };
+
   // Handle mouse down
   const handleMouseDown = (e) => {
     setIsDragging(true);
@@ -81,6 +113,7 @@ export default function StudioCarousel({ designs }) {
         onMouseUp={handleMouseUp}
         onMouseMove={handleMouseMove}
         onWheel={handleWheel}
+        onScroll={handleScroll}
         className="flex gap-6 overflow-x-auto px-4 md:px-12 scrollbar-hide cursor-grab active:cursor-grabbing"
         style={{
           scrollbarWidth: 'none',
@@ -88,12 +121,12 @@ export default function StudioCarousel({ designs }) {
           WebkitOverflowScrolling: 'touch',
         }}
       >
-        {designs.map((design, index) => (
+        {infiniteDesigns.map((design, index) => (
           <motion.div
-            key={design.id}
+            key={`${design.id}-${index}`}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: index * 0.1, duration: 0.4 }}
+            transition={{ delay: (index % designs.length) * 0.05, duration: 0.4 }}
             className="flex-shrink-0 w-[350px] md:w-[400px]"
             onMouseDown={(e) => {
               // Track if this is a drag or click
@@ -175,15 +208,12 @@ export default function StudioCarousel({ designs }) {
             </Link>
           </motion.div>
         ))}
-        
-        {/* Padding at end */}
-        <div className="flex-shrink-0 w-12" />
       </div>
 
       {/* Scroll hint */}
       <div className="text-center mt-8">
         <p className="text-gray-600 text-sm">
-          ← Drag or scroll to explore →
+          ← Infinite scroll · Drag or scroll to explore →
         </p>
       </div>
     </section>
