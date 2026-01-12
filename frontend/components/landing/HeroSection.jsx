@@ -36,8 +36,8 @@ export default function HeroSection() {
         />
       </div>
       
-      {/* Subtle dark overlay only for text readability */}
-      <div className="absolute inset-0 bg-black/20" />
+      {/* Very subtle overlay for text readability */}
+      <div className="absolute inset-0 bg-black/10" />
       
       {/* Content */}
       <div className="relative z-10 text-center px-4 max-w-5xl mx-auto pt-24">
@@ -48,7 +48,7 @@ export default function HeroSection() {
           className="space-y-8"
         >
           {/* Main headline */}
-          <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold text-white leading-[1.1] tracking-tight mb-6">
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-[1.1] tracking-tight mb-6 max-w-4xl mx-auto">
             Make a Valentine shirt
             <br />
             in 60 seconds
@@ -61,8 +61,8 @@ export default function HeroSection() {
           </p>
           
           {/* Input Field with Create Button */}
-          <div className="max-w-4xl mx-auto mb-8">
-            <div className="relative bg-black/50 backdrop-blur-xl rounded-[28px] p-4 border border-white/20 shadow-2xl">
+          <div className="max-w-3xl mx-auto mb-8">
+            <div className="relative bg-black/50 backdrop-blur-xl rounded-[28px] px-4 py-6 border border-white/20 shadow-2xl">
               <div className="flex items-center gap-4">
                 <button
                   onClick={handleCreate}
