@@ -149,7 +149,7 @@ export default function DesignStudio() {
   };
 
   return (
-    <div className="h-screen bg-black pt-16 flex">
+    <div className="h-screen bg-gradient-to-br from-black via-red-950/20 to-black pt-16 flex">
       {/* AI Panel */}
       <div className="w-72 flex-shrink-0 hidden md:block">
         <AIPanel 
@@ -187,8 +187,8 @@ export default function DesignStudio() {
       </div>
 
       {/* Mobile panels - shown on smaller screens */}
-      <div className="fixed bottom-0 left-0 right-0 md:hidden bg-gray-950 border-t border-gray-800 p-4">
-        <p className="text-center text-gray-400 text-sm">
+      <div className="fixed bottom-0 left-0 right-0 md:hidden bg-gradient-to-br from-red-950/30 to-black border-t border-pink-900/30 p-4">
+        <p className="text-center text-white/70 text-sm">
           For the best experience, please use a larger screen
         </p>
       </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Flame, Palette, ShieldCheck, Info, ShoppingCart } from 'lucide-react';
+import { Heart, Palette, ShieldCheck, Info, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/context/CartContext';
@@ -12,7 +12,7 @@ export default function Navbar({ user }) {
   const { cartCount, setIsCartOpen } = useCart();
 
   const navLinks = [
-    { name: 'Home', page: 'Home', icon: Flame },
+    { name: 'Home', page: 'Home', icon: Heart },
     { name: 'Design', page: 'DesignStudio', icon: Palette },
     { name: 'About', page: 'About', icon: Info },
   ];
@@ -20,7 +20,7 @@ export default function Navbar({ user }) {
   const isAdmin = user?.role === 'admin';
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-b border-gray-800/50">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-orange-900/30 via-red-900/30 to-pink-900/30 backdrop-blur-xl border-b border-white/10">
       <div className="max-w-7xl mx-auto px-4">
         <div className="relative flex items-center h-16">
           {/* Left side: Nav links */}
@@ -35,8 +35,8 @@ export default function Navbar({ user }) {
                     variant="ghost"
                     size="sm"
                     className={cn(
-                      "text-gray-400 hover:text-white hover:bg-white/10 rounded-full gap-2",
-                      isActive && "text-white bg-white/10"
+                      "text-white/70 hover:text-white hover:bg-white/10 rounded-full gap-2 font-normal",
+                      isActive && "text-white bg-pink-600/20"
                     )}
                   >
                     <Icon className="w-4 h-4" />
@@ -51,7 +51,7 @@ export default function Navbar({ user }) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-yellow-500 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-full gap-2"
+                  className="text-pink-400 hover:text-pink-300 hover:bg-pink-500/10 rounded-full gap-2"
                 >
                   <ShieldCheck className="w-4 h-4" />
                   <span className="hidden sm:inline">Admin</span>
@@ -62,11 +62,11 @@ export default function Navbar({ user }) {
 
           {/* Center: Logo */}
           <Link to={createPageUrl('Home')} className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
-            <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
-              <Flame className="w-5 h-5 text-white" />
+            <div className="w-8 h-8 bg-gradient-to-br from-pink-500 to-red-500 rounded-lg flex items-center justify-center shadow-lg">
+              <Heart className="w-5 h-5 text-white fill-white" />
             </div>
-            <span className="font-black text-white text-lg tracking-tight hidden sm:block">
-              KNOCKOUT CLUB
+            <span className="font-bold text-white text-lg tracking-tight hidden sm:block">
+              LoveForge
             </span>
           </Link>
 
@@ -75,11 +75,11 @@ export default function Navbar({ user }) {
             {/* Cart Icon with Badge */}
             <button
               onClick={() => setIsCartOpen(true)}
-              className="relative text-gray-400 hover:text-white transition-colors p-2"
+              className="relative text-white/70 hover:text-white transition-colors p-2"
             >
               <ShoppingCart className="w-5 h-5" />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-pink-500 to-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg">
                   {cartCount > 9 ? '9+' : cartCount}
                 </span>
               )}
@@ -88,9 +88,10 @@ export default function Navbar({ user }) {
             <Link to={createPageUrl('DesignStudio')}>
               <Button 
                 size="sm" 
-                className="bg-red-600 hover:bg-red-700 text-white rounded-full font-bold hidden sm:flex"
+                className="bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white rounded-full font-semibold hidden sm:flex px-6 shadow-lg shadow-pink-600/30"
               >
-                Create Design
+                <Heart className="w-4 h-4 mr-1.5 fill-white" />
+                Create
               </Button>
             </Link>
           </div>

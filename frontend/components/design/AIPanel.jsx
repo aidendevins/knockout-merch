@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Wand2, Sparkles, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Wand2, Sparkles, Loader2, AlertCircle, RefreshCw, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -8,12 +8,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { base44 } from '@/api/base44Client';
 
 const PROMPT_SUGGESTIONS = [
-  "Jake Paul knocked out cold on the canvas, dramatic lighting",
-  "Victory celebration over a fallen Jake Paul",
-  "The knockout punch moment, comic book style",
-  "Jake Paul seeing stars, cartoon style",
-  "Historic knockout moment, vintage boxing poster style",
-  "Jake Paul down for the count, neon art style",
+  "I love my girlfriend with hearts and photos collage",
+  "Valentine's Day couple photo grid with romantic text",
+  "Name collage with hearts and romantic vibe",
+  "Tour tee style with photos and loving message",
+  "Vintage love poster with retro typography",
+  "Neon heart design with couple photos",
 ];
 
 export default function AIPanel({ 
@@ -83,15 +83,15 @@ export default function AIPanel({
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-950 border-r border-gray-800">
+    <div className="h-full flex flex-col bg-gradient-to-b from-red-950/30 to-black border-r border-pink-900/30">
       {/* Header */}
-      <div className="p-4 border-b border-gray-800">
+      <div className="p-4 border-b border-pink-900/30">
         <div className="flex items-center gap-2 mb-2">
-          <Wand2 className="w-5 h-5 text-purple-500" />
+          <Heart className="w-5 h-5 text-pink-500" />
           <h3 className="font-bold text-white">AI Generator</h3>
         </div>
-        <p className="text-xs text-gray-500">
-          Describe your knockout design
+        <p className="text-xs text-white/60">
+          Describe your design idea
         </p>
       </div>
 
@@ -99,14 +99,14 @@ export default function AIPanel({
         {/* Selected stills preview */}
         {selectedStillImages.length > 0 && (
           <div className="mb-4">
-            <p className="text-xs text-gray-400 mb-2">Using {selectedStillImages.length} reference image(s)</p>
+            <p className="text-xs text-white/60 mb-2">Using {selectedStillImages.length} reference image(s)</p>
             <div className="flex gap-2 flex-wrap">
               {selectedStillImages.map((still) => (
                 <img 
                   key={still.id}
                   src={still.image_url}
                   alt={still.title}
-                  className="w-12 h-12 object-cover rounded-lg border border-gray-700"
+                  className="w-12 h-12 object-cover rounded-lg border border-pink-900/30"
                 />
               ))}
             </div>
@@ -118,21 +118,21 @@ export default function AIPanel({
           <Textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Describe your design... e.g., 'Jake Paul knocked out, comic book style with dramatic impact text'"
-            className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 min-h-[100px] resize-none"
+            placeholder="Describe your design... e.g., 'I ❤️ my girlfriend with photos in a heart collage, romantic vibe'"
+            className="bg-black/40 border-pink-900/30 text-white placeholder:text-white/40 min-h-[100px] resize-none focus:border-pink-600"
           />
 
           {error && (
-            <div className="flex items-center gap-2 text-red-400 text-sm">
-              <AlertCircle className="w-4 h-4" />
-              {error}
+            <div className="flex items-center gap-2 text-pink-400 text-sm bg-pink-500/10 p-3 rounded-lg border border-pink-900/30">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 
           <Button
             onClick={handleGenerate}
             disabled={isGenerating || !prompt.trim()}
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold"
+            className="w-full bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white font-bold shadow-lg shadow-pink-600/30"
           >
             {isGenerating ? (
               <>
@@ -150,13 +150,13 @@ export default function AIPanel({
 
         {/* Suggestions */}
         <div className="mt-6">
-          <p className="text-xs text-gray-400 mb-2">Quick prompts</p>
+          <p className="text-xs text-white/60 mb-2">Quick prompts</p>
           <div className="flex flex-wrap gap-2">
             {PROMPT_SUGGESTIONS.map((suggestion, i) => (
               <Badge
                 key={i}
                 variant="outline"
-                className="border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 cursor-pointer text-xs"
+                className="border-pink-900/30 text-white/70 hover:text-white hover:border-pink-600 hover:bg-pink-600/10 cursor-pointer text-xs transition-all"
                 onClick={() => setPrompt(suggestion)}
               >
                 {suggestion.slice(0, 30)}...
@@ -175,23 +175,23 @@ export default function AIPanel({
               className="mt-6"
             >
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-gray-400">Generated Design</p>
+                <p className="text-xs text-white/60">Generated Design</p>
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={handleGenerate}
                   disabled={isGenerating}
-                  className="text-gray-400 hover:text-white h-6 text-xs"
+                  className="text-white/60 hover:text-white hover:bg-pink-600/10 h-6 text-xs"
                 >
                   <RefreshCw className="w-3 h-3 mr-1" />
                   Regenerate
                 </Button>
               </div>
-              <div className="relative rounded-lg overflow-hidden border border-gray-700">
+              <div className="relative rounded-lg overflow-hidden border border-pink-900/30">
                 <img 
                   src={generatedImage} 
                   alt="Generated design"
-                  className="w-full aspect-square object-contain bg-gray-900"
+                  className="w-full aspect-square object-contain bg-black/40"
                 />
               </div>
             </motion.div>

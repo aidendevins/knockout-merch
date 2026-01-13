@@ -514,7 +514,20 @@ router.post('/webhook', async (req, res) => {
 // Get session details
 router.get('/session/:sessionId', async (req, res) => {
   try {
-    const session = await stripe.checkout.sessions.retrieve(req.params.sessionId);
+    const { sessionId } = req.params;
+    
+    // Skip Stripe API call for free orders
+    if (sessionId === 'free-order') {
+      return res.json({ 
+        id: 'free-order',
+        payment_status: 'no_payment_required',
+        amount_total: 0,
+        customer_email: null,
+        metadata: { type: 'free_order' }
+      });
+    }
+    
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
     res.json(session);
   } catch (error) {
     console.error('Error retrieving session:', error);

@@ -17,8 +17,8 @@ export default function CheckoutSuccess() {
     // Clear the cart
     clearCart();
 
-    // Optionally fetch session details
-    if (sessionId) {
+    // Optionally fetch session details (skip for free orders)
+    if (sessionId && sessionId !== 'free-order') {
       fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/stripe/session/${sessionId}`)
         .then(res => res.json())
         .then(data => setSessionData(data))

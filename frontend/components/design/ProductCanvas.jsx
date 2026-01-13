@@ -370,7 +370,7 @@ const ProductCanvas = forwardRef(({
     ctx.translate(-cx, -cy);
     
     // Selection box
-    ctx.strokeStyle = '#ef4444'; // Red color for Knockout theme
+    ctx.strokeStyle = '#ec4899'; // Pink color for Valentine's theme
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, width, height);
     
@@ -862,9 +862,9 @@ const ProductCanvas = forwardRef(({
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-950">
+    <div className="h-full flex flex-col bg-black">
       {/* Toolbar */}
-      <div className="h-12 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-4">
+      <div className="h-12 bg-gradient-to-r from-red-950/30 to-black border-b border-pink-900/30 flex items-center justify-between px-4">
         {/* Left: Tools */}
         <div className="flex items-center gap-2">
           {/* Undo/Redo */}
@@ -873,7 +873,7 @@ const ProductCanvas = forwardRef(({
             variant="ghost"
             onClick={handleUndo}
             disabled={undoStack.length === 0}
-            className="h-8 w-8 text-gray-400 hover:text-white disabled:opacity-30"
+            className="h-8 w-8 text-white/60 hover:text-white hover:bg-pink-600/10 disabled:opacity-30"
           >
             <Undo2 className="w-4 h-4" />
           </Button>
@@ -882,22 +882,22 @@ const ProductCanvas = forwardRef(({
             variant="ghost"
             onClick={handleRedo}
             disabled={redoStack.length === 0}
-            className="h-8 w-8 text-gray-400 hover:text-white disabled:opacity-30"
+            className="h-8 w-8 text-white/60 hover:text-white hover:bg-pink-600/10 disabled:opacity-30"
           >
             <Redo2 className="w-4 h-4" />
           </Button>
           
-          <div className="w-px h-6 bg-gray-700 mx-2" />
+          <div className="w-px h-6 bg-pink-900/30 mx-2" />
           
           {/* Tool switcher */}
-          <div className="flex bg-gray-800 rounded-lg p-1">
+          <div className="flex bg-black/40 border border-pink-900/30 rounded-lg p-1">
             <Button
               size="icon"
               variant="ghost"
               onClick={() => setActiveTool('select')}
               className={cn(
                 "h-7 w-7 relative",
-                activeTool === 'select' ? "text-white bg-gray-700" : "text-gray-400 hover:text-white"
+                activeTool === 'select' ? "text-white bg-pink-600" : "text-white/60 hover:text-white hover:bg-pink-600/20"
               )}
             >
               <MousePointer2 className="w-4 h-4" />
@@ -908,14 +908,14 @@ const ProductCanvas = forwardRef(({
               onClick={() => setActiveTool('pan')}
               className={cn(
                 "h-7 w-7",
-                activeTool === 'pan' ? "text-white bg-gray-700" : "text-gray-400 hover:text-white"
+                activeTool === 'pan' ? "text-white bg-pink-600" : "text-white/60 hover:text-white hover:bg-pink-600/20"
               )}
             >
               <Hand className="w-4 h-4" />
             </Button>
           </div>
           
-          <div className="w-px h-6 bg-gray-700 mx-2" />
+          <div className="w-px h-6 bg-pink-900/30 mx-2" />
           
           {/* Grid toggle */}
           <Button
@@ -923,8 +923,8 @@ const ProductCanvas = forwardRef(({
             variant="ghost"
             onClick={() => setShowGrid(!showGrid)}
             className={cn(
-              "h-8 w-8",
-              showGrid ? "text-white" : "text-gray-500"
+              "h-8 w-8 hover:bg-pink-600/10",
+              showGrid ? "text-white" : "text-white/40"
             )}
           >
             <Grid3X3 className="w-4 h-4" />
@@ -933,12 +933,12 @@ const ProductCanvas = forwardRef(({
 
         {/* Center: Product type selector */}
         <Tabs value={productType} onValueChange={setProductType}>
-          <TabsList className="bg-gray-800">
+          <TabsList className="bg-black/40 border border-pink-900/30">
             {Object.entries(PRODUCT_TYPES).map(([key, val]) => (
               <TabsTrigger 
                 key={key} 
                 value={key}
-                className="data-[state=active]:bg-red-600 data-[state=active]:text-white"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-600 data-[state=active]:to-red-600 data-[state=active]:text-white"
               >
                 {val.name}
               </TabsTrigger>
@@ -949,19 +949,19 @@ const ProductCanvas = forwardRef(({
         {/* Right: Zoom and Actions */}
         <div className="flex items-center gap-4">
           {/* Zoom controls */}
-          <div className="flex items-center gap-2 bg-gray-800 rounded-lg px-2 py-1">
+          <div className="flex items-center gap-2 bg-black/40 border border-pink-900/30 rounded-lg px-2 py-1">
             <button 
               onClick={() => setZoom(z => Math.max(0.25, z - 0.1))} 
-              className="text-gray-400 hover:text-white px-1"
+              className="text-white/60 hover:text-white px-1"
             >
               <ZoomOut className="w-4 h-4" />
             </button>
-            <span className="text-xs text-gray-300 w-12 text-center">
+            <span className="text-xs text-white w-12 text-center">
               {Math.round(zoom * 100)}%
             </span>
             <button 
               onClick={() => setZoom(z => Math.min(3, z + 0.1))} 
-              className="text-gray-400 hover:text-white px-1"
+              className="text-white/60 hover:text-white px-1"
             >
               <ZoomIn className="w-4 h-4" />
             </button>
@@ -972,7 +972,7 @@ const ProductCanvas = forwardRef(({
             <Button
               onClick={onSave}
               disabled={!designLayers.design || isSaving || isExporting}
-              className="bg-red-600 hover:bg-red-700 text-white font-bold"
+              className="bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white font-bold shadow-lg shadow-pink-600/30"
             >
               {isSaving || isExporting ? (
                 <>Processing...</>
@@ -1049,8 +1049,8 @@ const ProductCanvas = forwardRef(({
       </div>
 
       {/* Instructions */}
-      <div className="h-10 border-t border-gray-800 bg-gray-950 flex items-center justify-center">
-        <div className="flex items-center gap-6 text-xs text-gray-500">
+      <div className="h-10 border-t border-pink-900/30 bg-gradient-to-r from-red-950/30 to-black flex items-center justify-center">
+        <div className="flex items-center gap-6 text-xs text-white/60">
           <span className="flex items-center gap-1">
             <Move className="w-3 h-3" /> Drag to position
           </span>
@@ -1061,7 +1061,7 @@ const ProductCanvas = forwardRef(({
             <RotateCw className="w-3 h-3" /> Top handle to rotate
           </span>
           <span className="flex items-center gap-1">
-            <span className="text-[10px] bg-gray-700 px-1 rounded">Space</span> Hold to pan
+            <span className="text-[10px] bg-pink-600/20 border border-pink-900/30 px-1 rounded">Space</span> Hold to pan
           </span>
         </div>
       </div>

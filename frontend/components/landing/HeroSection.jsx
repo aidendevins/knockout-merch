@@ -1,111 +1,130 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import { Sparkles, Zap, CheckCircle2, Truck, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 export default function HeroSection() {
+  const navigate = useNavigate();
+  const [prompt, setPrompt] = useState('');
+
+  const handleCreate = () => {
+    navigate(createPageUrl('DesignStudio'));
+  };
+
+  const designCategories = [
+    { label: 'AI Generated', icon: Sparkles },
+    { label: 'Quick Start', icon: Zap },
+    { label: 'Browse Designs', onClick: () => {
+      window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+    }},
+  ];
+
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-black">
-      {/* Background image - visible with subtle effects */}
+      {/* Background image - full color, no filters */}
       <div className="absolute inset-0 overflow-hidden">
         <img 
-          src="/boxing-ring-bg.jpg" 
-          alt="Boxing ring background"
+          src="/hero-bg.png" 
+          alt="Boxing background"
           className="w-full h-full object-cover"
-          style={{
-            filter: 'contrast(0.95) brightness(0.9) saturate(0.4)',
-          }}
           onError={(e) => {
             console.error('Failed to load background image:', e.target.src);
           }}
         />
       </div>
       
-      {/* Tone down hotspots - subtle reduction of highlights */}
-      <div 
-        className="absolute inset-0 opacity-40"
-        style={{
-          background: 'radial-gradient(circle at 30% 40%, rgba(0, 0, 0, 0.3) 0%, transparent 50%), radial-gradient(circle at 70% 60%, rgba(0, 0, 0, 0.2) 0%, transparent 50%)',
-        }}
-      />
+      {/* Very subtle overlay for text readability */}
+      <div className="absolute inset-0 bg-black/10" />
       
-      {/* Color-grade: warm/red spotlight near center (keep blue base) */}
-      <div 
-        className="absolute inset-0 opacity-30"
-        style={{
-          background: 'radial-gradient(circle at center, rgba(220, 38, 38, 0.2) 0%, rgba(139, 69, 19, 0.1) 30%, transparent 60%)',
-        }}
-      />
-      
-      {/* Dark overlay for overall tone - lighter */}
-      <div className="absolute inset-0 bg-black/40" />
-      
-      {/* Negative space behind headline - subtle glass panel */}
-      <div 
-        className="absolute inset-0 flex items-center justify-center"
-        style={{
-          background: 'radial-gradient(ellipse 80% 60% at center, transparent 0%, rgba(0, 0, 0, 0.2) 40%, rgba(0, 0, 0, 0.5) 100%)',
-        }}
-      />
-      
-      {/* Natural light grain overlay */}
-      <div 
-        className="absolute inset-0 opacity-[0.08] mix-blend-overlay pointer-events-none"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-          backgroundSize: '200px 200px',
-        }}
-      />
+      {/* Extra large gradient fade to next section - maximum smoothness */}
+      <div className="absolute bottom-0 left-0 right-0 h-[500px] bg-gradient-to-b from-transparent via-red-950/20 via-red-950/40 via-red-950/60 to-red-950/80" />
       
       {/* Content */}
-      <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
+      <div className="relative z-10 text-center px-4 max-w-5xl mx-auto pt-24">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
+          className="space-y-8"
         >
           {/* Main headline */}
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-[0.9] tracking-tighter mb-6">
-            Influencer Boxing is Cooked
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-[1.1] tracking-tight mb-6 max-w-4xl mx-auto">
+            Make a Valentine shirt
+            <br />
+            in 60 seconds
           </h1>
           
-          <p className="text-xl md:text-2xl text-gray-400 max-w-2xl mx-auto mb-10 font-light">
-            Design your own knockout merch. 
-            <span className="text-white"> Celebrate the moment.</span>
+          <p className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-12 font-normal leading-relaxed">
+            Upload photos, type a prompt, and see an instant preview
+            <br />
+            on a real shirt. Approve it — we print & ship.
           </p>
           
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to={createPageUrl('DesignStudio')}>
-              <Button 
-                size="lg" 
-                className="bg-red-600 hover:bg-red-700 text-white text-lg px-8 py-6 rounded-full font-bold tracking-wide group"
-              >
-                Start Designing
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
-            <a href="#community" onClick={(e) => {
-              e.preventDefault();
-              const element = document.getElementById('community');
-              if (element) {
-                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }
-            }}>
-              <Button 
-                size="lg" 
-                variant="outline"
-                className="border-gray-700 text-white hover:bg-white hover:text-black text-lg px-8 py-6 rounded-full font-bold tracking-wide hover:[&_svg]:text-black"
-              >
-                Browse Designs
-              </Button>
-            </a>
+          {/* Input Field with Create Button */}
+          <div className="max-w-3xl mx-auto mb-8">
+            <div className="relative bg-black/50 backdrop-blur-xl rounded-[28px] px-4 py-6 border border-white/20 shadow-2xl">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={handleCreate}
+                  className="flex items-center justify-center w-14 h-14 bg-white/10 hover:bg-white/20 rounded-[20px] transition-colors flex-shrink-0"
+                >
+                  <Sparkles className="w-5 h-5 text-white" />
+                </button>
+                <input
+                  type="text"
+                  placeholder="Describe your knockout design idea..."
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                  className="flex-1 bg-transparent text-white text-base md:text-lg placeholder:text-white/60 outline-none font-normal"
+                />
+                <Button
+                  onClick={handleCreate}
+                  className="bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white rounded-[20px] px-8 py-6 font-semibold text-base shadow-lg hover:shadow-pink-600/50 transition-all flex-shrink-0"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Create
+                </Button>
+              </div>
+            </div>
+
+            {/* Category Pills */}
+            <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
+              {designCategories.map((category, index) => {
+                const Icon = category.icon;
+                return (
+                  <button
+                    key={index}
+                    onClick={category.onClick || handleCreate}
+                    className="px-6 py-3 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-white/80 hover:text-white border border-white/20 hover:border-white/40 transition-all font-normal text-sm"
+                  >
+                    {Icon && <Icon className="w-4 h-4 inline mr-2" />}
+                    {category.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Feature Highlights */}
+          <div className="flex flex-wrap items-center justify-center gap-12 pt-8">
+            <div className="flex items-center gap-2 text-white/80">
+              <CheckCircle2 className="w-5 h-5 text-green-400" />
+              <span className="font-normal text-sm">Proof in seconds</span>
+            </div>
+            <div className="flex items-center gap-2 text-white/80">
+              <Truck className="w-5 h-5 text-blue-400" />
+              <span className="font-normal text-sm">Ships fast</span>
+            </div>
+            <div className="flex items-center gap-2 text-white/80">
+              <MapPin className="w-5 h-5 text-red-400" />
+              <span className="font-normal text-sm">Printed in the USA</span>
+            </div>
           </div>
         </motion.div>
-        
-
       </div>
     </section>
   );
