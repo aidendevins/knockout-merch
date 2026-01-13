@@ -39,8 +39,8 @@ export default function HeroSection() {
       {/* Very subtle overlay for text readability */}
       <div className="absolute inset-0 bg-black/10" />
       
-      {/* Gradient fade to next section */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-b from-transparent to-red-950/40" />
+      {/* Large gradient fade to next section - much smoother transition */}
+      <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-b from-transparent via-red-950/30 to-red-950/70" />
       
       {/* Content */}
       <div className="relative z-10 text-center px-4 max-w-5xl mx-auto pt-24">
