@@ -1,6 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import { ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,7 @@ export default function StudioCarousel({ designs }) {
   const [scrollLeft, setScrollLeft] = useState(0);
   const [hasMoved, setHasMoved] = useState(false);
   const [isSnapping, setIsSnapping] = useState(false);
+  const wasDragRef = useRef(false); // Track if current interaction was a drag
   
   const CARD_WIDTH = 400; // Width of each card
   const GAP = 24; // Gap between cards
@@ -55,6 +55,10 @@ export default function StudioCarousel({ designs }) {
     }
   };
 
+  // Track click position for accurate drag detection
+  const clickStartPos = useRef({ x: 0, y: 0 });
+  const MIN_MOVE_THRESHOLD = 10;
+
   // Handle mouse down
   const handleMouseDown = (e) => {
     // Don't interfere with button clicks
@@ -62,6 +66,8 @@ export default function StudioCarousel({ designs }) {
       return;
     }
     
+    clickStartPos.current = { x: e.pageX, y: e.pageY };
+    wasDragRef.current = false; // Reset drag tracking
     setIsDragging(true);
     setHasMoved(false);
     setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
@@ -117,8 +123,11 @@ export default function StudioCarousel({ designs }) {
       }
     }
     
-    // Reset hasMoved immediately so clicks work
-    setHasMoved(false);
+    // Reset states - use setTimeout to allow click event to check wasDragRef first
+    setTimeout(() => {
+      setHasMoved(false);
+      wasDragRef.current = false;
+    }, 0);
     
     if (scrollContainerRef.current) {
       scrollContainerRef.current.style.cursor = 'grab';
@@ -128,15 +137,19 @@ export default function StudioCarousel({ designs }) {
   // Handle mouse move
   const handleMouseMove = (e) => {
     if (!isDragging) return;
+    
+    // Track if mouse has moved more than threshold
+    const deltaX = Math.abs(e.pageX - clickStartPos.current.x);
+    const deltaY = Math.abs(e.pageY - clickStartPos.current.y);
+    
+    if (deltaX > MIN_MOVE_THRESHOLD || deltaY > MIN_MOVE_THRESHOLD) {
+      setHasMoved(true);
+      wasDragRef.current = true; // Mark as drag
+    }
+    
     e.preventDefault();
     const x = e.pageX - scrollContainerRef.current.offsetLeft;
     const walk = (x - startX) * 0.5; // Further reduced scroll speed (50% of previous)
-    
-    // Track if mouse has moved more than 10px (to distinguish click from drag)
-    if (Math.abs(walk) > 10) {
-      setHasMoved(true);
-    }
-    
     scrollContainerRef.current.scrollLeft = scrollLeft - walk;
   };
 
@@ -227,72 +240,79 @@ export default function StudioCarousel({ designs }) {
           >
             <div
               onClick={(e) => {
-                // Only navigate if not dragging
-                if (!hasMoved && !isDragging && !isSnapping) {
-                  navigate(createPageUrl(`Checkout?designId=${design.id}`));
+                // Don't navigate if clicking on button
+                if (e.target.closest('button')) {
+                  return;
+                }
+                // Only navigate if this wasn't a drag
+                if (!wasDragRef.current && !isDragging && !isSnapping) {
+                  navigate(`/product/${design.id}`);
                 }
               }}
-              className="block cursor-pointer"
+              className="group relative bg-gradient-to-b from-gray-800 via-gray-900 to-black rounded-2xl overflow-hidden border border-pink-900/30 hover:border-pink-600/50 transition-all duration-500 shadow-2xl hover:shadow-pink-600/20 cursor-pointer h-full flex flex-col"
               onDragStart={(e) => e.preventDefault()}
             >
-              <div className="group relative bg-gradient-to-b from-gray-800 via-gray-900 to-black rounded-2xl overflow-hidden border border-pink-900/30 hover:border-pink-600/50 transition-all duration-500 shadow-2xl hover:shadow-pink-600/20">
-                {/* Product mockup */}
-                <div className="aspect-[3/4] bg-gradient-to-br from-gray-800 via-red-950/30 to-black p-8 flex items-center justify-center relative overflow-hidden">
-                  {/* Subtle gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                  
-                  {design.mockup_urls?.[0] ? (
+              {/* Product mockup */}
+              <div className="aspect-[3/4] flex-shrink-0 bg-gradient-to-br from-gray-800 via-red-950/30 to-black p-8 flex items-center justify-center relative overflow-hidden">
+                {/* Subtle gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                
+                {design.mockup_urls?.[0] ? (
+                  <img 
+                    src={design.mockup_urls[0]} 
+                    alt={design.title}
+                    className="relative z-10 w-full h-full object-contain group-hover:scale-105 transition-transform duration-700"
+                    draggable="false"
+                  />
+                ) : design.design_image_url ? (
+                  <div className="relative z-10 w-48 h-60 bg-white/5 backdrop-blur-sm rounded-lg shadow-2xl flex items-center justify-center overflow-hidden">
                     <img 
-                      src={design.mockup_urls[0]} 
+                      src={design.design_image_url} 
                       alt={design.title}
-                      className="relative z-10 w-full h-full object-contain group-hover:scale-105 transition-transform duration-700"
+                      className="w-32 h-32 object-contain"
                       draggable="false"
                     />
-                  ) : design.design_image_url ? (
-                    <div className="relative z-10 w-48 h-60 bg-white/5 backdrop-blur-sm rounded-lg shadow-2xl flex items-center justify-center overflow-hidden">
-                      <img 
-                        src={design.design_image_url} 
-                        alt={design.title}
-                        className="w-32 h-32 object-contain"
-                        draggable="false"
-                      />
-                    </div>
-                  ) : (
-                    <div className="relative z-10 w-48 h-60 bg-white/5 backdrop-blur-sm rounded-lg shadow-2xl flex items-center justify-center">
-                      <span className="text-gray-500">No preview</span>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Info panel */}
-                <div className="relative p-6 bg-gradient-to-b from-black/60 to-black/80 backdrop-blur-sm border-t border-pink-900/30">
-                  <h3 className="text-white font-bold text-xl mb-3 group-hover:text-pink-300 transition-colors line-clamp-1">
-                    {design.title}
-                  </h3>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-3xl font-black text-white">
-                        ${typeof design.price === 'number' ? design.price.toFixed(2) : (parseFloat(design.price) || 29.99).toFixed(2)}
-                      </span>
-                      {design.sales_count > 0 && (
-                        <p className="text-pink-300/60 text-sm mt-1">
-                          {design.sales_count} sold
-                        </p>
-                      )}
-                    </div>
-                    <Button 
-                      size="sm" 
-                      className="bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white rounded-full font-semibold shadow-lg hover:shadow-pink-600/50 transition-all"
-                    >
-                      <ShoppingBag className="w-4 h-4 mr-2" />
-                      Buy Now
-                    </Button>
                   </div>
-                </div>
-
-                {/* Hover effect overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-pink-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                ) : (
+                  <div className="relative z-10 w-48 h-60 bg-white/5 backdrop-blur-sm rounded-lg shadow-2xl flex items-center justify-center">
+                    <span className="text-gray-500">No preview</span>
+                  </div>
+                )}
               </div>
+              
+              {/* Info panel - fixed height for consistency */}
+              <div className="relative p-6 bg-gradient-to-b from-black/60 to-black/80 backdrop-blur-sm border-t border-pink-900/30 flex-shrink-0 flex flex-col" style={{ minHeight: '140px' }}>
+                <h3 className="text-white font-bold text-xl mb-3 group-hover:text-pink-300 transition-colors line-clamp-2" style={{ minHeight: '3rem' }}>
+                  {design.title}
+                </h3>
+                <div className="flex items-center justify-between mt-auto">
+                  <div>
+                    <span className="text-3xl font-black text-white">
+                      ${typeof design.price === 'number' ? design.price.toFixed(2) : (parseFloat(design.price) || 29.99).toFixed(2)}
+                    </span>
+                    {design.sales_count > 0 && (
+                      <p className="text-pink-300/60 text-sm mt-1">
+                        {design.sales_count} sold
+                      </p>
+                    )}
+                  </div>
+                  <Button 
+                    size="sm" 
+                    className="bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white rounded-full font-semibold shadow-lg hover:shadow-pink-600/50 transition-all"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      navigate(`/product/${design.id}`);
+                    }}
+                  >
+                    <ShoppingBag className="w-4 h-4 mr-2" />
+                    Buy Now
+                  </Button>
+                </div>
+              </div>
+
+              {/* Hover effect overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-pink-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
             </div>
           </motion.div>
         ))}
