@@ -27,9 +27,9 @@ export default function About() {
           <section className="bg-gradient-to-br from-red-950/30 via-pink-950/20 to-red-950/30 rounded-2xl p-8 border border-pink-900/30 backdrop-blur-sm">
             <h2 className="text-3xl font-bold text-white mb-6">Our Mission</h2>
             <p className="text-white/80 leading-relaxed text-lg">
-              LoveForge exists to make gifting personal again—without the wait. We help you turn your favorite photos, 
+              LoveForge exists to make gifting personal again - without the wait. We help you turn your favorite photos, 
               names, and inside jokes into a shirt you're genuinely proud to give (or wear). In under a minute, you can 
-              create something that feels thoughtful, custom, and uniquely yours—then we print it and ship it fast.
+              create something that feels thoughtful, custom, and uniquely yours - then we print it and ship it fast.
             </p>
           </section>
 
