@@ -43,7 +43,7 @@ export default function Home() {
             />
           </div>
           <div className="absolute inset-0 bg-black/40" />
-          <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-red-950/70 via-red-950/30 to-transparent" />
+          <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-red-950/80 via-red-950/60 via-red-950/40 via-red-950/20 to-transparent" />
           <div className="max-w-7xl mx-auto px-4 text-center mb-12 relative z-10">
             <div className="inline-block bg-gradient-to-r from-pink-600 to-red-600 text-white border-0 rounded-full px-4 py-1.5 text-sm mb-4 shadow-lg shadow-pink-600/30">
               Studio Collection
@@ -77,7 +77,7 @@ export default function Home() {
             />
           </div>
           <div className="absolute inset-0 bg-black/40" />
-          <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-red-950/70 via-red-950/30 to-transparent" />
+          <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-red-950/80 via-red-950/60 via-red-950/40 via-red-950/20 to-transparent" />
           
           <div className="max-w-3xl mx-auto px-4 text-center relative z-10">
             <div className="w-20 h-20 bg-gradient-to-br from-pink-900/30 to-red-900/30 rounded-full mx-auto mb-6 flex items-center justify-center border border-pink-600/30">

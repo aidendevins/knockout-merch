@@ -183,8 +183,8 @@ export default function StudioCarousel({ designs }) {
       {/* Stronger overlay to match hero section brightness */}
       <div className="absolute inset-0 bg-black/40" />
       
-      {/* Large gradient blend from hero section - much smoother transition */}
-      <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-red-950/70 via-red-950/30 to-transparent" />
+      {/* Extra large gradient blend from hero section - maximum smoothness */}
+      <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-red-950/80 via-red-950/60 via-red-950/40 via-red-950/20 to-transparent" />
       
       <div className="max-w-7xl mx-auto px-4 mb-12 relative z-10">
         {/* Section header */}
