@@ -180,8 +180,11 @@ export default function StudioCarousel({ designs }) {
         />
       </div>
       
-      {/* Subtle overlay for text readability and blend */}
-      <div className="absolute inset-0 bg-black/20" />
+      {/* Stronger overlay to match hero section brightness */}
+      <div className="absolute inset-0 bg-black/40" />
+      
+      {/* Gradient blend from hero section */}
+      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-red-950/60 to-transparent" />
       
       <div className="max-w-7xl mx-auto px-4 mb-12 relative z-10">
         {/* Section header */}
