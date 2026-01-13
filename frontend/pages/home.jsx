@@ -33,8 +33,17 @@ export default function Home() {
 
       {/* Studio Designs Carousel */}
       {studioLoading ? (
-        <section className="py-24 bg-gradient-to-b from-red-950/30 via-red-950/15 to-transparent">
-          <div className="max-w-7xl mx-auto px-4 text-center mb-12">
+        <section className="py-24 relative overflow-hidden">
+          {/* Background image */}
+          <div className="absolute inset-0">
+            <img 
+              src="/carousel-bg.png" 
+              alt="Background"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="absolute inset-0 bg-black/20" />
+          <div className="max-w-7xl mx-auto px-4 text-center mb-12 relative z-10">
             <div className="inline-block bg-gradient-to-r from-pink-600 to-red-600 text-white border-0 rounded-full px-4 py-1.5 text-sm mb-4 shadow-lg shadow-pink-600/30">
               Studio Collection
             </div>
@@ -42,7 +51,7 @@ export default function Home() {
               Loading...
             </h2>
           </div>
-          <div className="flex gap-6 overflow-x-hidden px-4 md:px-12">
+          <div className="flex gap-6 overflow-x-hidden px-4 md:px-12 relative z-10">
             {Array(6).fill(0).map((_, i) => (
               <div key={i} className="flex-shrink-0 w-[350px] md:w-[400px]">
                 <div className="bg-gradient-to-b from-gray-800 to-gray-900 rounded-2xl overflow-hidden border border-pink-900/30">
@@ -57,8 +66,18 @@ export default function Home() {
           </div>
         </section>
       ) : studioDesigns.length === 0 ? (
-        <section className="py-24 bg-gradient-to-b from-red-950/30 via-red-950/15 to-transparent">
-          <div className="max-w-3xl mx-auto px-4 text-center">
+        <section className="py-24 relative overflow-hidden">
+          {/* Background image */}
+          <div className="absolute inset-0">
+            <img 
+              src="/carousel-bg.png" 
+              alt="Background"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="absolute inset-0 bg-black/20" />
+          
+          <div className="max-w-3xl mx-auto px-4 text-center relative z-10">
             <div className="w-20 h-20 bg-gradient-to-br from-pink-900/30 to-red-900/30 rounded-full mx-auto mb-6 flex items-center justify-center border border-pink-600/30">
               <span className="text-4xl">💕</span>
             </div>

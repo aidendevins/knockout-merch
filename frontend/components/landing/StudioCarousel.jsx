@@ -170,9 +170,18 @@ export default function StudioCarousel({ designs }) {
   };
 
   return (
-    <section className="py-24 bg-gradient-to-b from-red-950/30 via-red-950/15 to-transparent overflow-hidden relative">
-      {/* Warm ambient background glow */}
-      <div className="absolute inset-0 bg-gradient-to-r from-orange-950/20 via-red-950/30 to-pink-950/20" />
+    <section className="py-24 overflow-hidden relative">
+      {/* Background image for carousel section */}
+      <div className="absolute inset-0 overflow-hidden">
+        <img 
+          src="/carousel-bg.png" 
+          alt="Carousel background"
+          className="w-full h-full object-cover"
+        />
+      </div>
+      
+      {/* Subtle overlay for text readability and blend */}
+      <div className="absolute inset-0 bg-black/20" />
       
       <div className="max-w-7xl mx-auto px-4 mb-12 relative z-10">
         {/* Section header */}
