@@ -40,14 +40,14 @@ export default function MockupPreview({
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 20 }}
           transition={{ type: 'spring', damping: 25 }}
-          className="relative w-full max-w-4xl bg-gray-950 rounded-2xl border border-gray-800 overflow-hidden"
+          className="relative w-full max-w-4xl bg-gradient-to-br from-red-950/30 to-black rounded-2xl border border-pink-900/30 overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="p-6 border-b border-gray-800 flex items-center justify-between">
+          <div className="p-6 border-b border-pink-900/30 flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-white">Product Preview</h2>
-              <p className="text-gray-400 text-sm mt-1">
+              <p className="text-white/70 text-sm mt-1">
                 Review your {productType === 'tshirt' ? 'T-Shirt' : 'Hoodie'} design before checkout
               </p>
             </div>
@@ -55,14 +55,14 @@ export default function MockupPreview({
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="text-gray-400 hover:text-white"
+              className="text-white/60 hover:text-white hover:bg-pink-600/10"
             >
               <X className="w-5 h-5" />
             </Button>
           </div>
 
           {/* Mockup Gallery */}
-          <div className="relative aspect-square max-h-[500px] bg-gray-900 flex items-center justify-center">
+          <div className="relative aspect-square max-h-[500px] bg-black/40 flex items-center justify-center">
             {mockupUrls.length > 0 ? (
               <>
                 <motion.img
@@ -80,7 +80,7 @@ export default function MockupPreview({
                       variant="ghost"
                       size="icon"
                       onClick={prevMockup}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-pink-600/50 text-white border border-pink-900/30"
                     >
                       <ChevronLeft className="w-6 h-6" />
                     </Button>
@@ -88,7 +88,7 @@ export default function MockupPreview({
                       variant="ghost"
                       size="icon"
                       onClick={nextMockup}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-pink-600/50 text-white border border-pink-900/30"
                     >
                       <ChevronRight className="w-6 h-6" />
                     </Button>
@@ -100,7 +100,7 @@ export default function MockupPreview({
                           key={i}
                           onClick={() => setCurrentIndex(i)}
                           className={`w-2 h-2 rounded-full transition-colors ${
-                            i === currentIndex ? 'bg-white' : 'bg-white/30'
+                            i === currentIndex ? 'bg-pink-500' : 'bg-white/30'
                           }`}
                         />
                       ))}
@@ -109,28 +109,28 @@ export default function MockupPreview({
                 )}
               </>
             ) : (
-              <div className="text-center text-gray-500">
-                <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
+              <div className="text-center text-white/70">
+                <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-pink-500" />
                 <p>Loading mockups...</p>
               </div>
             )}
           </div>
 
           {/* Product Info */}
-          <div className="p-6 border-t border-gray-800">
+          <div className="p-6 border-t border-pink-900/30">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-xl font-bold text-white">{designTitle}</h3>
                 <div className="flex items-center gap-2 mt-1">
-                  <Badge className="bg-red-600 text-white">
+                  <Badge className="bg-gradient-to-r from-pink-600 to-red-600 text-white">
                     {productType === 'tshirt' ? 'T-Shirt' : 'Hoodie'}
                   </Badge>
-                  <span className="text-gray-400 text-sm">Limited Edition Knockout Club</span>
+                  <span className="text-white/70 text-sm">Limited Edition LoveForge</span>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-3xl font-bold text-green-500">${price?.toFixed(2) || '29.99'}</p>
-                <p className="text-gray-500 text-sm">+ shipping</p>
+                <p className="text-3xl font-bold text-pink-500">${price?.toFixed(2) || '29.99'}</p>
+                <p className="text-white/60 text-sm">+ shipping</p>
               </div>
             </div>
 
@@ -142,8 +142,8 @@ export default function MockupPreview({
                 'True to Size',
                 'Fast Shipping',
               ].map((feature) => (
-                <div key={feature} className="flex items-center gap-2 text-sm text-gray-400">
-                  <Check className="w-4 h-4 text-green-500" />
+                <div key={feature} className="flex items-center gap-2 text-sm text-white/70">
+                  <Check className="w-4 h-4 text-pink-500" />
                   {feature}
                 </div>
               ))}
@@ -154,14 +154,14 @@ export default function MockupPreview({
               <Button
                 variant="outline"
                 onClick={onClose}
-                className="flex-1 border-gray-700 text-gray-400 hover:text-white hover:border-gray-500"
+                className="flex-1 border-pink-900/30 text-white/70 hover:text-white hover:border-pink-600 hover:bg-pink-600/10"
               >
                 Edit Design
               </Button>
               <Button
                 onClick={onConfirm}
                 disabled={isLoading || mockupUrls.length === 0}
-                className="flex-1 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold"
+                className="flex-1 bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white font-bold shadow-lg shadow-pink-600/30"
               >
                 {isLoading ? (
                   <>
