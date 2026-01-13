@@ -42,7 +42,7 @@ export default function About() {
             <p className="text-white/80 leading-relaxed text-lg mb-4">
               LoveForge combines an easy creator studio with AI-assisted design to produce gift-ready tees instantly. 
               Upload photos, type what you want ("I ❤️ my girlfriend," a name collage, a tour-tee vibe), and we generate 
-              a clean layout with the right cutouts, effects, and typography—plus a true-to-life preview on a real shirt. 
+              a clean layout with the right cutouts, effects, and typography - plus a true-to-life preview on a real shirt. 
               When you approve it, we handle the rest: high-quality printing, secure checkout, and dependable fulfillment.
             </p>
           </section>
@@ -54,7 +54,7 @@ export default function About() {
           <section className="bg-gradient-to-br from-red-950/30 via-pink-950/20 to-red-950/30 rounded-2xl p-8 border border-pink-900/30 backdrop-blur-sm">
             <h2 className="text-3xl font-bold text-white mb-6">Get Started</h2>
             <p className="text-white/80 leading-relaxed text-lg mb-8">
-              Pick a style, upload a few photos, and type a prompt—LoveForge will generate options in seconds. Tweak 
+              Pick a style, upload a few photos, and type a prompt - LoveForge will generate options in seconds. Tweak 
               the text, choose your shirt color and size, preview it, and check out when it looks perfect. Whether you're 
               shopping for Valentine's, an anniversary, or a just-because gift, you can make something memorable in minutes.
             </p>
