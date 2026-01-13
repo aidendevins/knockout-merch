@@ -59,38 +59,50 @@ router.post('/products', async (req, res) => {
       title, 
       description, 
       design_image_url, 
+      design_image_base64, // Accept base64 data directly
       product_type = 'tshirt',
+      color = 'black',
       canvas_data = {},
       design_id 
     } = req.body;
 
-    if (!design_image_url) {
-      return res.status(400).json({ error: 'Design image URL is required' });
+    // Either URL or base64 is required
+    if (!design_image_url && !design_image_base64) {
+      return res.status(400).json({ error: 'Design image URL or base64 data is required' });
+    }
+
+    // Validate color
+    const validColors = ['black', 'white'];
+    if (!validColors.includes(color)) {
+      return res.status(400).json({ error: `Invalid color: ${color}. Must be 'black' or 'white'.` });
     }
 
     if (!printify.isConfigured()) {
       // Return mock response for development
+      const bgColor = color === 'black' ? '1a1a1a' : 'f5f5f5';
+      const textColor = color === 'black' ? 'FFFFFF' : '1a1a1a';
       const mockProduct = {
         id: `mock-${Date.now()}`,
         printify_product_id: `mock-${Date.now()}`,
         title: title || 'Knockout Club Design',
         mockup_urls: [
-          'https://via.placeholder.com/800x800/1a1a1a/DC2626?text=T-Shirt+Front',
-          'https://via.placeholder.com/800x800/1a1a1a/DC2626?text=T-Shirt+Back',
+          `https://via.placeholder.com/800x800/${bgColor}/${textColor}?text=${product_type === 'hoodie' ? 'Hoodie' : 'T-Shirt'}+Front`,
+          `https://via.placeholder.com/800x800/${bgColor}/${textColor}?text=${product_type === 'hoodie' ? 'Hoodie' : 'T-Shirt'}+Back`,
         ],
         product_type,
+        color,
         is_mock: true,
       };
 
       // Update design with mockup URLs if design_id provided
       if (design_id) {
-        await db.run(
+        await db.query(
           `UPDATE designs SET 
-            mockup_urls = ?, 
-            printify_product_id = ?,
-            updated_date = CURRENT_TIMESTAMP
-          WHERE id = ?`,
-          [JSON.stringify(mockProduct.mockup_urls), mockProduct.printify_product_id, design_id]
+            mockup_urls = $1, 
+            printify_product_id = $2,
+            color = $3
+          WHERE id = $4`,
+          [JSON.stringify(mockProduct.mockup_urls), mockProduct.printify_product_id, color, design_id]
         );
       }
 
@@ -98,11 +110,14 @@ router.post('/products', async (req, res) => {
     }
 
     // Create product on Printify
+    // Prefer base64 if provided, otherwise use URL
+    const imageData = design_image_base64 || design_image_url;
     const product = await printify.createProduct({
       title: title || 'KO Merch Design',
       description,
-      imageUrl: design_image_url,
+      imageUrl: imageData, // This now accepts both URL and base64
       productType: product_type,
+      color: color,
       canvasData: canvas_data,
     });
 
@@ -111,19 +126,20 @@ router.post('/products', async (req, res) => {
 
     // Update design with Printify product ID and mockups
     if (design_id) {
-      await db.run(
+      await db.query(
         `UPDATE designs SET 
-          mockup_urls = ?, 
-          printify_product_id = ?,
-          updated_date = CURRENT_TIMESTAMP
-        WHERE id = ?`,
-        [JSON.stringify(mockupUrls), product.id, design_id]
+          mockup_urls = $1, 
+          printify_product_id = $2,
+          color = $3
+        WHERE id = $4`,
+        [JSON.stringify(mockupUrls), product.id, color, design_id]
       );
     }
 
     res.json({
       ...product,
       mockup_urls: mockupUrls,
+      color,
       is_mock: false,
     });
   } catch (error) {
@@ -200,17 +216,18 @@ router.post('/orders', async (req, res) => {
       quantity, 
       shipping_address,
       order_id,
-      product_type = 'tshirt'
+      product_type = 'tshirt',
+      color = 'black'
     } = req.body;
 
     if (!product_id || !size || !shipping_address) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Get variant ID for the size
-    const variantId = printify.getVariantId(product_type, size);
+    // Get variant ID for the size and color
+    const variantId = printify.getVariantId(product_type, size, color);
     if (!variantId && printify.isConfigured()) {
-      return res.status(400).json({ error: `Invalid size: ${size}` });
+      return res.status(400).json({ error: `Invalid size or color: ${size}/${color}` });
     }
 
     if (!printify.isConfigured() || product_id.startsWith('mock-')) {
@@ -224,12 +241,11 @@ router.post('/orders', async (req, res) => {
 
       // Update local order with Printify order ID
       if (order_id) {
-        await db.run(
+        await db.query(
           `UPDATE orders SET 
-            printify_order_id = ?,
-            status = 'processing',
-            updated_date = CURRENT_TIMESTAMP
-          WHERE id = ?`,
+            printify_order_id = $1,
+            status = 'processing'
+          WHERE id = $2`,
           [mockOrder.printify_order_id, order_id]
         );
       }
@@ -248,12 +264,11 @@ router.post('/orders', async (req, res) => {
 
     // Update local order with Printify order ID
     if (order_id) {
-      await db.run(
+      await db.query(
         `UPDATE orders SET 
-          printify_order_id = ?,
-          status = 'processing',
-          updated_date = CURRENT_TIMESTAMP
-        WHERE id = ?`,
+          printify_order_id = $1,
+          status = 'processing'
+        WHERE id = $2`,
         [printifyOrder.id, order_id]
       );
     }
@@ -302,6 +317,133 @@ router.get('/sizes/:productType', (req, res) => {
   
   const sizes = Object.keys(blueprint.variants);
   res.json(sizes);
+});
+
+// Sync all products from Printify to local database
+router.post('/sync-products', async (req, res) => {
+  try {
+    if (!printify.isConfigured()) {
+      return res.status(400).json({ error: 'Printify is not configured' });
+    }
+
+    // Get all products from Printify shop
+    const products = await printify.getAllShopProducts();
+    
+    let insertedCount = 0;
+    let skippedCount = 0;
+
+    // Process each product
+    for (const product of products) {
+      try {
+        // Check if product already exists by printify_product_id
+        const existing = await db.get(
+          'SELECT id FROM designs WHERE printify_product_id = $1',
+          [product.id.toString()]
+        );
+
+        if (existing) {
+          skippedCount++;
+          continue;
+        }
+
+        // Get product details for mockups and other information
+        const productDetails = await printify.getProductDetails(product.id);
+        const mockupUrls = (productDetails.images || []).map(img => img.src);
+
+        // Determine product type from blueprint_id
+        const blueprintId = productDetails.blueprint_id || product.blueprint_id;
+        let productType = 'tshirt';
+        if (blueprintId === 77) {
+          productType = 'hoodie';
+        } else if (blueprintId === 12) {
+          productType = 'tshirt';
+        }
+
+        // Extract color from variants (first variant's color)
+        const variants = productDetails.variants || product.variants || [];
+        let color = 'black';
+        if (variants.length > 0) {
+          const firstVariant = variants[0];
+          // Try to determine color from variant options
+          if (firstVariant.options?.color) {
+            color = firstVariant.options.color.toLowerCase();
+          }
+        }
+
+        // Get design image URL from print areas
+        // Printify products have print_areas with images
+        let designImageUrl = '';
+        if (productDetails.print_areas && productDetails.print_areas.length > 0) {
+          const printArea = productDetails.print_areas[0];
+          if (printArea.placeholders && printArea.placeholders.length > 0) {
+            const placeholder = printArea.placeholders[0];
+            if (placeholder.images && placeholder.images.length > 0) {
+              // We need to fetch the uploaded image URL
+              // For now, we'll use the first mockup as a fallback
+              designImageUrl = mockupUrls[0] || '';
+            }
+          }
+        }
+
+        // If we don't have a design image URL, use the first mockup
+        if (!designImageUrl && mockupUrls.length > 0) {
+          designImageUrl = mockupUrls[0];
+        }
+
+        // If still no image, skip this product
+        if (!designImageUrl) {
+          skippedCount++;
+          continue;
+        }
+
+        // Extract price from variants (use the first variant's price)
+        let price = 29.99;
+        if (variants.length > 0) {
+          const firstVariant = variants[0];
+          if (firstVariant.price) {
+            // Price is in cents, convert to dollars
+            price = firstVariant.price / 100;
+          }
+        }
+
+        // Insert into designs table
+        await db.query(
+          `INSERT INTO designs (
+            title, design_image_url, mockup_urls, printify_product_id, printify_blueprint_id,
+            product_type, color, price, is_published, is_featured
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          [
+            productDetails.title || product.title || 'Imported from Printify',
+            designImageUrl,
+            JSON.stringify(mockupUrls),
+            product.id.toString(),
+            blueprintId,
+            productType,
+            color,
+            price,
+            false, // is_published - set to false by default
+            false  // is_featured - set to false by default
+          ]
+        );
+
+        insertedCount++;
+      } catch (error) {
+        console.error(`Error processing product ${product.id}:`, error);
+        skippedCount++;
+        // Continue with next product
+      }
+    }
+
+    res.json({
+      success: true,
+      inserted: insertedCount,
+      skipped: skippedCount,
+      total: products.length
+    });
+  } catch (error) {
+    console.error('Error syncing products:', error);
+    res.status(500).json({ error: 'Failed to sync products', message: error.message });
+  }
 });
 
 module.exports = router;

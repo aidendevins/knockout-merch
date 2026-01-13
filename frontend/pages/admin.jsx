@@ -1,32 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import apiClient from '@/api/apiClient';
 import { base44 } from '@/api/base44Client';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
-  Upload, Image, Trash2, Star, StarOff, Plus, X,
-  ShieldCheck, Package, Users, DollarSign, Loader2, Check, Cloud, RefreshCw
+  Upload, Image, Star, StarOff, Loader2, Check, X, Save, Edit,
+  ShieldCheck, Package, Users, DollarSign, FileText, Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+
+// Helper to get image URL (use proxy if needed for CORS)
+const getImageUrl = (url) => {
+  if (!url) return null;
+  
+  // Always use proxy for S3 URLs to avoid CORS issues
+  if (url.includes('s3.amazonaws.com') || url.includes('s3://') || url.includes('.s3.')) {
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const apiBase = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
+    
+    // Try to extract S3 key from URL for more reliable proxying
+    let proxyUrl;
+    try {
+      // Extract key from URL like: https://bucket.s3.region.amazonaws.com/key
+      const urlMatch = url.match(/\.s3\.[^/]+\/(.+)$/);
+      if (urlMatch && urlMatch[1]) {
+        const key = decodeURIComponent(urlMatch[1]);
+        proxyUrl = `${apiBase}/upload/proxy-image?key=${encodeURIComponent(key)}`;
+      } else {
+        // Fallback to URL parameter
+        proxyUrl = `${apiBase}/upload/proxy-image?url=${encodeURIComponent(url)}`;
+      }
+    } catch (e) {
+      // Fallback to URL parameter if key extraction fails
+      proxyUrl = `${apiBase}/upload/proxy-image?url=${encodeURIComponent(url)}`;
+    }
+    
+    console.log('🖼️ Using proxy for S3 image:', { original: url, proxy: proxyUrl });
+    return proxyUrl;
+  }
+  return url;
+};
 
 export default function Admin() {
   const queryClient = useQueryClient();
-  const [uploadingStill, setUploadingStill] = useState(false);
-  const [newStill, setNewStill] = useState({ title: '', round: '', file: null });
-  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState(null);
+  const [editedPrompt, setEditedPrompt] = useState('');
+  const [uploadingRefImage, setUploadingRefImage] = useState(false);
 
   // Fetch data
-  const { data: stills = [], isLoading: stillsLoading } = useQuery({
-    queryKey: ['admin-stills'],
-    queryFn: () => base44.entities.FightStill.list('-created_date'),
+  const { data: templates = [], isLoading: templatesLoading } = useQuery({
+    queryKey: ['admin-templates'],
+    queryFn: () => apiClient.entities.Template.list(),
   });
+
+  // Debug: Log templates when they're fetched
+  useEffect(() => {
+    if (templates.length > 0) {
+      console.log('📋 Templates fetched:', templates);
+      templates.forEach(t => {
+        console.log(`Template ${t.id}:`, {
+          name: t.name,
+          reference_image: t.reference_image,
+          hasRefImage: !!t.reference_image,
+        });
+      });
+    }
+  }, [templates]);
 
   const { data: designs = [], isLoading: designsLoading } = useQuery({
     queryKey: ['admin-designs'],
@@ -39,42 +86,34 @@ export default function Admin() {
   });
 
   // Mutations
-  const uploadStillMutation = useMutation({
-    mutationFn: async ({ file, title, round }) => {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      return await base44.entities.FightStill.create({
-        title,
-        round,
-        image_url: file_url,
-        is_featured: false,
-        usage_count: 0,
-      });
+  const updateTemplateMutation = useMutation({
+    mutationFn: async ({ id, data }) => {
+      return await apiClient.entities.Template.update(id, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['admin-stills', 'fight-stills']);
-      toast.success('Fight still uploaded!');
-      setShowUploadDialog(false);
-      setNewStill({ title: '', round: '', file: null });
+      queryClient.invalidateQueries(['admin-templates']);
+      toast.success('Template updated!');
+      setEditingTemplate(null);
     },
     onError: (err) => {
-      toast.error('Failed to upload still');
+      toast.error('Failed to update template');
       console.error(err);
     },
   });
 
-  const deleteStillMutation = useMutation({
-    mutationFn: (id) => base44.entities.FightStill.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['admin-stills', 'fight-stills']);
-      toast.success('Still deleted');
+  const uploadReferenceImageMutation = useMutation({
+    mutationFn: async ({ templateId, imageBase64 }) => {
+      return await apiClient.entities.Template.uploadReferenceImage(templateId, imageBase64);
     },
-  });
-
-  const toggleStillFeatureMutation = useMutation({
-    mutationFn: ({ id, is_featured }) => 
-      base44.entities.FightStill.update(id, { is_featured: !is_featured }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['admin-stills', 'fight-stills']);
+      queryClient.invalidateQueries(['admin-templates']);
+      toast.success('Reference image uploaded!');
+      setUploadingRefImage(false);
+    },
+    onError: (err) => {
+      toast.error('Failed to upload reference image');
+      console.error(err);
+      setUploadingRefImage(false);
     },
   });
 
@@ -86,106 +125,105 @@ export default function Admin() {
     },
   });
 
-  // Sync from S3
-  const syncFromS3Mutation = useMutation({
-    mutationFn: () => base44.entities.FightStill.syncFromS3(),
-    onSuccess: (result) => {
-      queryClient.invalidateQueries(['admin-stills', 'fight-stills']);
-      toast.success(`Synced ${result.added} new images from S3!`);
-    },
-    onError: (err) => {
-      toast.error('Failed to sync from S3: ' + (err.message || 'Unknown error'));
-      console.error(err);
-    },
-  });
-
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setNewStill(prev => ({ ...prev, file }));
-    }
+  const handleEditPrompt = (template) => {
+    setEditingTemplate(template);
+    setEditedPrompt(template.prompt || '');
   };
 
-  const handleUpload = () => {
-    if (!newStill.file || !newStill.title) {
-      toast.error('Please provide a title and select an image');
-      return;
-    }
-    uploadStillMutation.mutate({
-      file: newStill.file,
-      title: newStill.title,
-      round: newStill.round,
+  const handleSavePrompt = () => {
+    if (!editingTemplate) return;
+    
+    updateTemplateMutation.mutate({
+      id: editingTemplate.id,
+      data: { prompt: editedPrompt },
     });
   };
 
+  const handleReferenceImageUpload = async (templateId, file) => {
+    if (!file) return;
+    
+    setUploadingRefImage(true);
+    
+    // Convert file to base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result;
+      uploadReferenceImageMutation.mutate({
+        templateId,
+        imageBase64: base64String,
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Stats
-  const totalRevenue = orders.reduce((acc, o) => acc + (o.total_amount || 0), 0);
+  const totalRevenue = orders.reduce((acc, o) => acc + (Number(o.total_amount) || 0), 0);
   const publishedDesigns = designs.filter(d => d.is_published).length;
 
   return (
-    <div className="min-h-screen bg-black pt-20 pb-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-black via-red-950/20 to-black pt-20 pb-12 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center">
-            <ShieldCheck className="w-5 h-5 text-yellow-500" />
+          <div className="w-10 h-10 bg-pink-500/20 rounded-lg flex items-center justify-center">
+            <ShieldCheck className="w-5 h-5 text-pink-500" />
           </div>
           <div>
             <h1 className="text-2xl font-black text-white">Admin Dashboard</h1>
-            <p className="text-gray-500 text-sm">Manage fight stills and designs</p>
+            <p className="text-gray-400 text-sm">Manage templates, designs, and orders</p>
           </div>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-gray-900 border-gray-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                  <Image className="w-5 h-5 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">{stills.length}</p>
-                  <p className="text-gray-500 text-sm">Fight Stills</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-gray-900/50 border-pink-900/30 backdrop-blur">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                  <Package className="w-5 h-5 text-purple-500" />
+                  <Sparkles className="w-5 h-5 text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-white">{templates.length}</p>
+                  <p className="text-gray-400 text-sm">Templates</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gray-900/50 border-pink-900/30 backdrop-blur">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-pink-500/20 rounded-lg flex items-center justify-center">
+                  <Package className="w-5 h-5 text-pink-400" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-white">{publishedDesigns}</p>
-                  <p className="text-gray-500 text-sm">Published Designs</p>
+                  <p className="text-gray-400 text-sm">Published Designs</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-gray-900/50 border-pink-900/30 backdrop-blur">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
-                  <Users className="w-5 h-5 text-green-500" />
+                  <Users className="w-5 h-5 text-green-400" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-white">{orders.length}</p>
-                  <p className="text-gray-500 text-sm">Total Orders</p>
+                  <p className="text-gray-400 text-sm">Total Orders</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-gray-900/50 border-pink-900/30 backdrop-blur">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center">
-                  <DollarSign className="w-5 h-5 text-yellow-500" />
+                  <DollarSign className="w-5 h-5 text-yellow-400" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-white">${totalRevenue.toFixed(0)}</p>
-                  <p className="text-gray-500 text-sm">Revenue</p>
+                  <p className="text-gray-400 text-sm">Revenue</p>
                 </div>
               </div>
             </CardContent>
@@ -193,216 +231,221 @@ export default function Admin() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="stills" className="space-y-6">
-          <TabsList className="bg-gray-900 border border-gray-800">
+        <Tabs defaultValue="templates" className="space-y-6">
+          <TabsList className="bg-gray-900/50 border border-pink-900/30 backdrop-blur">
             <TabsTrigger 
-              value="stills" 
-              className="data-[state=active]:bg-red-600 data-[state=active]:text-white"
+              value="templates" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-600 data-[state=active]:to-red-600 data-[state=active]:text-white"
             >
-              Fight Stills
+              <Sparkles className="w-4 h-4 mr-2" />
+              Templates
             </TabsTrigger>
             <TabsTrigger 
               value="designs" 
-              className="data-[state=active]:bg-red-600 data-[state=active]:text-white"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-600 data-[state=active]:to-red-600 data-[state=active]:text-white"
             >
+              <Package className="w-4 h-4 mr-2" />
               Designs
             </TabsTrigger>
             <TabsTrigger 
               value="orders" 
-              className="data-[state=active]:bg-red-600 data-[state=active]:text-white"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-600 data-[state=active]:to-red-600 data-[state=active]:text-white"
             >
+              <DollarSign className="w-4 h-4 mr-2" />
               Orders
             </TabsTrigger>
           </TabsList>
 
-          {/* Fight Stills Tab */}
-          <TabsContent value="stills">
-            <Card className="bg-gray-900 border-gray-800">
-              <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
-                <CardTitle className="text-white">Fight Stills</CardTitle>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    className="border-gray-700 text-gray-300 hover:bg-gray-800"
-                    onClick={() => syncFromS3Mutation.mutate()}
-                    disabled={syncFromS3Mutation.isPending}
+          {/* Templates Tab */}
+          <TabsContent value="templates">
+            <div className="space-y-4">
+              {templatesLoading ? (
+                <Card className="bg-gray-900/50 border-pink-900/30 backdrop-blur">
+                  <CardContent className="p-8 text-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-pink-500 mx-auto" />
+                  </CardContent>
+                </Card>
+              ) : templates.length === 0 ? (
+                <Card className="bg-gray-900/50 border-pink-900/30 backdrop-blur">
+                  <CardContent className="p-12 text-center text-gray-400">
+                    <Sparkles className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No templates found</p>
+                    <p className="text-sm mt-1">Run the seed script to create initial templates</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                templates.map((template) => (
+                  <Card 
+                    key={template.id}
+                    className="bg-gray-900/50 border-pink-900/30 backdrop-blur overflow-hidden"
                   >
-                    {syncFromS3Mutation.isPending ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Syncing...
-                      </>
-                    ) : (
-                      <>
-                        <Cloud className="w-4 h-4 mr-2" />
-                        Sync from S3
-                      </>
-                    )}
-                  </Button>
-                  <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
-                    <DialogTrigger asChild>
-                      <Button className="bg-red-600 hover:bg-red-700">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Upload Still
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-gray-900 border-gray-800">
-                    <DialogHeader>
-                      <DialogTitle className="text-white">Upload Fight Still</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 pt-4">
-                      <div>
-                        <Label className="text-gray-400">Title</Label>
-                        <Input
-                          value={newStill.title}
-                          onChange={(e) => setNewStill(prev => ({ ...prev, title: e.target.value }))}
-                          placeholder="e.g., The Knockout Punch"
-                          className="bg-gray-800 border-gray-700 text-white mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-gray-400">Round (optional)</Label>
-                        <Input
-                          value={newStill.round}
-                          onChange={(e) => setNewStill(prev => ({ ...prev, round: e.target.value }))}
-                          placeholder="e.g., 5"
-                          className="bg-gray-800 border-gray-700 text-white mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-gray-400">Image</Label>
-                        <div className="mt-1">
-                          {newStill.file ? (
-                            <div className="relative aspect-video bg-gray-800 rounded-lg overflow-hidden">
-                              <img 
-                                src={URL.createObjectURL(newStill.file)} 
-                                alt="Preview"
-                                className="w-full h-full object-cover"
-                              />
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => setNewStill(prev => ({ ...prev, file: null }))}
-                                className="absolute top-2 right-2 bg-black/50 hover:bg-black/70"
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <label className="flex flex-col items-center justify-center aspect-video bg-gray-800 border-2 border-dashed border-gray-700 rounded-lg cursor-pointer hover:border-gray-600 transition-colors">
-                              <Upload className="w-8 h-8 text-gray-500 mb-2" />
-                              <span className="text-gray-500 text-sm">Click to upload</span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleFileChange}
-                                className="hidden"
-                              />
-                            </label>
-                          )}
+                    <CardHeader className={`bg-gradient-to-r ${template.gradient || 'from-pink-600 to-red-600'} bg-opacity-10`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="text-white text-xl flex items-center gap-2">
+                            {template.name}
+                            <Badge className="bg-white/10 text-white text-xs">
+                              {template.id}
+                            </Badge>
+                          </CardTitle>
+                          <p className="text-white/70 text-sm mt-1">{template.description}</p>
                         </div>
+                        <Badge className="bg-white/20 text-white">
+                          Max {template.max_photos} photos
+                        </Badge>
                       </div>
-                      <Button
-                        onClick={handleUpload}
-                        disabled={uploadStillMutation.isPending || !newStill.file || !newStill.title}
-                        className="w-full bg-red-600 hover:bg-red-700"
-                      >
-                        {uploadStillMutation.isPending ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Uploading...
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="w-4 h-4 mr-2" />
-                            Upload Still
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </DialogContent>
-                  </Dialog>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {stillsLoading ? (
-                  <div className="text-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin text-gray-500 mx-auto" />
-                  </div>
-                ) : stills.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <Image className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No stills uploaded yet</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {stills.map((still) => (
-                      <div 
-                        key={still.id}
-                        className="relative group bg-gray-800 rounded-lg overflow-hidden"
-                      >
-                        <img 
-                          src={still.image_url} 
-                          alt={still.title}
-                          className="w-full aspect-video object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => toggleStillFeatureMutation.mutate({ 
-                              id: still.id, 
-                              is_featured: still.is_featured 
-                            })}
-                            className="bg-white/10 hover:bg-white/20"
-                          >
-                            {still.is_featured ? (
-                              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                            ) : (
-                              <StarOff className="w-4 h-4 text-gray-400" />
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-6">
+                      {/* Reference Image Section */}
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <Label className="text-white font-medium flex items-center gap-2">
+                            <Image className="w-4 h-4 text-pink-400" />
+                            Reference Image
+                            {process.env.NODE_ENV === 'development' && (
+                              <Badge className="ml-2 bg-gray-700 text-gray-300 text-[10px]">
+                                {template.reference_image ? 'Has URL' : 'No URL'}
+                              </Badge>
                             )}
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => deleteStillMutation.mutate(still.id)}
-                            className="bg-white/10 hover:bg-red-500/50"
-                          >
-                            <Trash2 className="w-4 h-4 text-red-400" />
-                          </Button>
+                          </Label>
+                          <Label htmlFor={`ref-upload-${template.id}`}>
+                            <div className="cursor-pointer flex items-center gap-2 text-pink-400 hover:text-pink-300 text-sm">
+                              <Upload className="w-4 h-4" />
+                              Upload New
+                            </div>
+                          </Label>
+                          <input
+                            id={`ref-upload-${template.id}`}
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleReferenceImageUpload(template.id, file);
+                            }}
+                            className="hidden"
+                          />
                         </div>
-                        <div className="p-2">
-                          <p className="text-white text-xs font-medium truncate">{still.title}</p>
-                          {still.round && (
-                            <p className="text-gray-500 text-xs">Round {still.round}</p>
-                          )}
-                        </div>
-                        {still.is_featured && (
-                          <Badge className="absolute top-2 left-2 bg-yellow-500 text-black text-[10px]">
-                            Featured
-                          </Badge>
+                        {/* Debug info in development */}
+                        {process.env.NODE_ENV === 'development' && template.reference_image && (
+                          <div className="mb-2 p-2 bg-gray-800/50 rounded text-xs text-gray-400 space-y-1">
+                            <div className="break-all">Original: {template.reference_image}</div>
+                            <div className="break-all text-pink-400">Proxy: {getImageUrl(template.reference_image) || 'N/A'}</div>
+                          </div>
+                        )}
+                        {template.reference_image && template.reference_image.trim() !== '' ? (
+                          <div className="relative aspect-video bg-black rounded-lg overflow-hidden border border-pink-900/30">
+                            <img 
+                              src={getImageUrl(template.reference_image) || template.reference_image}
+                              alt="Reference"
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                const originalUrl = template.reference_image;
+                                const proxyUrl = getImageUrl(originalUrl);
+                                console.error('❌ Failed to load reference image');
+                                console.error('Original URL:', originalUrl);
+                                console.error('Proxy URL:', proxyUrl);
+                                console.error('Image src:', e.target.src);
+                                console.error('Template data:', template);
+                                // Show error state
+                                const errorDiv = document.createElement('div');
+                                errorDiv.className = 'flex flex-col items-center justify-center h-full text-red-400 p-4';
+                                errorDiv.innerHTML = `
+                                  <svg class="w-12 h-12 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                  </svg>
+                                  <p class="text-sm font-medium">Failed to load image</p>
+                                  <p class="text-xs mt-1 text-gray-500 break-all">${proxyUrl || originalUrl}</p>
+                                `;
+                                e.target.parentElement.replaceChild(errorDiv, e.target);
+                              }}
+                              onLoad={() => {
+                                console.log('✅ Reference image loaded successfully');
+                                console.log('URL:', template.reference_image);
+                                console.log('Proxy URL:', getImageUrl(template.reference_image));
+                              }}
+                            />
+                            <Badge className="absolute top-2 right-2 bg-green-500/80 text-white text-xs">
+                              <Check className="w-3 h-3 mr-1" />
+                              Uploaded
+                            </Badge>
+                          </div>
+                        ) : (
+                          <div className="aspect-video bg-gray-800/50 border-2 border-dashed border-pink-900/30 rounded-lg flex flex-col items-center justify-center text-gray-500">
+                            <Image className="w-12 h-12 mb-2 opacity-50" />
+                            <p className="text-sm">No reference image</p>
+                            <p className="text-xs mt-1">This image will be sent to AI for style guidance</p>
+                          </div>
+                        )}
+                        {uploadingRefImage && (
+                          <div className="mt-2 flex items-center gap-2 text-pink-400 text-sm">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Uploading...
+                          </div>
                         )}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+
+                      {/* Prompt Section */}
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <Label className="text-white font-medium flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-pink-400" />
+                            AI Prompt Template
+                          </Label>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEditPrompt(template)}
+                            className="text-pink-400 hover:text-pink-300 hover:bg-pink-600/10"
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Edit
+                          </Button>
+                        </div>
+                        <div className="bg-black/40 border border-pink-900/30 rounded-lg p-4 max-h-48 overflow-y-auto">
+                          <pre className="text-gray-300 text-xs font-mono whitespace-pre-wrap">
+                            {template.prompt || 'No prompt set'}
+                          </pre>
+                        </div>
+                      </div>
+
+                      {/* Schema Info */}
+                      <div>
+                        <Label className="text-white font-medium text-sm mb-2 block">
+                          Panel Schema
+                        </Label>
+                        <div className="flex flex-wrap gap-2">
+                          {template.panel_schema?.fields?.map((field) => (
+                            <Badge 
+                              key={field.id}
+                              className="bg-purple-500/20 text-purple-300 border-purple-500/30"
+                            >
+                              {field.label} ({field.type})
+                              {field.required && <span className="ml-1 text-pink-400">*</span>}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
           </TabsContent>
 
-          {/* Designs Tab */}
+          {/* Designs Tab - User Created Designs */}
           <TabsContent value="designs">
-            <Card className="bg-gray-900 border-gray-800">
+            <Card className="bg-gray-900/50 border-pink-900/30 backdrop-blur">
               <CardHeader>
-                <CardTitle className="text-white">Community Designs</CardTitle>
+                <CardTitle className="text-white">Published Designs</CardTitle>
+                <p className="text-gray-400 text-sm">Designs created and purchased by users</p>
               </CardHeader>
               <CardContent>
                 {designsLoading ? (
                   <div className="text-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin text-gray-500 mx-auto" />
+                    <Loader2 className="w-6 h-6 animate-spin text-pink-500 mx-auto" />
                   </div>
                 ) : designs.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
+                  <div className="text-center py-12 text-gray-400">
                     <Package className="w-12 h-12 mx-auto mb-3 opacity-50" />
                     <p>No designs created yet</p>
                   </div>
@@ -411,9 +454,9 @@ export default function Admin() {
                     {designs.map((design) => (
                       <div 
                         key={design.id}
-                        className="relative group bg-gray-800 rounded-lg overflow-hidden"
+                        className="relative group bg-gray-800/50 rounded-lg overflow-hidden border border-pink-900/20 hover:border-pink-600/50 transition-colors"
                       >
-                        <div className="aspect-square bg-gray-700 flex items-center justify-center">
+                        <div className="aspect-square bg-black flex items-center justify-center">
                           {design.design_image_url ? (
                             <img 
                               src={design.design_image_url} 
@@ -441,7 +484,7 @@ export default function Admin() {
                             )}
                           </Button>
                         </div>
-                        <div className="p-2">
+                        <div className="p-3">
                           <p className="text-white text-xs font-medium truncate">{design.title}</p>
                           <div className="flex items-center justify-between mt-1">
                             <span className="text-gray-500 text-xs">{design.sales_count || 0} sales</span>
@@ -451,6 +494,11 @@ export default function Admin() {
                               </Badge>
                             )}
                           </div>
+                          {design.template_id && (
+                            <Badge className="mt-1 bg-purple-500/20 text-purple-300 text-[10px]">
+                              {design.template_id}
+                            </Badge>
+                          )}
                         </div>
                         {design.is_featured && (
                           <Badge className="absolute top-2 left-2 bg-yellow-500 text-black text-[10px]">
@@ -467,17 +515,17 @@ export default function Admin() {
 
           {/* Orders Tab */}
           <TabsContent value="orders">
-            <Card className="bg-gray-900 border-gray-800">
+            <Card className="bg-gray-900/50 border-pink-900/30 backdrop-blur">
               <CardHeader>
                 <CardTitle className="text-white">Orders</CardTitle>
               </CardHeader>
               <CardContent>
                 {ordersLoading ? (
                   <div className="text-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin text-gray-500 mx-auto" />
+                    <Loader2 className="w-6 h-6 animate-spin text-pink-500 mx-auto" />
                   </div>
                 ) : orders.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
+                  <div className="text-center py-12 text-gray-400">
                     <DollarSign className="w-12 h-12 mx-auto mb-3 opacity-50" />
                     <p>No orders yet</p>
                   </div>
@@ -487,17 +535,17 @@ export default function Admin() {
                       {orders.map((order) => (
                         <div 
                           key={order.id}
-                          className="p-4 bg-gray-800 rounded-lg flex items-center justify-between"
+                          className="p-4 bg-gray-800/50 border border-pink-900/20 rounded-lg flex items-center justify-between"
                         >
                           <div>
                             <p className="text-white font-medium">{order.customer_name}</p>
-                            <p className="text-gray-500 text-sm">{order.customer_email}</p>
-                            <p className="text-gray-600 text-xs mt-1">
-                              {order.product_type} • Size {order.size} • Qty: {order.quantity}
+                            <p className="text-gray-400 text-sm">{order.customer_email}</p>
+                            <p className="text-gray-500 text-xs mt-1">
+                              {order.product_type} • {order.color} • Size {order.size} • Qty: {order.quantity}
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-white font-bold">${order.total_amount?.toFixed(2)}</p>
+                            <p className="text-white font-bold">${Number(order.total_amount || 0).toFixed(2)}</p>
                             <Badge className={`mt-1 ${
                               order.status === 'paid' 
                                 ? 'bg-green-500/20 text-green-400' 
@@ -516,6 +564,60 @@ export default function Admin() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Edit Prompt Dialog */}
+      <Dialog open={!!editingTemplate} onOpenChange={() => setEditingTemplate(null)}>
+        <DialogContent className="bg-gray-900 border-pink-900/30 max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <FileText className="w-5 h-5 text-pink-400" />
+              Edit Prompt - {editingTemplate?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-gray-400 text-sm mb-2 block">
+                AI Prompt Template
+              </Label>
+              <p className="text-gray-500 text-xs mb-3">
+                Use placeholders like [NAME], [PRIMARY_COLOR], [SECONDARY_COLOR], [BACKGROUND_COLOR], [PHOTO_COUNT]
+              </p>
+              <Textarea
+                value={editedPrompt}
+                onChange={(e) => setEditedPrompt(e.target.value)}
+                className="min-h-[400px] bg-black/40 border-pink-900/30 text-white font-mono text-sm resize-y"
+                placeholder="Enter AI prompt template..."
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setEditingTemplate(null)}
+                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSavePrompt}
+                disabled={updateTemplateMutation.isPending}
+                className="bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700"
+              >
+                {updateTemplateMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Prompt
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,12 +1,36 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ImageIcon, Check, Sparkles, Heart } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 export default function StillsPanel({ stills, selectedStills, onToggleStill, isLoading }) {
+  const [selectedStill, setSelectedStill] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleStillClick = (still) => {
+    setSelectedStill(still);
+    setIsModalOpen(true);
+  };
+
+  const handleUseDesign = () => {
+    if (selectedStill) {
+      onToggleStill(selectedStill.id);
+      setIsModalOpen(false);
+      setSelectedStill(null);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col bg-gradient-to-b from-red-950/30 to-black border-l border-pink-900/30">
       {/* Header */}
@@ -47,7 +71,7 @@ export default function StillsPanel({ stills, selectedStills, onToggleStill, isL
               return (
                 <motion.button
                   key={still.id}
-                  onClick={() => onToggleStill(still.id)}
+                  onClick={() => handleStillClick(still)}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className={cn(
@@ -110,6 +134,77 @@ export default function StillsPanel({ stills, selectedStills, onToggleStill, isL
           </div>
         )}
       </ScrollArea>
+
+      {/* Modal for viewing design */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-4xl bg-gray-900 border-gray-800">
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              {selectedStill?.title || 'Design Preview'}
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              {selectedStill?.round && `Round ${selectedStill.round}`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedStill && (() => {
+            const isStillSelected = selectedStills.includes(selectedStill.id);
+            return (
+              <div className="space-y-4">
+                {/* Expanded image */}
+                <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-800 border border-gray-700">
+                  <img 
+                    src={selectedStill.image_url} 
+                    alt={selectedStill.title}
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      console.error('Failed to load image:', selectedStill.image_url, e);
+                      e.target.style.display = 'none';
+                      if (!e.target.parentElement.querySelector('.error-placeholder')) {
+                        const placeholder = document.createElement('div');
+                        placeholder.className = 'error-placeholder absolute inset-0 bg-gray-800 flex items-center justify-center text-gray-500';
+                        placeholder.textContent = 'Failed to load image';
+                        e.target.parentElement.appendChild(placeholder);
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Use Design button */}
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsModalOpen(false)}
+                    className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleUseDesign}
+                    className={cn(
+                      "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold",
+                      isStillSelected && "opacity-50 cursor-not-allowed"
+                    )}
+                    disabled={isStillSelected}
+                  >
+                    {isStillSelected ? (
+                      <>
+                        <Check className="w-4 h-4 mr-2" />
+                        Already Selected
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Use Design
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

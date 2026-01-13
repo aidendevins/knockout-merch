@@ -10,10 +10,13 @@ if (!process.env.DATABASE_URL) {
 // Create connection pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  // Enable SSL for Neon and other cloud databases (they require SSL)
+  ssl: process.env.DATABASE_URL && (process.env.DATABASE_URL.includes('neon.tech') || process.env.DATABASE_URL.includes('amazonaws.com') || process.env.NODE_ENV === 'production') 
+    ? { rejectUnauthorized: false } 
+    : false,
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 10000, // Increased timeout for network issues
 });
 
 // Test connection
@@ -58,6 +61,25 @@ async function all(text, params) {
 async function init() {
   console.log('🔄 Initializing database tables...');
   
+  // Check if DATABASE_URL is set
+  if (!process.env.DATABASE_URL) {
+    console.error('❌ DATABASE_URL is not set! Cannot initialize database.');
+    console.error('💡 Set DATABASE_URL in your .env file or environment variables.');
+    throw new Error('DATABASE_URL is not configured');
+  }
+  
+  // Test connection first
+  try {
+    console.log('🔌 Testing database connection...');
+    await pool.query('SELECT NOW()');
+    console.log('✅ Database connection successful');
+  } catch (error) {
+    console.error('❌ Database connection failed:', error.message);
+    console.error('💡 Check your DATABASE_URL and network connectivity.');
+    console.error('💡 For Neon databases, ensure SSL is enabled.');
+    throw error;
+  }
+  
   try {
     // Create fight_stills table
     await query(`
@@ -89,10 +111,21 @@ async function init() {
         price DECIMAL(10,2) DEFAULT 29.99,
         sales_count INTEGER DEFAULT 0,
         product_type VARCHAR(50) DEFAULT 'tshirt',
+        color VARCHAR(20) DEFAULT 'black',
         creator_name VARCHAR(255),
         creator_id UUID,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    // Add color column if it doesn't exist (for existing databases)
+    await query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'designs' AND column_name = 'color') THEN
+          ALTER TABLE designs ADD COLUMN color VARCHAR(20) DEFAULT 'black';
+        END IF;
+      END $$;
     `);
 
     // Create orders table
@@ -107,12 +140,23 @@ async function init() {
         customer_name VARCHAR(255),
         shipping_address JSONB,
         product_type VARCHAR(50),
+        color VARCHAR(20) DEFAULT 'black',
         size VARCHAR(10),
         quantity INTEGER DEFAULT 1,
         total_amount DECIMAL(10,2),
         status VARCHAR(50) DEFAULT 'pending',
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    // Add color column to orders if it doesn't exist (for existing databases)
+    await query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'color') THEN
+          ALTER TABLE orders ADD COLUMN color VARCHAR(20) DEFAULT 'black';
+        END IF;
+      END $$;
     `);
 
     // Create users table (optional, for Firebase auth)
@@ -127,6 +171,34 @@ async function init() {
       )
     `);
 
+    // Create templates table for Valentine's Day merch templates
+    await query(`
+      CREATE TABLE IF NOT EXISTS templates (
+        id VARCHAR(50) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        example_image TEXT,
+        reference_image TEXT,
+        prompt TEXT,
+        panel_schema JSONB DEFAULT '{}'::jsonb,
+        upload_tips JSONB DEFAULT '{}'::jsonb,
+        max_photos INTEGER DEFAULT 6,
+        gradient VARCHAR(100),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Add template_id to designs table if it doesn't exist
+    await query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'designs' AND column_name = 'template_id') THEN
+          ALTER TABLE designs ADD COLUMN template_id VARCHAR(50) REFERENCES templates(id);
+        END IF;
+      END $$;
+    `);
+
     // Create indexes for better performance
     await query(`CREATE INDEX IF NOT EXISTS idx_designs_published ON designs(is_published)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_designs_featured ON designs(is_featured)`);
@@ -134,6 +206,7 @@ async function init() {
     await query(`CREATE INDEX IF NOT EXISTS idx_orders_design ON orders(design_id)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_stills_featured ON fight_stills(is_featured)`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_designs_template ON designs(template_id)`);
 
     console.log('✅ Database tables created/verified');
   } catch (error) {

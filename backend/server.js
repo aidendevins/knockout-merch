@@ -11,6 +11,7 @@ const uploadRouter = require('./routes/upload');
 const printifyRouter = require('./routes/printify');
 const seedRouter = require('./routes/seed');
 const stripeRouter = require('./routes/stripe');
+const templatesRouter = require('./routes/templates');
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -75,6 +76,7 @@ app.use('/api/upload', uploadRouter);
 app.use('/api/printify', printifyRouter);
 app.use('/api/seed', seedRouter);
 app.use('/api/stripe', stripeRouter);
+app.use('/api/templates', templatesRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -115,7 +117,14 @@ db.init().then(() => {
     console.log(`🤖 Gemini: ${process.env.GEMINI_API_KEY ? 'Configured' : 'Not configured'}`);
     console.log(`🖨️  Printify: ${process.env.PRINTIFY_API_KEY ? 'Configured' : 'Not configured'}`);
   });
-}).catch(err => {
-  console.error('Failed to initialize database:', err);
+}).catch((error) => {
+  console.error('Failed to initialize database:', error);
+  console.error('\n💡 Troubleshooting tips:');
+  console.error('   1. Check that DATABASE_URL is set in your .env file');
+  console.error('   2. Verify the database URL is correct and accessible');
+  console.error('   3. For Neon databases, ensure the connection string includes SSL parameters');
+  console.error('   4. Check your network connection and firewall settings');
+  console.error('   5. Verify the database server is running and accessible');
+  console.error('   6. If using Neon, check if the database is paused (Neon pauses inactive databases)');
   process.exit(1);
 });
