@@ -16,29 +16,15 @@ async function generateImage(prompt, referenceImageUrls = []) {
   }
 
   try {
-    // Try gemini-2.0-flash-exp first (more widely available), fallback to gemini-3-pro-image-preview
-    let modelName = "gemini-2.0-flash-exp";
-    let model;
-    
-    try {
-      model = genAI.getGenerativeModel({
-        model: modelName,
-        generationConfig: {
-          responseModalities: ["Text", "Image"],
-        },
-      });
-      console.log(`Using model: ${modelName} for image generation`);
-    } catch (modelError) {
-      console.warn(`Model ${modelName} not available, trying gemini-3-pro-image-preview:`, modelError.message);
-      modelName = "gemini-3-pro-image-preview";
-      model = genAI.getGenerativeModel({
-        model: modelName,
-        generationConfig: {
-          responseModalities: ["Text", "Image"],
-        },
-      });
-      console.log(`Using model: ${modelName} for image generation`);
-    }
+    // Use Gemini 2.0 Flash with image generation
+    const modelName = "gemini-3-pro-image-preview";
+    const model = genAI.getGenerativeModel({
+      model: modelName,
+      generationConfig: {
+        responseModalities: ["Text", "Image"],
+      },
+    });
+    console.log(`Using model: ${modelName} for image generation`);
 
     // Fetch reference images if provided
     const imageParts = [];
@@ -102,27 +88,7 @@ async function generateImage(prompt, referenceImageUrls = []) {
       });
       console.log('Image generation request completed');
     } catch (apiError) {
-      console.error('=== GEMINI API ERROR DETAILS ===');
-      console.error('Error message:', apiError.message);
-      console.error('Error status:', apiError.status);
-      console.error('Error code:', apiError.code);
-      console.error('Error name:', apiError.name);
-      console.error('Full error:', JSON.stringify(apiError, Object.getOwnPropertyNames(apiError), 2));
-      console.error('API Key present:', !!process.env.GEMINI_API_KEY);
-      console.error('API Key length:', process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.length : 0);
-      console.error('API Key prefix:', process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.substring(0, 20) + '...' : 'N/A');
-      console.error('Model used:', modelName);
-      console.error('================================');
-      
-      // Check for specific 403 error details
-      if (apiError.status === 403) {
-        console.error('403 PERMISSION DENIED - Possible causes:');
-        console.error('1. API key restrictions (HTTP referrer/IP restrictions)');
-        console.error('2. Gemini API not enabled for your Google Cloud project');
-        console.error('3. Model requires special access/permissions');
-        console.error('4. Billing not enabled on your Google Cloud project');
-        console.error('5. API key does not have access to image generation models');
-      }
+      console.error('Gemini API error:', apiError.message);
 
       // Check for model not supporting image generation
       if (apiError.message?.includes('does not support') ||
@@ -137,7 +103,6 @@ async function generateImage(prompt, referenceImageUrls = []) {
       // Re-throw other errors with status preserved
       const err = new Error(apiError.message);
       err.status = apiError.status || 500;
-      err.code = apiError.code;
       throw err;
     }
 
