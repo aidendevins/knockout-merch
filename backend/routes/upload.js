@@ -125,7 +125,7 @@ router.post('/base64', async (req, res) => {
 // Generate image endpoint using Gemini AI
 router.post('/generate-image', async (req, res) => {
   try {
-    const { prompt, reference_image_urls = [] } = req.body;
+    const { prompt, reference_image_urls = [], template_id = null } = req.body;
     
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required' });
@@ -143,15 +143,36 @@ router.post('/generate-image', async (req, res) => {
       });
     }
     
-    // Generate image using Gemini
-    const result = await gemini.generateImage(prompt, reference_image_urls);
+    // Fetch template's reference image if template_id is provided
+    let allReferenceImages = [...reference_image_urls];
+    if (template_id) {
+      try {
+        const db = require('../db/postgres');
+        const template = await db.get('SELECT reference_image FROM templates WHERE id = $1', [template_id]);
+        if (template && template.reference_image) {
+          // Add template's reference image as the FIRST image (image_0.png)
+          allReferenceImages.unshift(template.reference_image);
+          console.log(`✨ Added template reference image for '${template_id}'`);
+        }
+      } catch (dbError) {
+        console.warn('Failed to fetch template reference image:', dbError.message);
+        // Continue without template reference image
+      }
+    }
     
+    console.log(`🎨 Generating image with ${allReferenceImages.length} reference image(s)`);
+    
+    // Generate image using Gemini
+    const result = await gemini.generateImage(prompt, allReferenceImages);
+    
+    // Return the key so frontend can construct the proxy URL
+    // This avoids CORS issues by having the image served through our backend
     res.json({
-      url: result.url,
       key: result.key,
       prompt: prompt,
       model: result.model,
-      is_placeholder: false
+      is_placeholder: false,
+      useProxy: true // Signal to frontend to use proxy endpoint
     });
   } catch (error) {
     console.error('Error generating image:', error);
@@ -231,23 +252,40 @@ router.get('/ai-status', (req, res) => {
 // Proxy S3 images to avoid CORS issues
 router.get('/proxy-image', async (req, res) => {
   try {
-    const { url } = req.query;
+    const { url, key } = req.query;
     
-    if (!url) {
-      return res.status(400).json({ error: 'URL parameter is required' });
+    if (!url && !key) {
+      return res.status(400).json({ error: 'URL or key parameter is required' });
     }
     
-    // Validate that it's an S3 URL from our bucket
-    const bucketName = process.env.AWS_S3_BUCKET;
-    if (!url.includes(bucketName) && !url.startsWith('http')) {
-      return res.status(400).json({ error: 'Invalid image URL' });
+    let imageUrl;
+    
+    if (key) {
+      // Generate presigned URL from key (more secure)
+      try {
+        imageUrl = await s3.getPresignedUrl(key, 3600); // 1 hour expiry for proxy
+      } catch (presignError) {
+        console.error('Error generating presigned URL:', presignError);
+        // Fall back to public URL construction
+        const bucketName = process.env.AWS_S3_BUCKET;
+        const region = process.env.AWS_REGION || 'us-east-1';
+        imageUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${key}`;
+      }
+    } else {
+      // Validate that it's an S3 URL from our bucket
+      const bucketName = process.env.AWS_S3_BUCKET;
+      if (!url.includes(bucketName) && !url.startsWith('http')) {
+        return res.status(400).json({ error: 'Invalid image URL' });
+      }
+      imageUrl = url;
     }
     
-    // Fetch the image from S3
-    const response = await fetch(url);
+    // Fetch the image from S3 using presigned URL (bypasses CORS on server side)
+    const response = await fetch(imageUrl);
     
     if (!response.ok) {
-      return res.status(response.status).json({ error: 'Failed to fetch image' });
+      console.error('Failed to fetch image from S3:', response.status, response.statusText);
+      return res.status(response.status).json({ error: 'Failed to fetch image from storage' });
     }
     
     // Get the image data
@@ -258,7 +296,7 @@ router.get('/proxy-image', async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET');
     res.setHeader('Content-Type', contentType);
-    res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+    res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
     
     // Send the image
     res.send(Buffer.from(imageBuffer));

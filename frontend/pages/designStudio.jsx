@@ -1,53 +1,49 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import StillsPanel from '@/components/design/StillsPanel';
+import PhotoUploadPanel from '@/components/design/PhotoUploadPanel';
 import AIPanel from '@/components/design/AIPanel';
 import ProductCanvas from '@/components/design/ProductCanvas';
-import MockupPreview from '@/components/design/MockupPreview';
+import TemplatePickerModal from '@/components/design/TemplatePickerModal';
 import { toast } from 'sonner';
 
 export default function DesignStudio() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const canvasRef = useRef(null);
+
+  // Template picker state
+  const [showTemplatePicker, setShowTemplatePicker] = useState(true);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
   
-  const [selectedStills, setSelectedStills] = useState([]);
+  // User uploaded photos
+  const [uploadedPhotos, setUploadedPhotos] = useState([]);
+  
+  // Design state
   const [generatedImage, setGeneratedImage] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [productType, setProductType] = useState('tshirt');
+  const [selectedColor, setSelectedColor] = useState('black');
   const [canvasData, setCanvasData] = useState({
     x: 50,
     y: 45,
     scale: 1,
     rotation: 0,
   });
-  
-  // Mockup preview state
-  const [showMockupPreview, setShowMockupPreview] = useState(false);
-  const [mockupUrls, setMockupUrls] = useState([]);
-  const [currentDesign, setCurrentDesign] = useState(null);
+  const [selectedMask, setSelectedMask] = useState('None');
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
-
-  // Fetch fight stills
-  const { data: stills = [], isLoading: stillsLoading } = useQuery({
-    queryKey: ['fight-stills'],
-    queryFn: () => base44.entities.FightStill.list('-created_date'),
-  });
 
   // Create design mutation
   const createDesignMutation = useMutation({
     mutationFn: async (designData) => {
       return await base44.entities.Design.create(designData);
     },
-    onSuccess: (design) => {
+    onSuccess: () => {
       queryClient.invalidateQueries(['designs']);
       queryClient.invalidateQueries(['community-designs']);
       queryClient.invalidateQueries(['featured-designs']);
-      setCurrentDesign(design);
-      return design;
     },
     onError: (err) => {
       toast.error('Failed to save design');
@@ -55,16 +51,23 @@ export default function DesignStudio() {
     },
   });
 
-  const handleToggleStill = (stillId) => {
-    setSelectedStills(prev => 
-      prev.includes(stillId) 
-        ? prev.filter(id => id !== stillId)
-        : [...prev, stillId]
-    );
+  // Handle template picker completion
+  const handleTemplatePickerComplete = ({ template, product, color }) => {
+    setSelectedTemplate(template);
+    setProductType(product.id);
+    setSelectedColor(color.id);
+    setShowTemplatePicker(false);
+    
+    toast.success(`${template.name} template selected!`);
   };
 
-  const handleImageGenerated = (imageUrl) => {
-    setGeneratedImage(imageUrl);
+  const handleImageGenerated = (result) => {
+    // result can be a URL string (backward compatibility) or an object with url
+    if (typeof result === 'string') {
+      setGeneratedImage(result);
+    } else {
+      setGeneratedImage(result.url);
+    }
   };
 
   const handleCreateProduct = async () => {
@@ -78,29 +81,61 @@ export default function DesignStudio() {
     try {
       // Step 1: Export the canvas design if canvas ref is available
       let designImageUrl = generatedImage;
-      
+      let designImageBase64 = null;
+
       if (canvasRef.current?.exportDesign) {
         try {
           const exportData = await canvasRef.current.exportDesign();
-          // Upload the exported PNG to S3
+          // Use the base64 directly for Printify (more reliable than URL)
+          designImageBase64 = exportData.base64;
+
+          // Also upload to S3 for database storage and display
           const uploadResult = await base44.uploadBase64(exportData.base64, 'designs');
           designImageUrl = uploadResult.file_url;
           toast.success('Design exported successfully');
         } catch (exportErr) {
           console.warn('Canvas export failed, using original image:', exportErr);
           // Continue with the original generated image
+          // Try to convert the original image URL to base64 for Printify
+          try {
+            const response = await fetch(generatedImage);
+            const blob = await response.blob();
+            const reader = new FileReader();
+            designImageBase64 = await new Promise((resolve, reject) => {
+              reader.onloadend = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+          } catch (fetchErr) {
+            console.warn('Failed to convert image to base64:', fetchErr);
+          }
+        }
+      } else {
+        // No canvas export available, try to convert the generated image URL to base64
+        try {
+          const response = await fetch(generatedImage);
+          const blob = await response.blob();
+          const reader = new FileReader();
+          designImageBase64 = await new Promise((resolve, reject) => {
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } catch (fetchErr) {
+          console.warn('Failed to convert image to base64:', fetchErr);
         }
       }
 
       // Step 2: Save the design to the database
       const user = await base44.auth.me();
-      const designTitle = `Knockout Design ${Date.now()}`;
-      
+      const designTitle = `Valentine's Design ${Date.now()}`;
+
       const design = await createDesignMutation.mutateAsync({
         title: designTitle,
         design_image_url: designImageUrl,
-        stills_used: selectedStills,
+        template_id: selectedTemplate?.id,
         product_type: productType,
+        color: selectedColor,
         canvas_data: canvasData,
         price: productType === 'hoodie' ? 49.99 : 29.99,
         is_published: false,
@@ -109,30 +144,36 @@ export default function DesignStudio() {
 
       // Step 3: Create the product on Printify
       toast.info('Creating your product...');
-      
+
       const printifyProduct = await base44.printify.createProduct({
         title: designTitle,
-        description: `Custom knockout merch design celebrating the ultimate boxing moment.`,
+        description: `Custom Valentine's Day design - ${selectedTemplate?.name || 'Custom'} style.`,
         designImageUrl: designImageUrl,
+        designImageBase64: designImageBase64,
         productType: productType,
+        color: selectedColor,
         canvasData: canvasData,
         designId: design.id,
       });
 
-      // Step 4: Get mockups
-      const mockups = printifyProduct.mockup_urls || [];
-      
-      if (mockups.length === 0) {
-        // Try fetching mockups separately
-        const fetchedMockups = await base44.printify.getMockups(printifyProduct.id);
-        mockups.push(...fetchedMockups);
-      }
+      // Step 4: Navigate to the product preview page with all data
+      const productData = {
+        designId: design.id,
+        printifyProductId: printifyProduct.id,
+        mockupUrls: printifyProduct.mockup_urls || [],
+        title: designTitle,
+        productType: productType,
+        color: selectedColor,
+        price: productType === 'hoodie' ? 49.99 : 29.99,
+        designImageUrl: designImageUrl,
+      };
 
-      setMockupUrls(mockups);
-      setCurrentDesign({ ...design, printify_product_id: printifyProduct.id, mockup_urls: mockups });
-      setShowMockupPreview(true);
-      
-      toast.success('Product created! Review your mockups.');
+      // Encode the data for URL passing
+      const encodedData = encodeURIComponent(JSON.stringify(productData));
+
+      toast.success('Product created! Select your size and quantity.');
+      navigate(createPageUrl(`ProductPreview?data=${encodedData}`));
+
     } catch (error) {
       console.error('Error creating product:', error);
       toast.error(error.message || 'Failed to create product');
@@ -141,30 +182,43 @@ export default function DesignStudio() {
     }
   };
 
-  const handleConfirmPurchase = async () => {
-    if (!currentDesign) return;
-    
-    // Navigate to checkout with the design
-    navigate(createPageUrl(`Checkout?designId=${currentDesign.id}`));
+  // Get photo URLs for AI generation
+  const getPhotoUrls = () => {
+    return uploadedPhotos.map(p => p.preview);
   };
 
   return (
     <div className="h-screen bg-gradient-to-br from-black via-red-950/20 to-black pt-16 flex">
+      {/* Template Picker Modal */}
+      <TemplatePickerModal
+        isOpen={showTemplatePicker}
+        onClose={() => {
+          // Don't allow closing without selecting - or navigate back
+          if (!selectedTemplate) {
+            navigate('/');
+          } else {
+            setShowTemplatePicker(false);
+          }
+        }}
+        onComplete={handleTemplatePickerComplete}
+      />
+
       {/* AI Panel */}
       <div className="w-72 flex-shrink-0 hidden md:block">
-        <AIPanel 
-          selectedStills={selectedStills}
-          stills={stills}
+        <AIPanel
+          uploadedPhotos={uploadedPhotos}
+          selectedTemplate={selectedTemplate}
           onImageGenerated={handleImageGenerated}
           generatedImage={generatedImage}
           isGenerating={isGenerating}
           setIsGenerating={setIsGenerating}
+          selectedColor={selectedColor}
         />
       </div>
 
       {/* Main canvas area */}
       <div className="flex-1 flex flex-col">
-        <ProductCanvas 
+        <ProductCanvas
           ref={canvasRef}
           generatedImage={generatedImage}
           onSave={handleCreateProduct}
@@ -173,16 +227,20 @@ export default function DesignStudio() {
           setProductType={setProductType}
           canvasData={canvasData}
           setCanvasData={setCanvasData}
+          selectedColor={selectedColor}
+          onColorChange={setSelectedColor}
+          selectedMask={selectedMask}
+          setSelectedMask={setSelectedMask}
         />
       </div>
 
-      {/* Right sidebar - Stills */}
+      {/* Right sidebar - Photo Upload */}
       <div className="w-64 flex-shrink-0 hidden lg:block">
-        <StillsPanel 
-          stills={stills}
-          selectedStills={selectedStills}
-          onToggleStill={handleToggleStill}
-          isLoading={stillsLoading}
+        <PhotoUploadPanel
+          photos={uploadedPhotos}
+          onPhotosChange={setUploadedPhotos}
+          maxPhotos={selectedTemplate?.maxPhotos || 9}
+          selectedTemplate={selectedTemplate}
         />
       </div>
 
@@ -192,18 +250,6 @@ export default function DesignStudio() {
           For the best experience, please use a larger screen
         </p>
       </div>
-
-      {/* Mockup Preview Modal */}
-      <MockupPreview
-        isOpen={showMockupPreview}
-        onClose={() => setShowMockupPreview(false)}
-        mockupUrls={mockupUrls}
-        designTitle={currentDesign?.title || 'Your Design'}
-        productType={productType}
-        price={productType === 'hoodie' ? 49.99 : 29.99}
-        onConfirm={handleConfirmPurchase}
-        isLoading={false}
-      />
     </div>
   );
 }

@@ -99,6 +99,7 @@ router.post('/', async (req, res) => {
       is_featured = false,
       price = 29.99,
       product_type = 'tshirt',
+      color = 'black',
       creator_name,
       creator_id,
     } = req.body;
@@ -111,14 +112,14 @@ router.post('/', async (req, res) => {
       `INSERT INTO designs (
         title, design_image_url, mockup_urls, printify_product_id, printify_blueprint_id,
         prompt_used, stills_used, canvas_data, is_published, is_featured, 
-        price, product_type, creator_name, creator_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        price, product_type, color, creator_name, creator_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING *`,
       [
         title, design_image_url, JSON.stringify(mockup_urls),
         printify_product_id || null, printify_blueprint_id || null,
         prompt_used || null, JSON.stringify(stills_used), JSON.stringify(canvas_data),
-        is_published, is_featured, price, product_type,
+        is_published, is_featured, price, product_type, color,
         creator_name || null, creator_id || null
       ]
     );
@@ -157,6 +158,7 @@ router.put('/:id', async (req, res) => {
       price: (v) => v,
       sales_count: (v) => v,
       product_type: (v) => v,
+      color: (v) => v,
       creator_name: (v) => v,
       creator_id: (v) => v,
     };

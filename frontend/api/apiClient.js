@@ -113,6 +113,48 @@ class StillsAPI {
   }
 }
 
+// Templates API
+class TemplatesAPI {
+  constructor() {
+    this.basePath = '/templates';
+  }
+
+  async list() {
+    return apiCall(this.basePath);
+  }
+
+  async get(id) {
+    return apiCall(`${this.basePath}/${id}`);
+  }
+
+  async create(data) {
+    return apiCall(this.basePath, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async update(id, data) {
+    return apiCall(`${this.basePath}/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async delete(id) {
+    return apiCall(`${this.basePath}/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async uploadReferenceImage(id, imageBase64) {
+    return apiCall(`${this.basePath}/${id}/reference-image`, {
+      method: 'POST',
+      body: JSON.stringify({ imageBase64 }),
+    });
+  }
+}
+
 // Entity API class
 class EntityAPI {
   constructor(entityName, pathOverride = null) {
@@ -173,6 +215,7 @@ const apiClient = {
     Design: new EntityAPI('design', '/designs'),
     FightStill: new StillsAPI(),
     Order: new EntityAPI('order', '/orders'),
+    Template: new TemplatesAPI(),
   },
   
   // Upload file
@@ -216,11 +259,23 @@ const apiClient = {
       },
 
       // Generate image using Gemini AI
-      async GenerateImage({ prompt, existing_image_urls = [] }) {
-        return apiCall('/upload/generate-image', {
+      async GenerateImage({ prompt, existing_image_urls = [], template_id = null }) {
+        const result = await apiCall('/upload/generate-image', {
           method: 'POST',
-          body: JSON.stringify({ prompt, reference_image_urls: existing_image_urls }),
+          body: JSON.stringify({ 
+            prompt, 
+            reference_image_urls: existing_image_urls,
+            template_id 
+          }),
         });
+        
+        // If useProxy is set, construct the proxy URL from the key
+        // This bypasses S3 CORS issues by serving through our backend
+        if (result.useProxy && result.key) {
+          result.url = `${API_BASE_URL}/upload/proxy-image?key=${encodeURIComponent(result.key)}`;
+        }
+        
+        return result;
       },
     },
   },
@@ -243,14 +298,16 @@ const apiClient = {
     },
 
     // Create a product on Printify
-    async createProduct({ title, description, designImageUrl, productType, canvasData, designId }) {
+    async createProduct({ title, description, designImageUrl, designImageBase64, productType, color, canvasData, designId }) {
       return apiCall('/printify/products', {
         method: 'POST',
         body: JSON.stringify({
           title,
           description,
-          design_image_url: designImageUrl,
+          design_image_url: designImageUrl, // For database reference
+          design_image_base64: designImageBase64, // Base64 for Printify upload
           product_type: productType,
+          color: color,
           canvas_data: canvasData,
           design_id: designId,
         }),
@@ -278,7 +335,7 @@ const apiClient = {
     },
 
     // Create an order
-    async createOrder({ productId, size, quantity, shippingAddress, orderId, productType }) {
+    async createOrder({ productId, size, quantity, shippingAddress, orderId, productType, color }) {
       return apiCall('/printify/orders', {
         method: 'POST',
         body: JSON.stringify({
@@ -288,6 +345,7 @@ const apiClient = {
           shipping_address: shippingAddress,
           order_id: orderId,
           product_type: productType,
+          color: color,
         }),
       });
     },
@@ -295,6 +353,13 @@ const apiClient = {
     // Get order status
     async getOrder(orderId) {
       return apiCall(`/printify/orders/${orderId}`);
+    },
+
+    // Sync all products from Printify to local database
+    async syncProducts() {
+      return apiCall('/printify/sync-products', {
+        method: 'POST',
+      });
     },
   },
   
