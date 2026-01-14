@@ -102,13 +102,27 @@ async function generateImage(prompt, referenceImageUrls = []) {
       });
       console.log('Image generation request completed');
     } catch (apiError) {
-      console.error('Gemini API error:', apiError.message);
-      console.error('Full error object:', JSON.stringify(apiError, Object.getOwnPropertyNames(apiError)));
+      console.error('=== GEMINI API ERROR DETAILS ===');
+      console.error('Error message:', apiError.message);
       console.error('Error status:', apiError.status);
       console.error('Error code:', apiError.code);
+      console.error('Error name:', apiError.name);
+      console.error('Full error:', JSON.stringify(apiError, Object.getOwnPropertyNames(apiError), 2));
       console.error('API Key present:', !!process.env.GEMINI_API_KEY);
       console.error('API Key length:', process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.length : 0);
       console.error('API Key prefix:', process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.substring(0, 20) + '...' : 'N/A');
+      console.error('Model used:', modelName);
+      console.error('================================');
+      
+      // Check for specific 403 error details
+      if (apiError.status === 403) {
+        console.error('403 PERMISSION DENIED - Possible causes:');
+        console.error('1. API key restrictions (HTTP referrer/IP restrictions)');
+        console.error('2. Gemini API not enabled for your Google Cloud project');
+        console.error('3. Model requires special access/permissions');
+        console.error('4. Billing not enabled on your Google Cloud project');
+        console.error('5. API key does not have access to image generation models');
+      }
 
       // Check for model not supporting image generation
       if (apiError.message?.includes('does not support') ||
@@ -217,8 +231,8 @@ async function generateImage(prompt, referenceImageUrls = []) {
         enhancedError.message = 'Bad request to AI service. Please check your prompt and try again.';
         enhancedError.code = 'BAD_REQUEST';
       }
-    } else if (error.status === 403 || error.message?.includes('PERMISSION_DENIED')) {
-      enhancedError.message = 'Image generation is not available. Please check your Gemini API configuration.';
+    } else if (error.status === 403 || error.message?.includes('PERMISSION_DENIED') || error.message?.includes('permission denied')) {
+      enhancedError.message = 'Permission denied: Your API key may have restrictions, or the Gemini API/image generation may not be enabled for your project. Check: 1) API key restrictions in Google Cloud Console, 2) Gemini API is enabled, 3) Billing is enabled, 4) Model access permissions.';
       enhancedError.code = 'PERMISSION_DENIED';
     } else if (error.status === 503 || error.message?.includes('overloaded')) {
       enhancedError.message = 'AI model is currently overloaded. Please try again later.';
