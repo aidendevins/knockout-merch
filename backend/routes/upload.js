@@ -241,6 +241,25 @@ router.post('/generate-image', async (req, res) => {
   }
 });
 
+// Diagnostic endpoint for Gemini API key
+router.get('/gemini-status', (req, res) => {
+  const hasKey = !!process.env.GEMINI_API_KEY;
+  const keyLength = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.length : 0;
+  const keyPrefix = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.substring(0, 20) + '...' : 'N/A';
+  
+  res.json({
+    configured: hasKey,
+    key_present: hasKey,
+    key_length: keyLength,
+    key_prefix: keyPrefix,
+    expected_length: 39, // Gemini API keys are typically 39 characters
+    is_valid_length: keyLength === 39,
+    message: hasKey 
+      ? `API key is configured (length: ${keyLength})` 
+      : 'GEMINI_API_KEY is not set in environment variables'
+  });
+});
+
 // Health check for AI services
 router.get('/ai-status', (req, res) => {
   res.json({
