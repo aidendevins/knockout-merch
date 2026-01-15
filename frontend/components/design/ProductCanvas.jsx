@@ -259,8 +259,9 @@ const ProductCanvas = forwardRef(({
     // Clear canvas
     ctx.clearRect(0, 0, w, h);
 
-    // Fill background with product color
-    ctx.fillStyle = product.baseColor;
+    // Fill background with black (always) so shirt outline is visible
+    // The selectedColor only affects the actual product, not the canvas background
+    ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(0, 0, w, h);
 
     // Draw product outline (t-shirt or hoodie shape)

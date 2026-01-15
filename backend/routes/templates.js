@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db/postgres');
 const s3 = require('../services/s3');
+const replicate = require('../services/replicate');
 
 /**
  * Get all templates
@@ -255,6 +256,179 @@ router.post('/:id/reference-image', async (req, res) => {
   } catch (error) {
     console.error('Error uploading reference image:', error);
     res.status(500).json({ error: 'Failed to upload reference image' });
+  }
+});
+
+/**
+ * Remove background from an image
+ * POST /api/templates/remove-background
+ * Body: { imageUrl: string (URL or base64 data URL) }
+ */
+router.post('/remove-background', async (req, res) => {
+  try {
+    const { imageUrl } = req.body;
+
+    if (!imageUrl) {
+      return res.status(400).json({ error: 'imageUrl is required' });
+    }
+
+    if (!replicate.isConfigured()) {
+      return res.status(503).json({ 
+        error: 'Background removal not configured',
+        message: 'REPLICATE_API_TOKEN is not set. Please configure it to enable background removal.',
+        code: 'SERVICE_NOT_CONFIGURED'
+      });
+    }
+
+    console.log('🎨 Removing background from image...');
+    const processedImageBase64 = await replicate.removeBackground(imageUrl);
+
+    res.json({
+      processedImage: processedImageBase64,
+      message: 'Background removed successfully',
+    });
+  } catch (error) {
+    console.error('Error removing background:', error);
+
+    const errorCode = error.code || 'BACKGROUND_REMOVAL_ERROR';
+    const errorMessage = error.message || 'Failed to remove background';
+
+    if (error.code === 'INVALID_API_KEY') {
+      return res.status(401).json({
+        error: 'Invalid API key',
+        message: errorMessage,
+        code: errorCode,
+      });
+    } else if (error.code === 'RATE_LIMIT') {
+      return res.status(429).json({
+        error: 'Rate limit exceeded',
+        message: errorMessage,
+        code: errorCode,
+      });
+    } else if (error.code === 'INVALID_REQUEST') {
+      return res.status(400).json({
+        error: 'Invalid request',
+        message: errorMessage,
+        code: errorCode,
+      });
+    }
+
+    res.status(error.status || 500).json({
+      error: 'Background removal failed',
+      message: errorMessage,
+      code: errorCode,
+    });
+  }
+});
+
+/**
+ * Sync templates from local source (e.g., templates.js file)
+ * POST /api/templates/sync
+ * Body: { templates: Array<Template> }
+ */
+router.post('/sync', async (req, res) => {
+  try {
+    const { templates } = req.body;
+
+    if (!Array.isArray(templates)) {
+      return res.status(400).json({ error: 'templates must be an array' });
+    }
+
+    const results = {
+      created: [],
+      updated: [],
+      skipped: [],
+      errors: [],
+    };
+
+    for (const template of templates) {
+      try {
+        if (!template.id || !template.name) {
+          results.errors.push({
+            template: template.id || 'unknown',
+            error: 'Missing required fields: id and name',
+          });
+          continue;
+        }
+
+        // Check if template exists
+        const existing = await db.get('SELECT * FROM templates WHERE id = $1', [template.id]);
+
+        const templateData = {
+          id: template.id,
+          name: template.name,
+          description: template.description || null,
+          example_image: template.example_image || null,
+          // Don't overwrite reference_image if it exists in DB
+          reference_image: existing?.reference_image || template.reference_image || null,
+          prompt: template.prompt || null,
+          panel_schema: JSON.stringify(template.panel_schema || {}),
+          upload_tips: JSON.stringify(template.upload_tips || {}),
+          max_photos: template.max_photos || 6,
+          gradient: template.gradient || null,
+          remove_background: template.remove_background || false,
+        };
+
+        if (existing) {
+          // Update existing template (but preserve reference_image if it exists)
+          await db.query(
+            `UPDATE templates 
+             SET name = $1, description = $2, example_image = $3, 
+                 prompt = $4, panel_schema = $5, upload_tips = $6, 
+                 max_photos = $7, gradient = $8, remove_background = $9, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $10`,
+            [
+              templateData.name,
+              templateData.description,
+              templateData.example_image,
+              templateData.prompt,
+              templateData.panel_schema,
+              templateData.upload_tips,
+              templateData.max_photos,
+              templateData.gradient,
+              templateData.remove_background,
+              templateData.id,
+            ]
+          );
+          results.updated.push(template.id);
+        } else {
+          // Create new template
+          await db.query(
+            `INSERT INTO templates 
+             (id, name, description, example_image, reference_image, prompt, panel_schema, upload_tips, max_photos, gradient, remove_background) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+            [
+              templateData.id,
+              templateData.name,
+              templateData.description,
+              templateData.example_image,
+              templateData.reference_image,
+              templateData.prompt,
+              templateData.panel_schema,
+              templateData.upload_tips,
+              templateData.max_photos,
+              templateData.gradient,
+              templateData.remove_background,
+            ]
+          );
+          results.created.push(template.id);
+        }
+      } catch (error) {
+        console.error(`Error syncing template ${template.id}:`, error);
+        results.errors.push({
+          template: template.id,
+          error: error.message,
+        });
+      }
+    }
+
+    res.json({
+      message: `Sync completed: ${results.created.length} created, ${results.updated.length} updated, ${results.errors.length} errors`,
+      results,
+    });
+  } catch (error) {
+    console.error('Error syncing templates:', error);
+    res.status(500).json({ error: 'Failed to sync templates' });
   }
 });
 

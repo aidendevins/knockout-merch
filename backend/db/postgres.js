@@ -184,9 +184,20 @@ async function init() {
         upload_tips JSONB DEFAULT '{}'::jsonb,
         max_photos INTEGER DEFAULT 6,
         gradient VARCHAR(100),
+        remove_background BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    // Add remove_background column if it doesn't exist (for existing databases)
+    await query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'templates' AND column_name = 'remove_background') THEN
+          ALTER TABLE templates ADD COLUMN remove_background BOOLEAN DEFAULT FALSE;
+        END IF;
+      END $$;
     `);
 
     // Add template_id to designs table if it doesn't exist

@@ -141,7 +141,7 @@ export default function AIPanel({
     setFieldValues(prev => ({ ...prev, [fieldId]: value }));
   };
 
-  // Build the full prompt using the template's buildPrompt function
+  // Build the full prompt - prioritizes database prompt over buildPrompt function
   const buildPrompt = () => {
     if (!selectedTemplate) return '';
 
@@ -149,12 +149,42 @@ export default function AIPanel({
     const backgroundColorHex = getColorHex(selectedColor);
     const photoCount = uploadedPhotos.length;
 
-    // Use the template's buildPrompt function if available
+    // PRIORITY 1: Use database prompt if available (edited via admin panel)
+    if (selectedTemplate.prompt) {
+      let prompt = selectedTemplate.prompt;
+      
+      // Populate placeholders from field values
+      const placeholderMap = {
+        '[NAME]': fieldValues.customName || fieldValues.name || 'LOVE',
+        '[PRIMARY_COLOR]': fieldValues.primaryColor || '#ec4899',
+        '[SECONDARY_COLOR]': fieldValues.secondaryColor || '#8b5cf6',
+        '[BACKGROUND_COLOR]': backgroundColorHex,
+        '[PHOTO_COUNT]': photoCount.toString(),
+        '[CUSTOM_TEXT]': fieldValues.customText || '',
+      };
+
+      // Replace all placeholders
+      Object.entries(placeholderMap).forEach(([placeholder, value]) => {
+        prompt = prompt.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), value);
+      });
+
+      // Add style tweaks if enabled and provided
+      if (selectedTemplate.panelSchema?.showStyleTweaks && styleTweaks.trim()) {
+        prompt += `\n\n**Additional Style Instructions:** ${styleTweaks}`;
+      }
+
+      console.log('📝 Using database prompt (from admin panel)');
+      return prompt;
+    }
+
+    // PRIORITY 2: Use buildPrompt function from templates.js config
     if (selectedTemplate.buildPrompt) {
+      console.log('📝 Using buildPrompt function from templates.js');
       return selectedTemplate.buildPrompt(fieldValues, backgroundColorHex, photoCount, styleTweaks);
     }
 
-    // Fallback to old prompt building method (for backwards compatibility)
+    // PRIORITY 3: Fallback to old prompt building method (for backwards compatibility)
+    console.log('📝 Using fallback prompt method');
     let prompt = selectedTemplate.aiPrompt || '';
     
     // Add field-specific prompt parts

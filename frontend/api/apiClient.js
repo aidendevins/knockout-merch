@@ -153,6 +153,20 @@ class TemplatesAPI {
       body: JSON.stringify({ imageBase64 }),
     });
   }
+
+  async syncTemplates(templates) {
+    return apiCall(`${this.basePath}/sync`, {
+      method: 'POST',
+      body: JSON.stringify({ templates }),
+    });
+  }
+
+  async removeBackground(imageUrl) {
+    return apiCall(`${this.basePath}/remove-background`, {
+      method: 'POST',
+      body: JSON.stringify({ imageUrl }),
+    });
+  }
 }
 
 // Entity API class

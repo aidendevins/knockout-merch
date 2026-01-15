@@ -7,6 +7,8 @@ import PhotoUploadPanel from '@/components/design/PhotoUploadPanel';
 import AIPanel from '@/components/design/AIPanel';
 import ProductCanvas from '@/components/design/ProductCanvas';
 import TemplatePickerModal from '@/components/design/TemplatePickerModal';
+import BackgroundRemovalModal from '@/components/design/BackgroundRemovalModal';
+import apiClient from '@/api/apiClient';
 import { toast } from 'sonner';
 
 export default function DesignStudio() {
@@ -34,6 +36,12 @@ export default function DesignStudio() {
   });
   const [selectedMask, setSelectedMask] = useState('None');
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
+  
+  // Background removal state
+  const [showBackgroundRemovalModal, setShowBackgroundRemovalModal] = useState(false);
+  const [isRemovingBackground, setIsRemovingBackground] = useState(false);
+  const [processedImage, setProcessedImage] = useState(null);
+  const [pendingProductData, setPendingProductData] = useState(null);
 
   // Create design mutation
   const createDesignMutation = useMutation({
@@ -67,6 +75,97 @@ export default function DesignStudio() {
       setGeneratedImage(result);
     } else {
       setGeneratedImage(result.url);
+    }
+  };
+
+  const handleBackgroundRemovalChoice = async (choice) => {
+    try {
+      const { designImageUrl, designImageBase64 } = pendingProductData;
+      
+      // Use the appropriate image based on user choice
+      let finalImageUrl = designImageUrl;
+      let finalImageBase64 = designImageBase64;
+      
+      if (choice === 'transparent' && processedImage) {
+        // Upload the processed image to S3
+        const uploadResult = await base44.uploadBase64(processedImage, 'designs');
+        finalImageUrl = uploadResult.file_url;
+        finalImageBase64 = processedImage;
+        toast.success('Using transparent background');
+      } else {
+        toast.success('Using solid background');
+      }
+
+      // Continue with the product creation
+      await continueProductCreation(finalImageUrl, finalImageBase64);
+      
+      // Close modal
+      setShowBackgroundRemovalModal(false);
+      setProcessedImage(null);
+      setPendingProductData(null);
+    } catch (error) {
+      console.error('Error handling background choice:', error);
+      toast.error('Failed to process image');
+      setIsCreatingProduct(false);
+      setShowBackgroundRemovalModal(false);
+    }
+  };
+
+  const continueProductCreation = async (designImageUrl, designImageBase64) => {
+    try {
+      // Step 2: Save the design to the database
+      const user = await base44.auth.me();
+      const designTitle = `Valentine's Design ${Date.now()}`;
+
+      const design = await createDesignMutation.mutateAsync({
+        title: designTitle,
+        design_image_url: designImageUrl,
+        template_id: selectedTemplate?.id,
+        product_type: productType,
+        color: selectedColor,
+        canvas_data: canvasData,
+        price: productType === 'hoodie' ? 49.99 : 29.99,
+        is_published: false,
+        creator_name: user?.full_name || 'Anonymous',
+      });
+
+      // Step 3: Create the product on Printify
+      toast.info('Creating your product...');
+
+      const printifyProduct = await base44.printify.createProduct({
+        title: designTitle,
+        description: `Custom Valentine's Day design - ${selectedTemplate?.name || 'Custom'} style.`,
+        designImageUrl: designImageUrl,
+        designImageBase64: designImageBase64,
+        productType: productType,
+        color: selectedColor,
+        canvasData: canvasData,
+        designId: design.id,
+      });
+
+      // Step 4: Navigate to the product preview page with all data
+      const productData = {
+        designId: design.id,
+        printifyProductId: printifyProduct.id,
+        mockupUrls: printifyProduct.mockup_urls || [],
+        title: designTitle,
+        productType: productType,
+        color: selectedColor,
+        price: productType === 'hoodie' ? 49.99 : 29.99,
+        designImageUrl: designImageUrl,
+      };
+
+      // Encode the data for URL passing
+      const encodedData = encodeURIComponent(JSON.stringify(productData));
+
+      toast.success('Product created! Select your size and quantity.');
+      navigate(createPageUrl(`ProductPreview?data=${encodedData}`));
+
+    } catch (error) {
+      console.error('Error creating product:', error);
+      toast.error(error.message || 'Failed to create product');
+    } finally {
+      setIsCreatingProduct(false);
     }
   };
 
@@ -126,59 +225,44 @@ export default function DesignStudio() {
         }
       }
 
-      // Step 2: Save the design to the database
-      const user = await base44.auth.me();
-      const designTitle = `Valentine's Design ${Date.now()}`;
-
-      const design = await createDesignMutation.mutateAsync({
-        title: designTitle,
-        design_image_url: designImageUrl,
-        template_id: selectedTemplate?.id,
-        product_type: productType,
-        color: selectedColor,
-        canvas_data: canvasData,
-        price: productType === 'hoodie' ? 49.99 : 29.99,
-        is_published: false,
-        creator_name: user?.full_name || 'Anonymous',
-      });
-
-      // Step 3: Create the product on Printify
-      toast.info('Creating your product...');
-
-      const printifyProduct = await base44.printify.createProduct({
-        title: designTitle,
-        description: `Custom Valentine's Day design - ${selectedTemplate?.name || 'Custom'} style.`,
-        designImageUrl: designImageUrl,
-        designImageBase64: designImageBase64,
-        productType: productType,
-        color: selectedColor,
-        canvasData: canvasData,
-        designId: design.id,
-      });
-
-      // Step 4: Navigate to the product preview page with all data
-      const productData = {
-        designId: design.id,
-        printifyProductId: printifyProduct.id,
-        mockupUrls: printifyProduct.mockup_urls || [],
-        title: designTitle,
-        productType: productType,
-        color: selectedColor,
-        price: productType === 'hoodie' ? 49.99 : 29.99,
-        designImageUrl: designImageUrl,
-      };
-
-      // Encode the data for URL passing
-      const encodedData = encodeURIComponent(JSON.stringify(productData));
-
-      toast.success('Product created! Select your size and quantity.');
-      navigate(createPageUrl(`ProductPreview?data=${encodedData}`));
+      // Check if template requires background removal
+      if (selectedTemplate?.remove_background || selectedTemplate?.removeBackground) {
+        console.log('🎨 Template requires background removal');
+        
+        // Store the data for later use
+        setPendingProductData({ designImageUrl, designImageBase64 });
+        
+        // Show modal and start background removal
+        setShowBackgroundRemovalModal(true);
+        setIsRemovingBackground(true);
+        
+        try {
+          // Call background removal API
+          const result = await apiClient.entities.Template.removeBackground(designImageBase64 || designImageUrl);
+          setProcessedImage(result.processedImage);
+          setIsRemovingBackground(false);
+          
+          // Modal stays open, waiting for user choice
+          // User will choose in handleBackgroundRemovalChoice
+        } catch (bgError) {
+          console.error('Background removal failed:', bgError);
+          toast.error('Failed to remove background. Continuing with original image.');
+          setShowBackgroundRemovalModal(false);
+          setIsRemovingBackground(false);
+          
+          // Continue without background removal
+          await continueProductCreation(designImageUrl, designImageBase64);
+        }
+      } else {
+        // No background removal needed, proceed directly
+        await continueProductCreation(designImageUrl, designImageBase64);
+      }
 
     } catch (error) {
-      console.error('Error creating product:', error);
+      console.error('Error in product creation flow:', error);
       toast.error(error.message || 'Failed to create product');
-    } finally {
       setIsCreatingProduct(false);
+      setShowBackgroundRemovalModal(false);
     }
   };
 
@@ -243,6 +327,21 @@ export default function DesignStudio() {
           selectedTemplate={selectedTemplate}
         />
       </div>
+
+      {/* Background Removal Modal */}
+      <BackgroundRemovalModal
+        isOpen={showBackgroundRemovalModal}
+        onClose={() => {
+          setShowBackgroundRemovalModal(false);
+          setIsCreatingProduct(false);
+          setPendingProductData(null);
+          setProcessedImage(null);
+        }}
+        originalImage={pendingProductData?.designImageUrl || generatedImage}
+        processedImage={processedImage}
+        isProcessing={isRemovingBackground}
+        onChoose={handleBackgroundRemovalChoice}
+      />
 
       {/* Mobile panels - shown on smaller screens */}
       <div className="fixed bottom-0 left-0 right-0 md:hidden bg-gradient-to-br from-red-950/30 to-black border-t border-pink-900/30 p-4">
