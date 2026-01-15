@@ -153,20 +153,21 @@ export default function AIPanel({
     if (selectedTemplate.prompt) {
       let prompt = selectedTemplate.prompt;
       
-      // Populate placeholders from field values
-      const placeholderMap = {
-        '[NAME]': fieldValues.customName || fieldValues.name || 'LOVE',
-        '[PRIMARY_COLOR]': fieldValues.primaryColor || '#ec4899',
-        '[SECONDARY_COLOR]': fieldValues.secondaryColor || '#8b5cf6',
-        '[BACKGROUND_COLOR]': backgroundColorHex,
-        '[PHOTO_COUNT]': photoCount.toString(),
-        '[CUSTOM_TEXT]': fieldValues.customText || '',
-      };
-
-      // Replace all placeholders
-      Object.entries(placeholderMap).forEach(([placeholder, value]) => {
-        prompt = prompt.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), value);
+      // Append user text inputs to the end of the prompt
+      const textInputs = [];
+      selectedTemplate.panelSchema?.fields?.forEach((field) => {
+        if (field.type === 'text' || field.type === 'textarea') {
+          const fieldValue = fieldValues[field.id];
+          if (fieldValue !== undefined && fieldValue !== null && String(fieldValue).trim() !== '') {
+            textInputs.push(String(fieldValue).trim());
+          }
+        }
       });
+
+      // Append all text inputs to the prompt
+      if (textInputs.length > 0) {
+        prompt += `\n\nTEXT: ${textInputs.join(', ')}`;
+      }
 
       // Add style tweaks if enabled and provided
       if (selectedTemplate.panelSchema?.showStyleTweaks && styleTweaks.trim()) {
@@ -174,6 +175,7 @@ export default function AIPanel({
       }
 
       console.log('📝 Using database prompt (from admin panel)');
+      console.log('📋 Text inputs appended:', textInputs);
       return prompt;
     }
 
