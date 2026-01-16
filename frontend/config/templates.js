@@ -100,6 +100,133 @@ Produce a high-resolution, print-ready graphic suitable for t-shirt printing.`;
 }
 
 /**
+ * Build the full prompt for retro-name-portrait template
+ * @param {Object} fieldValues - Values from the AI panel fields
+ * @param {string} backgroundColor - Background color hex from product color selection
+ * @param {number} photoCount - Number of photos uploaded
+ * @param {string} styleTweaks - Optional style tweaks from user
+ * @returns {string} Complete prompt for Gemini
+ */
+function buildRetroNamePortraitPrompt(fieldValues, backgroundColor, photoCount, styleTweaks = '') {
+  const personName = fieldValues.customName || 'AMELIA';
+  const textColor = fieldValues.textColor || '#3b82f6';
+  const bgColor = backgroundColor || '#fef3c7'; // Default cream color
+
+  let prompt = `MASTER PROMPT — FACE + 5-LINE SINGLE-NAME REPEAT (EXACT SPELLING + MAX FONT MATCH + UNIFORM LETTER SPACING)
+
+**Goal:**
+Create a flat, print-ready graphic (NOT a mockup) that matches the provided reference image's typography as closely as possible: same retro psychedelic bubble font vibe AND the same line-by-line curve/warp style, with a large centered face cutout on top. Also enforce uniform, consistent spacing between letters.
+
+**USER INPUTS (must be followed EXACTLY):**
+- FACE_REFERENCE_IMAGE: The uploaded photo (image_1.png) - ONE person's face
+- STYLE_REFERENCE_IMAGE: The provided reference design image (image_0.png) - to match the font + curve style
+- PERSON_NAME_EXACT: "${personName}"
+- BACKGROUND_COLOR: "${bgColor}" (solid fill)
+- TEXT_COLOR: "${textColor}" (solid fill)
+
+**ABSOLUTE TEXT ACCURACY RULE (NON-NEGOTIABLE / HIGHEST PRIORITY FOR TEXT):**
+- You MUST render PERSON_NAME_EXACT exactly as provided, with:
+  - the exact same spelling
+  - the exact same capitalization (upper/lowercase)
+  - the exact same number of characters
+  - the exact same punctuation, spaces, and special characters
+- Do NOT autocorrect, "fix," abbreviate, add or remove letters, add accents, or change characters.
+- Each of the 5 lines must contain PERSON_NAME_EXACT exactly ONCE (no additional characters before/after).
+
+**UNIFORM LETTER SPACING RULE (NON-NEGOTIABLE CONSTRAINT):**
+- Maintain uniform, consistent kerning/tracking across the entire name on every line:
+  - No letter should be noticeably closer or farther than the others.
+  - Avoid awkward gaps (e.g., between "A M", "M E", etc.).
+  - Use consistent tracking so spacing looks even across all characters.
+- If warping/curving causes spacing to look uneven, correct it so visual spacing remains uniform after warping.
+- Prioritize visually uniform spacing over "natural" kerning.
+
+**OUTPUT REQUIREMENTS:**
+- Output a single final graphic ONLY (no shirt photo, no mockup, no fabric texture).
+- High resolution: 4500×5400 px (or closest available), crisp edges, clean cutout, screen-print friendly.
+- No watermark, no signatures, no extra text beyond PERSON_NAME_EXACT.
+
+**NON-NEGOTIABLE STRUCTURE CONSTRAINTS (must match reference):**
+- EXACTLY 5 text lines total, stacked vertically.
+- EACH line contains PERSON_NAME_EXACT exactly ONCE. (Never repeated twice on the same line.)
+- The 5 lines are large and fill most of the canvas, like the reference.
+- The centered face overlaps the middle portion of the 5 lines, and the text is partially hidden behind the face.
+
+**TYPE / FONT MATCHING (make it as close as humanly possible):**
+- Match the STYLE_REFERENCE_IMAGE (image_0.png) typography as closely as physically possible:
+  1) Font style: retro/psychedelic 60s–70s "bubble" display type with chunky, playful, slightly irregular letterforms.
+  2) Letter anatomy: match width, stroke thickness, inner counters, and the distinctive shapes seen in the reference.
+  3) Weight: bold, heavy, consistent stroke thickness with clean curves.
+  4) Optical feel: replicate the same "poster" look—bold, friendly, vintage.
+- If the exact font is unknown, approximate it so it is nearly indistinguishable at a glance from STYLE_REFERENCE_IMAGE.
+- Do NOT substitute to a generic font; prioritize closest-possible match over everything except face identity and text accuracy.
+
+**CURVE / WARP MATCHING (must closely match reference):**
+- Each of the 5 lines must use the same curve/warp style as STYLE_REFERENCE_IMAGE (image_0.png):
+  - Smooth, cohesive, gently arched and wavy baseline (not chaotic).
+  - Similar amplitude and rhythm per line to the reference.
+  - Preserve stroke thickness through warping (no thinning/tearing).
+  - Maintain similar left/right edge lift/drop behavior as the reference.
+- IMPORTANT: Warping must NOT introduce uneven letter spacing—correct spacing so it remains uniform.
+
+**CRITICAL FACE IDENTITY LOCK (highest priority overall):**
+- Use ONLY the face/head from FACE_REFERENCE_IMAGE (image_1.png). Do not invent a new face. Do not use "a similar person."
+- Preserve identity perfectly: same facial structure, nose, lips, skin texture, hairline/bangs, glasses (if present), and expression.
+- Do NOT beautify, stylize, de-age, change ethnicity, change makeup, change hairstyle, change hair length, add/remove glasses, or alter expression.
+- Remove the original photo background completely. Create a clean head cutout (include hair) with a sharp, natural edge.
+- No additional people, no extra faces, no face blending, no duplicates.
+
+**DESIGN / LAYOUT (match reference composition):**
+1) Background:
+- Fill the entire canvas with a flat solid BACKGROUND_COLOR = "${bgColor}".
+- Absolutely no gradients, patterns, textures, shadows, or noise on the background.
+
+2) Text color:
+- All name text must be a single solid TEXT_COLOR = "${textColor}" (no gradient, no texture, no outline unless strictly necessary for readability).
+
+3) Five-line layout (exact behavior):
+- Create EXACTLY 5 stacked rows of text, centered horizontally.
+- Each row shows PERSON_NAME_EXACT exactly ONCE and only once.
+- Maintain the same spacing/scale relationship as the reference: big letters, evenly stacked, filling most of the canvas height.
+- Ensure consistent vertical spacing between the five lines (balanced, even stacking).
+
+4) Face placement:
+- Place the face cutout centered and large, overlapping the middle of the five lines.
+- The face must be on the top layer; the text must be partially occluded behind it.
+- Keep the face realistic and un-stylized (photographic cutout look), clean edges, no haloing.
+
+**PRINT-FRIENDLY CONSTRAINTS:**
+- Flat colors, crisp edges, no tiny micro-details that won't print well.
+- Keep balanced margins and center alignment like the reference.
+
+**NEGATIVE CONSTRAINTS (must NOT appear in the output):**
+- No mockup, no shirt folds, no fabric texture, no tags, no brand logos.
+- No extra words, no slogans, no additional letters/characters beyond PERSON_NAME_EXACT.
+- No misspellings; do not change the name by even one character.
+- No repeating the name more than once per line.
+- No additional people, no extra faces, no face swaps, no "similar face," no duplicates.
+- No cartoon/anime/comic styling, no painterly effects, no airbrushing, no beautification, no skin smoothing, no identity changes.
+- No background gradients, patterns, textures, shadows, vignette, noise, or lighting effects.
+- No watermark, no signature, no frame, no border.
+
+**FINAL CHECK BEFORE OUTPUT (must pass all):**
+- EXACT text match: PERSON_NAME_EXACT is identical to input in spelling/case/characters on ALL 5 lines. If not, redo.
+- Uniform spacing: letter spacing within the name is visually uniform on ALL 5 lines (no odd kerning gaps). If not, redo.
+- Exactly 5 lines and each line contains the name exactly once. If not, redo.
+- Font + curve match STYLE_REFERENCE_IMAGE (image_0.png) as closely as possible at a glance. If not, redo.
+- Face identity matches FACE_REFERENCE_IMAGE (image_1.png) with no changes. If not, redo.
+- Output is the graphic only on a solid background. If not, redo.
+
+Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the face and image_0.png (STYLE_REFERENCE_IMAGE) for the typography + curve match.`;
+
+  if (styleTweaks) {
+    prompt += `\n\n**Additional Style Instructions:** ${styleTweaks}`;
+  }
+
+  return prompt;
+}
+
+/**
  * Fetch templates from API
  * This replaces the hardcoded TEMPLATES array
  */
@@ -133,15 +260,31 @@ export async function fetchTemplates() {
 /**
  * Get the appropriate buildPrompt function for a template
  */
-function getBuildPromptFunction(templateId) {
+export function getBuildPromptFunction(templateId) {
+  console.log('🔍 getBuildPromptFunction called with templateId:', templateId);
+  console.log('   Available functions:', {
+    buildBootlegRapPrompt: typeof buildBootlegRapPrompt,
+    buildPhotoCollagePrompt: typeof buildPhotoCollagePrompt,
+    buildRetroNamePortraitPrompt: typeof buildRetroNamePortraitPrompt,
+  });
+  
+  let result = null;
   switch (templateId) {
     case 'bootleg-rap':
-      return buildBootlegRapPrompt;
+      result = buildBootlegRapPrompt;
+      break;
     case 'photo-collage':
-      return buildPhotoCollagePrompt;
+      result = buildPhotoCollagePrompt;
+      break;
+    case 'retro-name-portrait':
+      result = buildRetroNamePortraitPrompt;
+      break;
     default:
-      return null; // Will use prompt from backend directly
+      result = null; // Will use prompt from backend directly
   }
+  
+  console.log('   getBuildPromptFunction returning:', typeof result);
+  return result;
 }
 
 // Keep TEMPLATES as a cached variable for backwards compatibility
@@ -301,6 +444,46 @@ Produce a high-resolution, print-ready graphic suitable for t-shirt printing.`,
     },
     max_photos: 9,
     gradient: 'from-red-600 to-pink-500',
+  },
+  {
+    id: 'retro-name-portrait',
+    name: 'Retro Name Portrait',
+    description: 'Vintage 60s-70s psychedelic style with repeating name text and portrait photo',
+    example_image: null,
+    reference_image: null, // Set via admin panel - upload the reference image there
+    remove_background: true, // Enable background removal before sending to Printify
+    prompt: null, // Uses buildRetroNamePortraitPrompt function to generate prompt with proper placeholder replacement
+    panel_schema: {
+      showStyleTweaks: false,
+      fields: [
+        {
+          type: 'text',
+          id: 'customName',
+          label: 'Name',
+          placeholder: 'Enter name (e.g., Amelia)',
+          required: true,
+        },
+        {
+          type: 'colorPicker',
+          id: 'textColor',
+          label: 'Text Color',
+          hint: '(Name letters)',
+          defaultValue: '#3b82f6',
+        },
+      ],
+    },
+    upload_tips: {
+      title: 'Best Photos for Retro Portrait Style',
+      tips: [
+        'Use a <strong>clear portrait photo</strong> (head and shoulders work best)',
+        'Choose photos with a <strong>simple or plain background</strong> for best results',
+        'Well-lit photos with good contrast produce the best retro designs',
+        'Portrait orientation photos work great for this template',
+        'Higher resolution photos (but max 10MB per file)',
+      ],
+    },
+    max_photos: 1,
+    gradient: 'from-blue-600 to-purple-600',
   },
 ];
 
