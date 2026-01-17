@@ -22,10 +22,22 @@ function DynamicField({ field, value, onChange }) {
           <input
             type="text"
             value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e) => {
+              // Enforce maxLength if specified
+              if (field.maxLength && e.target.value.length > field.maxLength) {
+                return;
+              }
+              onChange(e.target.value);
+            }}
             placeholder={field.placeholder}
+            maxLength={field.maxLength}
             className="w-full px-3 py-2 rounded-lg bg-black/40 border border-pink-900/30 text-white placeholder:text-white/30 text-sm focus:border-pink-600 focus:outline-none"
           />
+          {field.maxLength && (
+            <div className="text-xs text-white/40 text-right">
+              {(value || '').length} / {field.maxLength}
+            </div>
+          )}
         </div>
       );
 
@@ -169,19 +181,29 @@ export default function AIPanel({
     if (selectedTemplate.prompt && selectedTemplate.prompt.trim()) {
       let prompt = selectedTemplate.prompt;
       
-      // Append user text inputs to the end of the prompt
+      // Collect user text inputs and replace placeholders
       const textInputs = [];
+      let hasReplacedPlaceholder = false;
+      
       selectedTemplate.panelSchema?.fields?.forEach((field) => {
         if (field.type === 'text' || field.type === 'textarea') {
           const fieldValue = fieldValues[field.id];
           if (fieldValue !== undefined && fieldValue !== null && String(fieldValue).trim() !== '') {
-            textInputs.push(String(fieldValue).trim());
+            const textValue = String(fieldValue).trim();
+            textInputs.push(textValue);
+            
+            // Replace [USER TEXT] placeholder with actual text value
+            // This handles templates that use [USER TEXT] as a placeholder
+            if (prompt.includes('[USER TEXT]')) {
+              prompt = prompt.replace(/\[USER TEXT\]/g, textValue);
+              hasReplacedPlaceholder = true;
+            }
           }
         }
       });
 
-      // Append all text inputs to the prompt
-      if (textInputs.length > 0) {
+      // If [USER TEXT] wasn't found in prompt, append text inputs at the end (backwards compatibility)
+      if (textInputs.length > 0 && !hasReplacedPlaceholder) {
         prompt += `\n\nTEXT: ${textInputs.join(', ')}`;
       }
 

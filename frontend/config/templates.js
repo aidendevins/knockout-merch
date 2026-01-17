@@ -485,6 +485,76 @@ Produce a high-resolution, print-ready graphic suitable for t-shirt printing.`,
     max_photos: 1,
     gradient: 'from-blue-600 to-purple-600',
   },
+  {
+    id: 'polaroid-ransom-note',
+    name: 'Polaroid Ransom Note',
+    description: 'Nostalgic polaroid-style photo with ransom note text aesthetic',
+    example_image: null,
+    reference_image: null, // Set via admin panel
+    remove_background: false, // Keep the polaroid frame
+    prompt: `Create a nostalgic polaroid-style photo design with the following specifications:
+
+CRITICAL RULE - BACKGROUND:
+- THE ENTIRE OUTPUT IMAGE MUST BE ONLY THE POLAROID ITSELF
+- NO solid background, NO colored backdrop, NO surface underneath
+- The polaroid frame IS the image - nothing else should exist
+- The edges of the canvas ARE the edges of the polaroid
+- Do NOT place the polaroid on top of any background color or surface
+- The white border of the polaroid should extend to the very edges of the image in places
+
+LAYOUT & FORMAT:
+- Rectangular landscape orientation polaroid format
+- White polaroid border frame around the entire image
+- Slightly tilted/angled placement of the polaroid (not perfectly straight)
+- The polaroid fills the entire canvas edge-to-edge
+
+IMAGE TREATMENT:
+- Place the provided image (the uploaded photo) inside the polaroid frame
+- Apply a soft, slightly faded vintage photo filter
+- Warm, nostalgic color grading with slightly muted tones
+- Subtle vignette effect around the edges
+
+TEXT ELEMENT:
+- At the bottom of the polaroid (on the white border area), add the user's text: "[USER TEXT]"
+- Style: Ransom note aesthetic using mixed cut-out letter styles
+- Letters should appear as individual cut-out pieces from different sources
+- Vary the letter styles: some from magazines, some handwritten-style, different fonts
+- Use black, white, and red as the primary colors for the letters
+- Letters should be slightly irregular in alignment and size for authentic ransom note look
+- Center the text horizontally
+
+OVERALL AESTHETIC:
+- Nostalgic, intimate, personal feel
+- Slightly imperfect, authentic polaroid appearance
+- Warm and sentimental mood
+
+REMINDER: The output should be ONLY the polaroid photo itself - the polaroid IS the entire image, not an object placed on a background.`,
+    panel_schema: {
+      showStyleTweaks: false,
+      fields: [
+        {
+          type: 'text',
+          id: 'customText',
+          label: 'Text (max 20 characters)',
+          placeholder: 'Enter text...',
+          required: true,
+          maxLength: 20,
+        },
+      ],
+    },
+    upload_tips: {
+      title: 'Best Photos for Polaroid Style',
+      tips: [
+        'Use photos with a <strong>clear subject</strong> (person, pet, object)',
+        'Choose images with a <strong>simple or plain background</strong> for best results',
+        'Well-lit photos with good contrast produce the best polaroid designs',
+        'Portrait or landscape orientation photos work great',
+        'Higher resolution photos (but max 10MB per file)',
+      ],
+    },
+    max_photos: 1,
+    gradient: 'from-amber-600 to-orange-600',
+  },
 ];
 
 // Product types available

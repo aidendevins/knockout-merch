@@ -265,14 +265,25 @@ router.post('/:id/reference-image', async (req, res) => {
  * Body: { imageUrl: string (URL or base64 data URL) }
  */
 router.post('/remove-background', async (req, res) => {
+  const endpointStartTime = Date.now();
+  
   try {
     const { imageUrl } = req.body;
 
+    console.log('\n' + '='.repeat(80));
+    console.log('📡 BACKGROUND REMOVAL API - Request received');
+    console.log('='.repeat(80));
+    console.log('📅 Timestamp:', new Date().toISOString());
+    console.log('📋 Request body has imageUrl:', !!imageUrl);
+    console.log('📋 ImageUrl type:', imageUrl ? (imageUrl.startsWith('data:') ? 'Base64' : 'URL') : 'undefined');
+
     if (!imageUrl) {
+      console.error('❌ Request validation failed: imageUrl is required');
       return res.status(400).json({ error: 'imageUrl is required' });
     }
 
     if (!replicate.isConfigured()) {
+      console.error('❌ Service not configured: REPLICATE_API_TOKEN is not set');
       return res.status(503).json({ 
         error: 'Background removal not configured',
         message: 'REPLICATE_API_TOKEN is not set. Please configure it to enable background removal.',
@@ -280,15 +291,38 @@ router.post('/remove-background', async (req, res) => {
       });
     }
 
-    console.log('🎨 Removing background from image...');
+    console.log('✅ Request validated - proceeding with background removal...');
+    console.log('-'.repeat(80));
+    
+    const serviceStartTime = Date.now();
     const processedImageBase64 = await replicate.removeBackground(imageUrl);
+    const serviceDuration = Date.now() - serviceStartTime;
+    const totalDuration = Date.now() - endpointStartTime;
+
+    console.log('-'.repeat(80));
+    console.log('✅ BACKGROUND REMOVAL API - SUCCESS');
+    console.log('📊 Response stats:');
+    console.log('   - Service duration:', serviceDuration, 'ms');
+    console.log('   - Total endpoint duration:', totalDuration, 'ms');
+    console.log('   - Response type: Base64 data URL');
+    console.log('   - Response length:', processedImageBase64?.length || 0, 'characters');
+    console.log('='.repeat(80) + '\n');
 
     res.json({
       processedImage: processedImageBase64,
       message: 'Background removed successfully',
     });
   } catch (error) {
-    console.error('Error removing background:', error);
+    const totalDuration = Date.now() - endpointStartTime;
+    
+    console.error('\n' + '='.repeat(80));
+    console.error('❌ BACKGROUND REMOVAL API - ERROR');
+    console.error('='.repeat(80));
+    console.error('⏱️  Duration before error:', totalDuration, 'ms');
+    console.error('📋 Error code:', error.code || 'N/A');
+    console.error('📋 Error status:', error.status || 'N/A');
+    console.error('📋 Error message:', error.message || 'Unknown error');
+    console.error('='.repeat(80) + '\n');
 
     const errorCode = error.code || 'BACKGROUND_REMOVAL_ERROR';
     const errorMessage = error.message || 'Failed to remove background';

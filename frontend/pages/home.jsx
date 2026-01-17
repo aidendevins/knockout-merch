@@ -6,7 +6,7 @@ import StudioCarousel from '@/components/landing/StudioCarousel';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Home() {
-  // Studio Designs query (unpublished - the 6 available designs)
+  // Studio Designs query (unpublished - the available designs for both hero and carousel)
   const { data: studioDesigns = [], isLoading: studioLoading } = useQuery({
     queryKey: ['studio-designs'],
     queryFn: async () => {
@@ -18,7 +18,7 @@ export default function Home() {
           null
         );
         console.log('Studio designs fetched:', allDesigns);
-        return allDesigns.slice(0, 6); // Show max 6 designs
+        return allDesigns; // Return all designs for both carousels
       } catch (error) {
         console.error('Error fetching studio designs:', error);
         throw error;
@@ -28,8 +28,8 @@ export default function Home() {
 
   return (
     <div className="bg-black min-h-screen">
-      {/* Hero Section */}
-      <HeroSection />
+      {/* Hero Section with Product Carousel - uses same studio designs */}
+      <HeroSection products={studioDesigns} isLoading={studioLoading} />
 
       {/* Studio Designs Carousel */}
       {studioLoading ? (

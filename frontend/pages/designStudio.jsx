@@ -80,6 +80,14 @@ export default function DesignStudio() {
 
   const handleBackgroundRemovalChoice = async (choice) => {
     try {
+      console.log('\n' + '='.repeat(80));
+      console.log('👤 BACKGROUND REMOVAL - User made choice');
+      console.log('='.repeat(80));
+      console.log('📋 User choice:', choice);
+      console.log('📋 Has pendingProductData:', !!pendingProductData);
+      console.log('📋 Has processedImage:', !!processedImage);
+      console.log('-'.repeat(80));
+      
       const { designImageUrl, designImageBase64 } = pendingProductData;
       
       // Use the appropriate image based on user choice
@@ -87,14 +95,28 @@ export default function DesignStudio() {
       let finalImageBase64 = designImageBase64;
       
       if (choice === 'transparent' && processedImage) {
+        console.log('🔄 User chose transparent background - uploading processed image to S3...');
+        const uploadStartTime = Date.now();
+        
         // Upload the processed image to S3
         const uploadResult = await base44.uploadBase64(processedImage, 'designs');
+        
+        const uploadDuration = Date.now() - uploadStartTime;
+        console.log(`✅ Processed image uploaded to S3 in ${uploadDuration}ms`);
+        console.log('📋 S3 URL:', uploadResult.file_url);
+        
         finalImageUrl = uploadResult.file_url;
         finalImageBase64 = processedImage;
+        console.log('✅ Using transparent background version');
         toast.success('Using transparent background');
       } else {
+        console.log('✅ User chose solid background - using original image');
         toast.success('Using solid background');
       }
+
+      console.log('-'.repeat(80));
+      console.log('📤 Proceeding to product creation with chosen image');
+      console.log('='.repeat(80) + '\n');
 
       // Continue with the product creation
       await continueProductCreation(finalImageUrl, finalImageBase64);
@@ -104,7 +126,17 @@ export default function DesignStudio() {
       setProcessedImage(null);
       setPendingProductData(null);
     } catch (error) {
-      console.error('Error handling background choice:', error);
+      console.error('\n' + '='.repeat(80));
+      console.error('❌ BACKGROUND REMOVAL - Error handling user choice');
+      console.error('='.repeat(80));
+      console.error('📋 Error type:', error.constructor.name);
+      console.error('📋 Error message:', error.message);
+      console.error('📋 Error code:', error.code || 'N/A');
+      if (error.stack) {
+        console.error('📋 Stack trace:', error.stack);
+      }
+      console.error('='.repeat(80) + '\n');
+      
       toast.error('Failed to process image');
       setIsCreatingProduct(false);
       setShowBackgroundRemovalModal(false);
@@ -227,25 +259,62 @@ export default function DesignStudio() {
 
       // Check if template requires background removal
       if (selectedTemplate?.remove_background || selectedTemplate?.removeBackground) {
-        console.log('🎨 Template requires background removal');
+        console.log('\n' + '='.repeat(80));
+        console.log('🎨 BACKGROUND REMOVAL - Frontend flow started');
+        console.log('='.repeat(80));
+        console.log('📋 Template ID:', selectedTemplate.id);
+        console.log('📋 Template name:', selectedTemplate.name);
+        console.log('📋 Has designImageUrl:', !!designImageUrl);
+        console.log('📋 Has designImageBase64:', !!designImageBase64);
+        console.log('📋 Base64 length:', designImageBase64?.length || 0, 'characters');
+        console.log('-'.repeat(80));
         
         // Store the data for later use
         setPendingProductData({ designImageUrl, designImageBase64 });
         
         // Show modal and start background removal
+        console.log('🔄 Opening background removal modal...');
         setShowBackgroundRemovalModal(true);
         setIsRemovingBackground(true);
         
         try {
+          console.log('📡 Calling background removal API...');
+          const apiStartTime = Date.now();
+          
           // Call background removal API
           const result = await apiClient.entities.Template.removeBackground(designImageBase64 || designImageUrl);
+          
+          const apiDuration = Date.now() - apiStartTime;
+          console.log(`✅ Background removal API call completed in ${apiDuration}ms`);
+          console.log('📊 Response stats:');
+          console.log('   - Has processedImage:', !!result.processedImage);
+          console.log('   - Processed image length:', result.processedImage?.length || 0, 'characters');
+          console.log('   - Processed image type:', result.processedImage?.substring(0, 20) || 'N/A');
+          
           setProcessedImage(result.processedImage);
           setIsRemovingBackground(false);
+          
+          console.log('✅ Background removal successful - modal displayed, waiting for user choice');
+          console.log('='.repeat(80) + '\n');
           
           // Modal stays open, waiting for user choice
           // User will choose in handleBackgroundRemovalChoice
         } catch (bgError) {
-          console.error('Background removal failed:', bgError);
+          const apiDuration = Date.now() - Date.now(); // This will be recalculated properly
+          
+          console.error('\n' + '='.repeat(80));
+          console.error('❌ BACKGROUND REMOVAL - Frontend error');
+          console.error('='.repeat(80));
+          console.error('📋 Error type:', bgError.constructor.name);
+          console.error('📋 Error message:', bgError.message);
+          console.error('📋 Error code:', bgError.code || 'N/A');
+          console.error('📋 Error status:', bgError.status || 'N/A');
+          if (bgError.stack) {
+            console.error('📋 Stack trace:', bgError.stack);
+          }
+          console.error('⚠️  Falling back to original image (no background removal)');
+          console.error('='.repeat(80) + '\n');
+          
           toast.error('Failed to remove background. Continuing with original image.');
           setShowBackgroundRemovalModal(false);
           setIsRemovingBackground(false);
@@ -254,6 +323,7 @@ export default function DesignStudio() {
           await continueProductCreation(designImageUrl, designImageBase64);
         }
       } else {
+        console.log('ℹ️  Template does not require background removal - proceeding directly');
         // No background removal needed, proceed directly
         await continueProductCreation(designImageUrl, designImageBase64);
       }
