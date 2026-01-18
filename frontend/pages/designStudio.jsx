@@ -11,6 +11,37 @@ import BackgroundRemovalModal from '@/components/design/BackgroundRemovalModal';
 import apiClient from '@/api/apiClient';
 import { toast } from 'sonner';
 
+// Helper to get image URL (use proxy if needed for CORS)
+const getImageUrl = (url) => {
+  if (!url) return null;
+  
+  // Always use proxy for S3 URLs to avoid CORS issues
+  if (url.includes('s3.amazonaws.com') || url.includes('s3://') || url.includes('.s3.')) {
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const apiBase = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
+    
+    // Try to extract S3 key from URL for more reliable proxying
+    let proxyUrl;
+    try {
+      // Extract key from URL like: https://bucket.s3.region.amazonaws.com/key
+      const urlMatch = url.match(/\.s3\.[^/]+\/(.+)$/);
+      if (urlMatch && urlMatch[1]) {
+        const key = decodeURIComponent(urlMatch[1]);
+        proxyUrl = `${apiBase}/upload/proxy-image?key=${encodeURIComponent(key)}`;
+      } else {
+        // Fallback to URL parameter
+        proxyUrl = `${apiBase}/upload/proxy-image?url=${encodeURIComponent(url)}`;
+      }
+    } catch (e) {
+      // Fallback to URL parameter if key extraction fails
+      proxyUrl = `${apiBase}/upload/proxy-image?url=${encodeURIComponent(url)}`;
+    }
+    
+    return proxyUrl;
+  }
+  return url;
+};
+
 export default function DesignStudio() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -42,6 +73,8 @@ export default function DesignStudio() {
   const [isRemovingBackground, setIsRemovingBackground] = useState(false);
   const [processedImage, setProcessedImage] = useState(null);
   const [pendingProductData, setPendingProductData] = useState(null);
+  // Cache the original Gemini-generated image (before background removal)
+  const [cachedGeminiImage, setCachedGeminiImage] = useState(null);
 
   // Create design mutation
   const createDesignMutation = useMutation({
@@ -65,16 +98,168 @@ export default function DesignStudio() {
     setProductType(product.id);
     setSelectedColor(color.id);
     setShowTemplatePicker(false);
+    // Clear cached Gemini image when template changes
+    setCachedGeminiImage(null);
     
     toast.success(`${template.name} template selected!`);
   };
 
-  const handleImageGenerated = (result) => {
+  const handleImageGenerated = async (result) => {
     // result can be a URL string (backward compatibility) or an object with url
-    if (typeof result === 'string') {
-      setGeneratedImage(result);
+    const imageUrl = typeof result === 'string' ? result : result.url;
+    
+    // Cache the original Gemini-generated image for retry functionality
+    setCachedGeminiImage(imageUrl);
+
+    // Check if template requires background removal - do it immediately after generation
+    // Support both string ("remove-simple") and boolean (for backwards compatibility)
+    const removeBgValue = selectedTemplate?.remove_background || selectedTemplate?.removeBackground;
+    const needsBackgroundRemoval = removeBgValue === 'remove-simple' || removeBgValue === true;
+    
+    if (needsBackgroundRemoval) {
+      // Don't set the image yet - wait for background removal to complete
+      console.log('\n' + '='.repeat(80));
+      console.log('🎨 BACKGROUND REMOVAL - Triggered after image generation');
+      console.log('='.repeat(80));
+      console.log('📋 Template ID:', selectedTemplate.id);
+      console.log('📋 Template name:', selectedTemplate.name);
+      console.log('📋 Image URL:', imageUrl);
+      console.log('-'.repeat(80));
+      
+      setIsRemovingBackground(true);
+      
+      try {
+        // Convert image URL to base64 for background removal API
+        let imageBase64 = null;
+        try {
+          const response = await fetch(imageUrl);
+          const blob = await response.blob();
+          const reader = new FileReader();
+          imageBase64 = await new Promise((resolve, reject) => {
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } catch (fetchErr) {
+          console.warn('Failed to convert image to base64:', fetchErr);
+        }
+        
+        console.log('📡 Calling background removal API...');
+        const apiStartTime = Date.now();
+        
+        // Call background removal API
+        const bgResult = await apiClient.entities.Template.removeBackground(imageBase64 || imageUrl);
+        
+        const apiDuration = Date.now() - apiStartTime;
+        console.log(`✅ Background removal API call completed in ${apiDuration}ms`);
+        console.log('📊 Response stats:');
+        console.log('   - Has processedImage:', !!bgResult.processedImage);
+        console.log('   - Processed image length:', bgResult.processedImage?.length || 0, 'characters');
+        
+        // Store the processed image - it will be used when creating the product
+        setProcessedImage(bgResult.processedImage);
+        
+        // Convert processed image base64 to a URL for display on canvas
+        // Upload the processed image to S3 for display
+        try {
+          const uploadResult = await base44.uploadBase64(bgResult.processedImage, 'designs');
+          // Use proxy URL to avoid CORS issues
+          const proxiedUrl = getImageUrl(uploadResult.file_url);
+          setGeneratedImage(proxiedUrl || uploadResult.file_url);
+          console.log('✅ Background removal successful - processed image uploaded and set');
+        } catch (uploadErr) {
+          console.error('Failed to upload processed image, using original:', uploadErr);
+          // Fall back to original if upload fails - also proxy it
+          const proxiedUrl = getImageUrl(imageUrl);
+          setGeneratedImage(proxiedUrl || imageUrl);
+        }
+        
+        console.log('='.repeat(80) + '\n');
+      } catch (bgError) {
+        console.error('\n' + '='.repeat(80));
+        console.error('❌ BACKGROUND REMOVAL - Error after generation');
+        console.error('='.repeat(80));
+        console.error('📋 Error message:', bgError.message);
+        console.error('⚠️  Continuing with original image (background removal failed)');
+        console.error('='.repeat(80) + '\n');
+        
+        toast.error('Background removal failed. Using original image.');
+        // Continue with original image - set it now since background removal failed
+        // Use proxy URL to avoid CORS issues
+        const proxiedUrl = getImageUrl(imageUrl);
+        setGeneratedImage(proxiedUrl || imageUrl);
+      } finally {
+        setIsRemovingBackground(false);
+        setIsGenerating(false); // Stop loading state only after background removal completes
+      }
     } else {
-      setGeneratedImage(result.url);
+      // No background removal needed - set image immediately
+      // Use proxy URL to avoid CORS issues
+      const proxiedUrl = getImageUrl(imageUrl);
+      setGeneratedImage(proxiedUrl || imageUrl);
+      setIsGenerating(false); // Stop loading state
+    }
+  };
+
+  // Retry background removal using cached Gemini image
+  const handleRetryBackgroundRemoval = async () => {
+    if (!cachedGeminiImage) {
+      toast.error('No cached image available');
+      return;
+    }
+
+    const removeBgValue = selectedTemplate?.remove_background || selectedTemplate?.removeBackground;
+    if (!removeBgValue || (removeBgValue !== 'remove-simple' && removeBgValue !== 'remove-complex')) {
+      toast.error('Background removal not enabled for this template');
+      return;
+    }
+
+    setIsRemovingBackground(true);
+
+    try {
+      // Convert cached Gemini image URL to base64 for background removal API
+      let imageBase64 = null;
+      try {
+        // Use proxy URL if it's an S3 URL to avoid CORS
+        const imageUrlToFetch = cachedGeminiImage.includes('proxy-image') 
+          ? cachedGeminiImage 
+          : getImageUrl(cachedGeminiImage) || cachedGeminiImage;
+        
+        const response = await fetch(imageUrlToFetch);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        imageBase64 = await new Promise((resolve, reject) => {
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch (fetchErr) {
+        console.error('Failed to convert cached image to base64:', fetchErr);
+        toast.error('Failed to load cached image');
+        return;
+      }
+      
+      // Call background removal API
+      const bgResult = await apiClient.entities.Template.removeBackground(imageBase64 || cachedGeminiImage);
+      
+      // Store the processed image
+      setProcessedImage(bgResult.processedImage);
+      
+      // Upload processed image to S3 and update display
+      try {
+        const uploadResult = await base44.uploadBase64(bgResult.processedImage, 'designs');
+        const proxiedUrl = getImageUrl(uploadResult.file_url);
+        setGeneratedImage(proxiedUrl || uploadResult.file_url);
+        toast.success('Background removed successfully');
+      } catch (uploadErr) {
+        console.error('Failed to upload processed image:', uploadErr);
+        toast.error('Failed to upload processed image');
+      }
+    } catch (bgError) {
+      console.error('Background removal error:', bgError);
+      toast.error(bgError.message || 'Failed to remove background');
+    } finally {
+      setIsRemovingBackground(false);
     }
   };
 
@@ -257,76 +442,31 @@ export default function DesignStudio() {
         }
       }
 
-      // Check if template requires background removal
-      if (selectedTemplate?.remove_background || selectedTemplate?.removeBackground) {
-        console.log('\n' + '='.repeat(80));
-        console.log('🎨 BACKGROUND REMOVAL - Frontend flow started');
-        console.log('='.repeat(80));
-        console.log('📋 Template ID:', selectedTemplate.id);
-        console.log('📋 Template name:', selectedTemplate.name);
-        console.log('📋 Has designImageUrl:', !!designImageUrl);
-        console.log('📋 Has designImageBase64:', !!designImageBase64);
-        console.log('📋 Base64 length:', designImageBase64?.length || 0, 'characters');
-        console.log('-'.repeat(80));
-        
-        // Store the data for later use
-        setPendingProductData({ designImageUrl, designImageBase64 });
-        
-        // Show modal and start background removal
-        console.log('🔄 Opening background removal modal...');
-        setShowBackgroundRemovalModal(true);
-        setIsRemovingBackground(true);
-        
+      // Background removal now happens after image generation, not here
+      // If processedImage exists (from background removal after generation), use it
+      // Otherwise use the original design image
+      
+      // If we have a processed image from background removal, use it instead
+      const removeBgValue = selectedTemplate?.remove_background || selectedTemplate?.removeBackground;
+      const hasBackgroundRemoval = removeBgValue === 'remove-simple' || removeBgValue === true;
+      if (processedImage && hasBackgroundRemoval) {
+        console.log('🔄 Using processed image from background removal...');
+        // Convert processedImage (base64) to a usable format
+        // Upload processed image to S3 and use that URL
         try {
-          console.log('📡 Calling background removal API...');
-          const apiStartTime = Date.now();
-          
-          // Call background removal API
-          const result = await apiClient.entities.Template.removeBackground(designImageBase64 || designImageUrl);
-          
-          const apiDuration = Date.now() - apiStartTime;
-          console.log(`✅ Background removal API call completed in ${apiDuration}ms`);
-          console.log('📊 Response stats:');
-          console.log('   - Has processedImage:', !!result.processedImage);
-          console.log('   - Processed image length:', result.processedImage?.length || 0, 'characters');
-          console.log('   - Processed image type:', result.processedImage?.substring(0, 20) || 'N/A');
-          
-          setProcessedImage(result.processedImage);
-          setIsRemovingBackground(false);
-          
-          console.log('✅ Background removal successful - modal displayed, waiting for user choice');
-          console.log('='.repeat(80) + '\n');
-          
-          // Modal stays open, waiting for user choice
-          // User will choose in handleBackgroundRemovalChoice
-        } catch (bgError) {
-          const apiDuration = Date.now() - Date.now(); // This will be recalculated properly
-          
-          console.error('\n' + '='.repeat(80));
-          console.error('❌ BACKGROUND REMOVAL - Frontend error');
-          console.error('='.repeat(80));
-          console.error('📋 Error type:', bgError.constructor.name);
-          console.error('📋 Error message:', bgError.message);
-          console.error('📋 Error code:', bgError.code || 'N/A');
-          console.error('📋 Error status:', bgError.status || 'N/A');
-          if (bgError.stack) {
-            console.error('📋 Stack trace:', bgError.stack);
-          }
-          console.error('⚠️  Falling back to original image (no background removal)');
-          console.error('='.repeat(80) + '\n');
-          
-          toast.error('Failed to remove background. Continuing with original image.');
-          setShowBackgroundRemovalModal(false);
-          setIsRemovingBackground(false);
-          
-          // Continue without background removal
-          await continueProductCreation(designImageUrl, designImageBase64);
+          const uploadResult = await base44.uploadBase64(processedImage, 'designs');
+          designImageUrl = uploadResult.file_url;
+          // Use the base64 directly for Printify
+          designImageBase64 = processedImage;
+          console.log('✅ Processed image uploaded to S3:', designImageUrl);
+        } catch (uploadErr) {
+          console.error('Failed to upload processed image, using original:', uploadErr);
+          // Fall back to original image if upload fails
         }
-      } else {
-        console.log('ℹ️  Template does not require background removal - proceeding directly');
-        // No background removal needed, proceed directly
-        await continueProductCreation(designImageUrl, designImageBase64);
       }
+
+      // Continue with product creation (using processed image if available, otherwise original)
+      await continueProductCreation(designImageUrl, designImageBase64);
 
     } catch (error) {
       console.error('Error in product creation flow:', error);
@@ -366,6 +506,9 @@ export default function DesignStudio() {
           generatedImage={generatedImage}
           isGenerating={isGenerating}
           setIsGenerating={setIsGenerating}
+          isRemovingBackground={isRemovingBackground}
+          cachedGeminiImage={cachedGeminiImage}
+          onRetryBackgroundRemoval={handleRetryBackgroundRemoval}
           selectedColor={selectedColor}
         />
       </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Loader2, AlertCircle, RefreshCw, Heart, ImageIcon, Check } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle, RefreshCw, Heart, ImageIcon, Check, Scissors } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -130,6 +130,9 @@ export default function AIPanel({
   generatedImage,
   isGenerating,
   setIsGenerating,
+  isRemovingBackground = false,
+  cachedGeminiImage = null,
+  onRetryBackgroundRemoval = null,
   selectedColor = 'black', // The product color selected in the template picker
 }) {
   const [fieldValues, setFieldValues] = useState({});
@@ -469,7 +472,9 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
       });
 
       if (result?.url) {
-        onImageGenerated(result);
+        // onImageGenerated is async and handles setting isGenerating to false
+        // Don't await it here - it will manage the loading state
+        await onImageGenerated(result);
       }
     } catch (err) {
       console.error('Generation error:', err);
@@ -491,9 +496,11 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
       } else {
         setError(err.message || 'Failed to generate image. Please try again.');
       }
-    } finally {
+      // On error, stop loading immediately
       setIsGenerating(false);
     }
+    // Note: On success, handleImageGenerated will manage setting isGenerating to false
+    // This allows background removal to complete before stopping the loading state
   };
 
   const canGenerate = selectedTemplate && uploadedPhotos.length > 0;
@@ -615,7 +622,7 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
           {isGenerating ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Creating Magic...
+              {isRemovingBackground ? 'Removing Background...' : 'Creating Magic...'}
             </>
           ) : (
             <>
@@ -640,21 +647,52 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
               exit={{ opacity: 0, y: -20 }}
               className="mt-6"
             >
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-white/60">Generated Design</p>
+              <div className="flex items-center justify-between gap-2 mb-2">
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={handleGenerate}
                   disabled={isGenerating || !canGenerate}
-                  className="text-white/60 hover:text-white hover:bg-pink-600/10 h-6 text-xs"
+                  className="text-white/60 hover:text-white hover:bg-pink-600/10 h-6 text-xs whitespace-nowrap"
                 >
                   <RefreshCw className="w-3 h-3 mr-1" />
                   Regenerate
                 </Button>
+                {/* Retry background removal button - only show if template has background removal and cached image exists */}
+                {cachedGeminiImage && 
+                 onRetryBackgroundRemoval && 
+                 (selectedTemplate?.remove_background === 'remove-simple' || 
+                  selectedTemplate?.remove_background === 'remove-complex' ||
+                  selectedTemplate?.removeBackground === true) && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={onRetryBackgroundRemoval}
+                    disabled={isRemovingBackground}
+                    className="text-white/60 hover:text-white hover:bg-pink-600/10 text-xs min-h-[24px] h-auto py-1"
+                  >
+                    <div className="flex items-center gap-1 text-right">
+                      {isRemovingBackground ? (
+                        <>
+                          <Loader2 className="w-3 h-3 animate-spin flex-shrink-0" />
+                          <span className="whitespace-normal">Removing...</span>
+                        </>
+                      ) : (
+                        <>
+                          {/* <Scissors className="w-3 h-3 flex-shrink-0" /> */}
+                          <div className="flex flex-col items-end leading-tight">
+                            <span>Retry Background</span>
+                            <span>Removal</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </Button>
+                )}
               </div>
               <div className="relative rounded-lg overflow-hidden border border-pink-900/30">
                 <img 
+                  key={generatedImage}
                   src={generatedImage} 
                   alt="Generated design"
                   className="w-full aspect-square object-contain bg-black/40"

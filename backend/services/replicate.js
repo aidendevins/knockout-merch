@@ -6,7 +6,7 @@ const replicate = new Replicate({
 });
 
 /**
- * Remove background from an image using Bria's background removal model
+ * Remove background from an image using the recraft-ai/recraft-remove-background model
  * @param {string} imageUrl - URL or base64 data URL of the image
  * @returns {Promise<string>} - Base64 data URL of the image with transparent background
  */
@@ -30,12 +30,12 @@ async function removeBackground(imageUrl) {
     console.log('⏱️  Start time:', new Date().toISOString());
     console.log('-'.repeat(80));
 
-    // Run the background removal model (Bria RMBG 2.0)
-    console.log('🔄 Calling Replicate API (bria/rmbg-2.0)...');
+    // Run the background removal model (recraft-ai/recraft-remove-background)
+    console.log('🔄 Calling recraft-ai/recraft-remove-background model via Replicate API...');
     const apiStartTime = Date.now();
     
     const output = await replicate.run(
-      "bria/rmbg-2.0",
+      "recraft-ai/recraft-remove-background",
       {
         input: {
           image: imageUrl,
@@ -44,7 +44,7 @@ async function removeBackground(imageUrl) {
     );
 
     const apiDuration = Date.now() - apiStartTime;
-    console.log(`✅ Replicate API call completed in ${apiDuration}ms`);
+    console.log(`✅ recraft-ai/recraft-remove-background model completed in ${apiDuration}ms`);
     console.log('📦 Output type:', typeof output);
     
     if (typeof output === 'string') {
@@ -56,7 +56,7 @@ async function removeBackground(imageUrl) {
     // The output is a URL to the processed image
     // Fetch it and convert to base64 for consistency
     if (typeof output === 'string') {
-      console.log('🔄 Fetching processed image from Replicate output URL...');
+      console.log('🔄 Fetching processed image from recraft-ai/recraft-remove-background output URL...');
       const fetchStartTime = Date.now();
       
       const response = await fetch(output);
@@ -86,8 +86,8 @@ async function removeBackground(imageUrl) {
       return `data:${mimeType};base64,${base64}`;
     }
 
-    const error = new Error('Unexpected output format from Replicate');
-    console.error('❌ BACKGROUND REMOVAL - FAILED: Unexpected output format');
+    const error = new Error('Unexpected output format from recraft-ai/recraft-remove-background model');
+    console.error('❌ BACKGROUND REMOVAL - FAILED: Unexpected output format from recraft-ai/recraft-remove-background');
     console.error('   Output type:', typeof output);
     console.error('   Output value:', JSON.stringify(output, null, 2).substring(0, 500));
     throw error;
@@ -115,11 +115,11 @@ async function removeBackground(imageUrl) {
 
     // Handle specific error cases
     if (error.status === 401 || error.message?.includes('authentication')) {
-      enhancedError.message = 'Invalid Replicate API token. Please check your REPLICATE_API_TOKEN environment variable.';
+      enhancedError.message = 'Invalid Replicate API token for recraft-ai/recraft-remove-background. Please check your REPLICATE_API_TOKEN environment variable.';
       enhancedError.code = 'INVALID_API_KEY';
       console.error('🔑 Error type: Invalid API Key');
     } else if (error.status === 429 || error.message?.includes('rate limit')) {
-      enhancedError.message = 'Replicate API rate limit exceeded. Please try again later.';
+      enhancedError.message = 'recraft-ai/recraft-remove-background model rate limit exceeded. Please try again later.';
       enhancedError.code = 'RATE_LIMIT';
       console.error('⏳ Error type: Rate Limit Exceeded');
     } else if (error.status === 400) {
@@ -135,7 +135,7 @@ async function removeBackground(imageUrl) {
 }
 
 /**
- * Check if Replicate is configured
+ * Check if Replicate is configured for recraft-ai/recraft-remove-background
  */
 function isConfigured() {
   return !!process.env.REPLICATE_API_TOKEN;

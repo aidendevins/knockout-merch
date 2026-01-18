@@ -230,12 +230,31 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
  * Fetch templates from API
  * This replaces the hardcoded TEMPLATES array
  */
-export async function fetchTemplates() {
+export async function fetchTemplates(includeHidden = false) {
   try {
     const templates = await apiClient.entities.Template.list();
     
+    // Filter out hidden templates unless explicitly requested (for admin)
+    // Handle boolean, string, null, or undefined values
+    const filteredTemplates = includeHidden 
+      ? templates 
+      : templates.filter(t => {
+          // Explicitly check - only hide if is_hidden is explicitly true
+          const isHidden = t.is_hidden;
+          
+          // Handle boolean true, string "true", number 1, or PostgreSQL 't'
+          // Only filter out if explicitly hidden
+          const shouldHide = isHidden === true || 
+                             isHidden === 'true' || 
+                             isHidden === 1 || 
+                             isHidden === 't' ||
+                             String(isHidden).toLowerCase() === 'true';
+          
+          return !shouldHide;
+        });
+    
     // Transform backend format to frontend format and attach buildPrompt functions
-    return templates.map(t => ({
+    return filteredTemplates.map(t => ({
       id: t.id,
       name: t.name,
       description: t.description,
@@ -321,7 +340,7 @@ export const LOCAL_TEMPLATES = [
     description: 'Classic bootleg concert tee style with photos and custom text',
     example_image: null,
     reference_image: null, // Set via admin panel
-    remove_background: true, // Enable background removal before sending to Printify
+    remove_background: 'remove-simple', // Enable background removal before sending to Printify
     prompt: `**Role:** You are a professional T-shirt designer creating a high-energy 90s bootleg "rap tee" collage. You must execute this design as distinct, non-overlapping visual layers.
 
 **REFERENCE STYLE:** Use the composition, bold typography, and electrified background aesthetic of the first image (image_0.png) as your primary stylistic guide for overall impact and layout.
@@ -398,7 +417,7 @@ Produce a single, high-resolution, sharp, and print-ready graphic. Ensure the di
     description: 'Heart-shaped collage of your favorite memories',
     example_image: null,
     reference_image: null, // Set via admin panel
-    remove_background: true, // Enable background removal before sending to Printify
+    remove_background: 'remove-simple', // Enable background removal before sending to Printify
     prompt: `Create a romantic heart-shaped photo collage design. 
 
 **INPUT DATA:**
@@ -451,7 +470,7 @@ Produce a high-resolution, print-ready graphic suitable for t-shirt printing.`,
     description: 'Vintage 60s-70s psychedelic style with repeating name text and portrait photo',
     example_image: null,
     reference_image: null, // Set via admin panel - upload the reference image there
-    remove_background: true, // Enable background removal before sending to Printify
+    remove_background: 'remove-simple', // Enable background removal before sending to Printify
     prompt: null, // Uses buildRetroNamePortraitPrompt function to generate prompt with proper placeholder replacement
     panel_schema: {
       showStyleTweaks: false,
@@ -554,6 +573,70 @@ REMINDER: The output should be ONLY the polaroid photo itself - the polaroid IS 
     },
     max_photos: 1,
     gradient: 'from-amber-600 to-orange-600',
+  },
+  {
+    id: 'minimalist-line-art',
+    name: 'Minimalist Line Art',
+    description: 'Convert photos into clean minimalist line art illustrations',
+    example_image: null,
+    reference_image: null, // Set via admin panel
+    remove_background: false, // Keep the illustration style
+    prompt: `Transform the second image to look similar to the first image based on the following criteria:
+Convert the provided image into a minimalist line art illustration while preserving the original composition, poses, and colors:
+
+PRESERVE FROM ORIGINAL:
+- Exact poses and positioning of all subjects
+- Background color (convert to flat version of the original color)
+- Clothing colors (convert to flat versions of the original colors)
+- Overall composition and framing
+- Any patterns on clothing (simplified into clean geometric versions)
+
+LINE ART STYLE:
+- Clean, smooth black outlines around all shapes
+- Consistent line weight throughout (medium thickness)
+- Continuous, confident lines - not sketchy
+- Minimal interior detail lines - focus on major forms and silhouettes
+- Vector-quality, smooth lines
+
+FIGURE TREATMENT:
+- Make all faces completely blank - no facial features at all
+- Heads become simple solid color shapes with hair silhouettes
+- Simplify body forms while maintaining recognizable poses
+- Remove fine details, keep essential shapes only
+
+COLOR TREATMENT:
+- Convert all colors to flat, solid fills - absolutely no gradients
+- No shading, highlights, or shadows anywhere
+- Take the dominant colors from the original and make them completely flat
+- Slightly desaturate colors for a muted, contemporary feel
+- Each area is a single solid color
+
+SIMPLIFICATION:
+- Remove photographic details (skin texture, fabric texture, etc.)
+- Simplify complex patterns into clean geometric versions
+- Reduce detail while keeping the image recognizable
+- Clean, editorial illustration aesthetic
+
+OUTPUT:
+- Modern minimalist line art illustration
+- Clean and sophisticated
+- Maintains the essence and composition of the original photo`,
+    panel_schema: {
+      showStyleTweaks: false,
+      fields: [],
+    },
+    upload_tips: {
+      title: 'Best Photos for Line Art Style',
+      tips: [
+        'Use photos with <strong>clear subjects</strong> and good contrast',
+        'Choose images with <strong>simple backgrounds</strong> for best results',
+        'Well-lit photos with distinct shapes work best',
+        'Photos with clear poses and composition produce better line art',
+        'Higher resolution photos (but max 10MB per file)',
+      ],
+    },
+    max_photos: 1,
+    gradient: 'from-slate-600 to-gray-600',
   },
 ];
 

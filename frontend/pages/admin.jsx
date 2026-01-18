@@ -5,7 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { motion } from 'framer-motion';
 import { 
   Upload, Image, Star, StarOff, Loader2, Check, X, Save, Edit, Plus, Trash2,
-  ShieldCheck, Package, Users, DollarSign, FileText, Sparkles, Settings
+  ShieldCheck, Package, Users, DollarSign, FileText, Sparkles, Settings, Eye, EyeOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -491,25 +491,80 @@ export default function Admin() {
                             Background Removal
                           </Label>
                         </div>
+                        <div className="p-4 bg-black/40 border border-pink-900/30 rounded-lg">
+                          <div className="mb-2">
+                            <p className="text-white text-sm">Remove background before printing</p>
+                            <p className="text-gray-400 text-xs mt-1">Select background removal method</p>
+                          </div>
+                          <select
+                            value={template.remove_background || ''}
+                            onChange={(e) => {
+                              const value = e.target.value || null;
+                              updateTemplateMutation.mutate({
+                                id: template.id,
+                                data: { remove_background: value },
+                              });
+                            }}
+                            disabled={updateTemplateMutation.isPending}
+                            className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-pink-900/30 text-white text-sm focus:border-pink-600 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <option value="">None</option>
+                            <option value="remove-simple">Simple</option>
+                            <option value="remove-complex">Complex</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Visibility Section */}
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <Label className="text-white font-medium flex items-center gap-2">
+                            {template.is_hidden ? (
+                              <EyeOff className="w-4 h-4 text-pink-400" />
+                            ) : (
+                              <Eye className="w-4 h-4 text-pink-400" />
+                            )}
+                            Visibility
+                          </Label>
+                        </div>
                         <div className="flex items-center justify-between p-4 bg-black/40 border border-pink-900/30 rounded-lg">
                           <div>
-                            <p className="text-white text-sm">Remove background before printing</p>
-                            <p className="text-gray-400 text-xs mt-1">Uses Replicate AI to remove backgrounds</p>
+                            <p className="text-white text-sm">
+                              {template.is_hidden ? 'Hidden from design page' : 'Visible on design page'}
+                            </p>
+                            <p className="text-gray-400 text-xs mt-1">
+                              {template.is_hidden 
+                                ? 'This template will not appear in the template picker' 
+                                : 'Users can see and use this template'}
+                            </p>
                           </div>
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={template.remove_background || false}
-                              onChange={(e) => {
-                                updateTemplateMutation.mutate({
-                                  id: template.id,
-                                  data: { remove_background: e.target.checked },
-                                });
-                              }}
-                              className="sr-only peer"
-                            />
-                            <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-pink-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600"></div>
-                          </label>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              updateTemplateMutation.mutate({
+                                id: template.id,
+                                data: { is_hidden: !template.is_hidden },
+                              });
+                            }}
+                            disabled={updateTemplateMutation.isPending}
+                            className={`${
+                              template.is_hidden
+                                ? 'border-orange-500/50 text-orange-400 hover:bg-orange-500/10'
+                                : 'border-green-500/50 text-green-400 hover:bg-green-500/10'
+                            }`}
+                          >
+                            {template.is_hidden ? (
+                              <>
+                                <EyeOff className="w-4 h-4 mr-2" />
+                                Show
+                              </>
+                            ) : (
+                              <>
+                                <Eye className="w-4 h-4 mr-2" />
+                                Hide
+                              </>
+                            )}
+                          </Button>
                         </div>
                       </div>
 
