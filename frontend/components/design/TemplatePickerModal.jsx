@@ -61,11 +61,11 @@ export default function TemplatePickerModal({
   const [selectedProduct, setSelectedProduct] = useState(initialProduct);
   const [selectedColor, setSelectedColor] = useState(initialColor);
 
-  // Fetch templates from API
+  // Fetch templates from API (excluding hidden templates)
   const { data: templates = [], isLoading: templatesLoading } = useQuery({
     queryKey: ['templates'],
-    queryFn: fetchTemplates,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    queryFn: () => fetchTemplates(false), // Explicitly pass false to exclude hidden templates
+    staleTime: 0, // Don't cache - always fetch fresh data
   });
 
   const handleNext = () => {

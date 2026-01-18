@@ -184,18 +184,46 @@ async function init() {
         upload_tips JSONB DEFAULT '{}'::jsonb,
         max_photos INTEGER DEFAULT 6,
         gradient VARCHAR(100),
-        remove_background BOOLEAN DEFAULT FALSE,
+        remove_background VARCHAR(50) DEFAULT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
-    // Add remove_background column if it doesn't exist (for existing databases)
+    // Add or alter remove_background column to support string values (migrate from boolean)
     await query(`
       DO $$ 
       BEGIN
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'templates' AND column_name = 'remove_background') THEN
-          ALTER TABLE templates ADD COLUMN remove_background BOOLEAN DEFAULT FALSE;
+        -- Check if column exists
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'templates' AND column_name = 'remove_background') THEN
+          -- Column exists - check if it's boolean type and migrate to VARCHAR
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = 'templates' 
+            AND column_name = 'remove_background' 
+            AND data_type = 'boolean'
+          ) THEN
+            -- Convert boolean to VARCHAR: true -> 'remove-simple', false -> NULL
+            ALTER TABLE templates 
+            ALTER COLUMN remove_background TYPE VARCHAR(50) 
+            USING CASE 
+              WHEN remove_background = true THEN 'remove-simple' 
+              ELSE NULL 
+            END;
+          END IF;
+        ELSE
+          -- Column doesn't exist - add it as VARCHAR
+          ALTER TABLE templates ADD COLUMN remove_background VARCHAR(50) DEFAULT NULL;
+        END IF;
+      END $$;
+    `);
+
+    // Add is_hidden column if it doesn't exist (for existing databases)
+    await query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'templates' AND column_name = 'is_hidden') THEN
+          ALTER TABLE templates ADD COLUMN is_hidden BOOLEAN DEFAULT FALSE;
         END IF;
       END $$;
     `);

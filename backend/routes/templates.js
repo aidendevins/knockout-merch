@@ -55,6 +55,7 @@ router.post('/', async (req, res) => {
       upload_tips,
       max_photos,
       gradient,
+      is_hidden,
     } = req.body;
 
     if (!id || !name) {
@@ -63,8 +64,8 @@ router.post('/', async (req, res) => {
 
     const result = await db.query(
       `INSERT INTO templates 
-       (id, name, description, example_image, reference_image, prompt, panel_schema, upload_tips, max_photos, gradient) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       (id, name, description, example_image, reference_image, prompt, panel_schema, upload_tips, max_photos, gradient, is_hidden) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
       [
         id,
@@ -77,6 +78,7 @@ router.post('/', async (req, res) => {
         JSON.stringify(upload_tips || {}),
         max_photos || 6,
         gradient || null,
+        is_hidden || false,
       ]
     );
 
@@ -108,6 +110,8 @@ router.put('/:id', async (req, res) => {
       upload_tips,
       max_photos,
       gradient,
+      is_hidden,
+      remove_background,
     } = req.body;
 
     // Check if template exists
@@ -156,6 +160,14 @@ router.put('/:id', async (req, res) => {
     if (gradient !== undefined) {
       updates.push(`gradient = $${paramCount++}`);
       values.push(gradient);
+    }
+    if (is_hidden !== undefined) {
+      updates.push(`is_hidden = $${paramCount++}`);
+      values.push(is_hidden);
+    }
+    if (remove_background !== undefined) {
+      updates.push(`remove_background = $${paramCount++}`);
+      values.push(remove_background);
     }
 
     // Always update updated_at
@@ -286,7 +298,7 @@ router.post('/remove-background', async (req, res) => {
       console.error('❌ Service not configured: REPLICATE_API_TOKEN is not set');
       return res.status(503).json({ 
         error: 'Background removal not configured',
-        message: 'REPLICATE_API_TOKEN is not set. Please configure it to enable background removal.',
+        message: 'REPLICATE_API_TOKEN is not set. Please configure it to enable recraft-ai/recraft-remove-background model.',
         code: 'SERVICE_NOT_CONFIGURED'
       });
     }
