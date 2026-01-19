@@ -285,8 +285,8 @@ async function handleStripeWebhook(req, res) {
             `INSERT INTO orders 
              (design_id, customer_email, customer_name, shipping_address, 
               quantity, total_amount, status, stripe_session_id, stripe_payment_id,
-              product_type, size)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+              product_type, size, color)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
              RETURNING id`,
             [
               designId,
@@ -295,11 +295,12 @@ async function handleStripeWebhook(req, res) {
               JSON.stringify(shippingAddress),
               item.quantity,
               parseFloat(pricePerItem),
-              'paid', // Status is 'paid' because payment was verified above
+              'pending_approval', // Status requires manual approval before sending to Printify
               session.id,
               paymentIntentId,
               productType,
               size,
+              colors[i] || 'black', // Add color from metadata
             ]
           );
           
