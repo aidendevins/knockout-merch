@@ -25,7 +25,7 @@ async function generateImage(prompt, referenceImageUrls = []) {
   }
 
   // Primary model
-  const primaryModelName = "gemini-2.5-flash-image";
+  const primaryModelName = "gemini-3-pro-image-preview";
   // Fallback model
   const fallbackModelName = "gemini-2.5-flash-image";
   const TIMEOUT_MS = 60000; // 1 minute
