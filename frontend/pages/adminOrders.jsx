@@ -276,7 +276,7 @@ export default function AdminOrders() {
                               } else if (order.stripe_session_id) {
                                 window.open(`https://dashboard.stripe.com/payments/${order.stripe_session_id}`, '_blank');
                               } else {
-                                console.log('Order details:', order);
+                              console.log('Order details:', order);
                               }
                             }}
                             title={order.stripe_payment_id || order.stripe_session_id ? "View in Stripe" : "View details"}

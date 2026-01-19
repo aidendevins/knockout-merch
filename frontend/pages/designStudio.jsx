@@ -46,7 +46,7 @@ export default function DesignStudio() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const canvasRef = useRef(null);
-
+  
   // Template picker state
   const [showTemplatePicker, setShowTemplatePicker] = useState(true);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
@@ -67,7 +67,7 @@ export default function DesignStudio() {
   });
   const [selectedMask, setSelectedMask] = useState('None');
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
-  
+
   // Background removal state
   const [showBackgroundRemovalModal, setShowBackgroundRemovalModal] = useState(false);
   const [isRemovingBackground, setIsRemovingBackground] = useState(false);
@@ -333,7 +333,7 @@ export default function DesignStudio() {
       // Step 2: Save the design to the database
       const user = await base44.auth.me();
       const designTitle = `Valentine's Design ${Date.now()}`;
-
+      
       const design = await createDesignMutation.mutateAsync({
         title: designTitle,
         design_image_url: designImageUrl,
@@ -348,7 +348,7 @@ export default function DesignStudio() {
 
       // Step 3: Create the product on Printify
       toast.info('Creating your product...');
-
+      
       const printifyProduct = await base44.printify.createProduct({
         title: designTitle,
         description: `Custom Valentine's Day design - ${selectedTemplate?.name || 'Custom'} style.`,
@@ -360,23 +360,10 @@ export default function DesignStudio() {
         designId: design.id,
       });
 
-      // Step 4: Navigate to the product preview page with all data
-      const productData = {
-        designId: design.id,
-        printifyProductId: printifyProduct.id,
-        mockupUrls: printifyProduct.mockup_urls || [],
-        title: designTitle,
-        productType: productType,
-        color: selectedColor,
-        price: productType === 'hoodie' ? 49.99 : 29.99,
-        designImageUrl: designImageUrl,
-      };
-
-      // Encode the data for URL passing
-      const encodedData = encodeURIComponent(JSON.stringify(productData));
-
+      // Step 4: Navigate directly to the product page
+      // The design is already saved in DB with product_type and color locked in
       toast.success('Product created! Select your size and quantity.');
-      navigate(createPageUrl(`ProductPreview?data=${encodedData}`));
+      navigate(`/product/${design.id}`);
 
     } catch (error) {
       console.error('Error creating product:', error);
@@ -499,7 +486,7 @@ export default function DesignStudio() {
 
       {/* AI Panel */}
       <div className="w-72 flex-shrink-0 hidden md:block">
-        <AIPanel
+        <AIPanel 
           uploadedPhotos={uploadedPhotos}
           selectedTemplate={selectedTemplate}
           onImageGenerated={handleImageGenerated}
@@ -515,7 +502,7 @@ export default function DesignStudio() {
 
       {/* Main canvas area */}
       <div className="flex-1 flex flex-col">
-        <ProductCanvas
+        <ProductCanvas 
           ref={canvasRef}
           generatedImage={generatedImage}
           onSave={handleCreateProduct}

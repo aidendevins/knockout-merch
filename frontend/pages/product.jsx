@@ -33,8 +33,6 @@ export default function Product() {
   const { designId } = useParams();
 
   const [selectedSize, setSelectedSize] = useState('M');
-  const [selectedColor, setSelectedColor] = useState('black');
-  const [selectedProductType, setSelectedProductType] = useState('tshirt');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
 
@@ -47,6 +45,10 @@ export default function Product() {
     },
     enabled: !!designId,
   });
+
+  // Lock color and product type from design (cannot be changed)
+  const selectedColor = design?.color || 'black';
+  const selectedProductType = design?.product_type || 'tshirt';
 
   // Create image gallery (mockups + design image)
   const images = design ? [
@@ -224,67 +226,26 @@ export default function Product() {
 
             <Separator className="bg-gray-800" />
 
-            {/* Product Type Selection */}
-            <div>
-              <label className="text-white font-semibold mb-3 block">
-                Product Type
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                {PRODUCT_TYPES.map((type) => (
-                  <button
-                    key={type.value}
-                    onClick={() => setSelectedProductType(type.value)}
-                    className={cn(
-                      "relative p-4 rounded-xl border-2 transition-all text-left",
-                      selectedProductType === type.value
-                        ? "border-red-500 bg-red-500/10"
-                        : "border-gray-800 hover:border-gray-700 bg-gray-900"
-                    )}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-white font-semibold">{type.name}</span>
-                      {selectedProductType === type.value && (
-                        <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-                          <Check className="w-3 h-3 text-white" />
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-2xl font-black text-white">
-                      ${type.price}
-                    </span>
-                  </button>
-                ))}
+            {/* Product Details - Locked (Read Only) */}
+            <div className="p-4 bg-gray-900/50 border border-gray-800 rounded-xl">
+              <h3 className="text-white font-semibold mb-3">Your Selection</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-500">Product Type:</span>
+                  <span className="text-white ml-2 font-medium">
+                    {selectedProductType === 'tshirt' ? 'T-Shirt' : 'Hoodie'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Color:</span>
+                  <span className="text-white ml-2 font-medium">
+                    {selectedColor === 'black' ? 'Black' : 'White'}
+                  </span>
+                </div>
               </div>
-            </div>
-
-            {/* Color Selection */}
-            <div>
-              <label className="text-white font-semibold mb-3 block">
-                Color
-              </label>
-              <div className="flex gap-3">
-                {COLORS.map((color) => (
-                  <button
-                    key={color.value}
-                    onClick={() => setSelectedColor(color.value)}
-                    className={cn(
-                      "relative flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all flex-1",
-                      selectedColor === color.value
-                        ? "border-red-500 bg-red-500/10"
-                        : "border-gray-800 hover:border-gray-700 bg-gray-900"
-                    )}
-                  >
-                    <div
-                      className="w-8 h-8 rounded-full border-2 border-gray-600"
-                      style={{ backgroundColor: color.hex }}
-                    />
-                    <span className="text-white font-medium">{color.name}</span>
-                    {selectedColor === color.value && (
-                      <Check className="w-4 h-4 text-red-500 ml-auto" />
-                    )}
-                  </button>
-                ))}
-              </div>
+              <p className="text-gray-400 text-xs mt-3">
+                These options are locked based on your design creation
+              </p>
             </div>
 
             {/* Size Selection */}
