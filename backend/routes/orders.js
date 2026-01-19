@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db/postgres');
 const email = require('../services/email');
+const printify = require('../services/printify');
 
 // Get all orders
 router.get('/', async (req, res) => {
@@ -281,6 +282,133 @@ router.post('/free', async (req, res) => {
     console.error('❌ Error creating free order:', error);
     console.error('Error stack:', error.stack);
     res.status(500).json({ error: 'Failed to create free order', details: error.message });
+  }
+});
+
+// Approve order and send to Printify for fulfillment
+router.post('/:id/approve-and-ship', async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    
+    console.log(`\n========================================`);
+    console.log(`🔍 MANUAL ORDER APPROVAL REQUEST`);
+    console.log(`   Order ID: ${orderId}`);
+    console.log(`========================================\n`);
+    
+    // Get order from database
+    const order = await db.get('SELECT * FROM orders WHERE id = $1', [orderId]);
+    
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    // Check if order is in correct status
+    if (order.status !== 'pending_approval' && order.status !== 'paid' && order.status !== 'payment_received') {
+      console.log(`⚠️ Order ${orderId} status is "${order.status}" - not pending approval`);
+      return res.status(400).json({ 
+        error: 'Order not pending approval', 
+        currentStatus: order.status,
+        message: 'Only orders with status "pending_approval", "paid", or "payment_received" can be approved'
+      });
+    }
+    
+    // Get design to retrieve printify_product_id
+    const design = await db.get('SELECT id, title, printify_product_id FROM designs WHERE id = $1', [order.design_id]);
+    
+    if (!design) {
+      return res.status(404).json({ error: 'Design not found for this order' });
+    }
+    
+    if (!design.printify_product_id) {
+      console.error(`❌ Design "${design.title}" (${design.id}) has no printify_product_id`);
+      return res.status(400).json({ 
+        error: 'Cannot send to Printify', 
+        message: 'Design does not have a Printify product ID'
+      });
+    }
+    
+    // Parse shipping address
+    const shippingAddress = typeof order.shipping_address === 'string' 
+      ? JSON.parse(order.shipping_address) 
+      : order.shipping_address;
+    
+    if (!shippingAddress?.line1) {
+      return res.status(400).json({ 
+        error: 'Cannot send to Printify', 
+        message: 'Order is missing shipping address'
+      });
+    }
+    
+    console.log(`📦 Sending order to Printify...`);
+    console.log(`   Design: ${design.title} (${design.id})`);
+    console.log(`   Printify Product ID: ${design.printify_product_id}`);
+    console.log(`   Product Type: ${order.product_type || 'tshirt'}`);
+    console.log(`   Size: ${order.size || 'M'}`);
+    console.log(`   Quantity: ${order.quantity || 1}`);
+    console.log(`   Customer: ${order.customer_name} (${order.customer_email})`);
+    
+    // Send order to Printify
+    try {
+      const printifyOrder = await printify.createOrder({
+        productId: design.printify_product_id,
+        variantId: printify.getVariantId(order.product_type || 'tshirt', order.size || 'M'),
+        quantity: order.quantity || 1,
+        shippingAddress: {
+          name: order.customer_name || 'Customer',
+          email: order.customer_email,
+          phone: shippingAddress.phone || '',
+          line1: shippingAddress.line1,
+          line2: shippingAddress.line2 || '',
+          city: shippingAddress.city,
+          state: shippingAddress.state,
+          postal_code: shippingAddress.postal_code,
+          country: shippingAddress.country || 'US',
+        },
+        externalId: orderId,
+      });
+      
+      // Update order with Printify order ID and status
+      await db.query(
+        `UPDATE orders SET 
+          printify_order_id = $1,
+          status = 'processing'
+         WHERE id = $2`,
+        [printifyOrder.id, orderId]
+      );
+      
+      console.log(`\n✅ ORDER APPROVED AND SENT TO PRINTIFY`);
+      console.log(`   Order ID: ${orderId}`);
+      console.log(`   Printify Order ID: ${printifyOrder.id}`);
+      console.log(`   Status updated to: processing`);
+      console.log(`========================================\n`);
+      
+      res.json({ 
+        success: true, 
+        printify_order_id: printifyOrder.id,
+        status: 'processing',
+        message: 'Order approved and sent to Printify for fulfillment'
+      });
+    } catch (printifyError) {
+      console.error(`\n❌ ERROR SENDING ORDER TO PRINTIFY`);
+      console.error('   Error:', printifyError.message);
+      console.error('   Stack:', printifyError.stack);
+      console.error(`========================================\n`);
+      
+      // Update order status to indicate error
+      await db.query(
+        `UPDATE orders SET status = 'printify_error' WHERE id = $1`,
+        [orderId]
+      );
+      
+      res.status(500).json({ 
+        error: 'Failed to send order to Printify', 
+        message: printifyError.message,
+        details: 'Order status updated to "printify_error". Please check Printify configuration and try again.'
+      });
+    }
+  } catch (error) {
+    console.error('Error approving order:', error);
+    res.status(500).json({ error: 'Failed to approve order', message: error.message });
   }
 });
 
