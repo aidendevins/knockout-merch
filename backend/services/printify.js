@@ -509,11 +509,40 @@ async function calculateShipping(productId, variantId, address) {
  * Get variant ID for a size and color
  */
 function getVariantId(productType, size, color = 'black') {
+  console.log(`\n🔍 getVariantId called:`);
+  console.log(`   Product Type: "${productType}"`);
+  console.log(`   Size: "${size}"`);
+  console.log(`   Color: "${color}"`);
+  
   const blueprint = BLUEPRINTS[productType];
-  if (!blueprint) return null;
+  if (!blueprint) {
+    console.error(`❌ No blueprint found for product type: "${productType}"`);
+    console.error(`   Available product types:`, Object.keys(BLUEPRINTS));
+    return null;
+  }
+  
+  console.log(`✅ Blueprint found for "${productType}"`);
+  console.log(`   Available colors:`, Object.keys(blueprint.variants));
+  
   const colorVariants = blueprint.variants[color];
-  if (!colorVariants) return null;
-  return colorVariants[size] || null;
+  if (!colorVariants) {
+    console.error(`❌ No variants found for color: "${color}"`);
+    console.error(`   Available colors for ${productType}:`, Object.keys(blueprint.variants));
+    return null;
+  }
+  
+  console.log(`✅ Color variants found for "${color}"`);
+  console.log(`   Available sizes:`, Object.keys(colorVariants));
+  
+  const variantId = colorVariants[size];
+  if (!variantId) {
+    console.error(`❌ No variant ID found for size: "${size}"`);
+    console.error(`   Available sizes for ${productType}/${color}:`, Object.keys(colorVariants));
+    return null;
+  }
+  
+  console.log(`✅ Variant ID found: ${variantId}\n`);
+  return variantId;
 }
 
 /**

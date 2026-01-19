@@ -62,6 +62,61 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// 🔍 DIAGNOSTIC: Get raw order data for debugging
+router.get('/:id/debug', async (req, res) => {
+  try {
+    const order = await db.get('SELECT * FROM orders WHERE id = $1', [req.params.id]);
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    // Get design info too
+    const design = await db.get('SELECT id, title, printify_product_id, product_type, color FROM designs WHERE id = $1', [order.design_id]);
+    
+    // Try to get variant ID
+    let variantInfo = null;
+    try {
+      const variantId = require('../services/printify').getVariantId(
+        order.product_type || 'tshirt',
+        order.size || 'M',
+        order.color || 'black'
+      );
+      variantInfo = {
+        variantId,
+        lookupParams: {
+          product_type: order.product_type || 'tshirt',
+          size: order.size || 'M',
+          color: order.color || 'black',
+        }
+      };
+    } catch (e) {
+      variantInfo = { error: e.message };
+    }
+    
+    res.json({
+      order_raw: order,
+      design_info: design,
+      variant_lookup: variantInfo,
+      field_types: {
+        design_id: typeof order.design_id,
+        product_type: typeof order.product_type,
+        size: typeof order.size,
+        color: typeof order.color,
+        status: typeof order.status,
+        quantity: typeof order.quantity,
+      },
+      warnings: {
+        missing_color: !order.color ? 'WARNING: color field is null/undefined' : null,
+        missing_product_type: !order.product_type ? 'WARNING: product_type is null/undefined' : null,
+        missing_size: !order.size ? 'WARNING: size is null/undefined' : null,
+      }
+    });
+  } catch (error) {
+    console.error('Error in debug endpoint:', error);
+    res.status(500).json({ error: 'Failed to fetch debug data', message: error.message });
+  }
+});
+
 // Create order
 router.post('/', async (req, res) => {
   try {
@@ -308,8 +363,20 @@ router.post('/:id/approve-and-ship', async (req, res) => {
     const order = await db.get('SELECT * FROM orders WHERE id = $1', [orderId]);
     
     if (!order) {
+      console.error(`❌ Order not found: ${orderId}`);
       return res.status(404).json({ error: 'Order not found' });
     }
+    
+    // 🔍 LOG ALL ORDER DATA
+    console.log(`📋 FULL ORDER DATA:`);
+    console.log(JSON.stringify(order, null, 2));
+    console.log(`\n🎯 KEY FIELDS:`);
+    console.log(`   design_id: "${order.design_id}" (type: ${typeof order.design_id})`);
+    console.log(`   product_type: "${order.product_type}" (type: ${typeof order.product_type})`);
+    console.log(`   size: "${order.size}" (type: ${typeof order.size})`);
+    console.log(`   color: "${order.color}" (type: ${typeof order.color})`);
+    console.log(`   status: "${order.status}" (type: ${typeof order.status})`);
+    console.log(`   quantity: "${order.quantity}" (type: ${typeof order.quantity})`);
     
     // Check if order is in correct status
     if (order.status !== 'pending_approval' && order.status !== 'paid' && order.status !== 'payment_received') {
