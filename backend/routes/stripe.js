@@ -48,16 +48,16 @@ router.post('/create-checkout-session', async (req, res) => {
       const color = item.color || item.design?.selectedColor || 'black';
       
       return {
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: item.design.title,
+      price_data: {
+        currency: 'usd',
+        product_data: {
+          name: item.design.title,
             description: `${productType} - ${color} - ${item.size}`,
-            images: [item.design.mockup_urls?.[0] || item.design.design_image_url],
-          },
-          unit_amount: Math.round(parseFloat(item.design.price) * 100), // Convert to cents
+          images: [item.design.mockup_urls?.[0] || item.design.design_image_url],
         },
-        quantity: item.quantity,
+        unit_amount: Math.round(parseFloat(item.design.price) * 100), // Convert to cents
+      },
+      quantity: item.quantity,
       };
     });
 
@@ -345,12 +345,12 @@ router.post('/webhook', async (req, res) => {
         
         // Fallback: Parse product info from description if metadata not available
         if (!productTypes[i] || !sizes[i]) {
-          const description = item.description || '';
-          const matches = description.match(/(.+) - (.+) - (.+)/);
-          
-          if (matches) {
-            productType = matches[1].toLowerCase();
-            size = matches[3];
+        const description = item.description || '';
+        const matches = description.match(/(.+) - (.+) - (.+)/);
+        
+        if (matches) {
+          productType = matches[1].toLowerCase();
+          size = matches[3];
           }
         }
 
