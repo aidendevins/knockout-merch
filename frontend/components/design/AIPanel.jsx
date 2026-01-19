@@ -9,6 +9,93 @@ import { base44 } from '@/api/base44Client';
 import { COLOR_PRESETS, getColorHex, getBuildPromptFunction } from '@/config/templates';
 import { cn } from '@/lib/utils';
 
+// Helper function to compute inverse/contrasting hex color
+function getInverseHexColor(hexColor) {
+  // Remove # if present
+  const hex = hexColor.replace('#', '');
+  
+  // Parse RGB values
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  
+  // Invert the colors
+  const invR = (255 - r).toString(16).padStart(2, '0');
+  const invG = (255 - g).toString(16).padStart(2, '0');
+  const invB = (255 - b).toString(16).padStart(2, '0');
+  
+  return `#${invR}${invG}${invB}`;
+}
+
+// Helper function to convert number to Roman numerals
+function toRomanNumeral(num) {
+  const romanNumerals = [
+    { value: 1000, numeral: 'M' },
+    { value: 900, numeral: 'CM' },
+    { value: 500, numeral: 'D' },
+    { value: 400, numeral: 'CD' },
+    { value: 100, numeral: 'C' },
+    { value: 90, numeral: 'XC' },
+    { value: 50, numeral: 'L' },
+    { value: 40, numeral: 'XL' },
+    { value: 10, numeral: 'X' },
+    { value: 9, numeral: 'IX' },
+    { value: 5, numeral: 'V' },
+    { value: 4, numeral: 'IV' },
+    { value: 1, numeral: 'I' },
+  ];
+
+  let result = '';
+  let remaining = num;
+
+  for (const { value, numeral } of romanNumerals) {
+    while (remaining >= value) {
+      result += numeral;
+      remaining -= value;
+    }
+  }
+
+  return result;
+}
+
+// Helper function to format date based on format type
+function formatDateValue(dateString, formatType) {
+  if (!dateString) return '';
+  
+  // Parse date string manually to avoid timezone issues
+  // Date input format is YYYY-MM-DD
+  const parts = dateString.split('-');
+  if (parts.length !== 3) {
+    // Fallback to Date object if format is unexpected
+    const date = new Date(dateString);
+    const day = date.getUTCDate();
+    const month = date.getUTCMonth() + 1;
+    const year = date.getUTCFullYear();
+    
+    if (formatType === 'roman') {
+      return `${toRomanNumeral(day)}.${toRomanNumeral(month)}.${toRomanNumeral(year)}`;
+    } else {
+      const paddedMonth = month.toString().padStart(2, '0');
+      const paddedDay = day.toString().padStart(2, '0');
+      return `${year}.${paddedMonth}.${paddedDay}`;
+    }
+  }
+  
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  const day = parseInt(parts[2], 10);
+  
+  if (formatType === 'roman') {
+    // Roman numeral format: D.M.YYYY (e.g., I.XII.MMXXV)
+    return `${toRomanNumeral(day)}.${toRomanNumeral(month)}.${toRomanNumeral(year)}`;
+  } else {
+    // Standard format: YYYY.MM.DD
+    const paddedMonth = month.toString().padStart(2, '0');
+    const paddedDay = day.toString().padStart(2, '0');
+    return `${year}.${paddedMonth}.${paddedDay}`;
+  }
+}
+
 // Dynamic field renderer component
 function DynamicField({ field, value, onChange }) {
   switch (field.type) {
@@ -23,6 +110,7 @@ function DynamicField({ field, value, onChange }) {
             type="text"
             value={value || ''}
             onChange={(e) => {
+              console.log('⌨️ USER TYPING in text field:', { fieldId: field.id, newValue: e.target.value });
               // Enforce maxLength if specified
               if (field.maxLength && e.target.value.length > field.maxLength) {
                 return;
@@ -75,7 +163,10 @@ function DynamicField({ field, value, onChange }) {
               {COLOR_PRESETS.map((color) => (
                 <button
                   key={color}
-                  onClick={() => onChange(color)}
+                  onClick={() => {
+                    console.log('🎨 USER CLICKED COLOR:', { fieldId: field.id, color });
+                    onChange(color);
+                  }}
                   className={cn(
                     "w-6 h-6 rounded-full border-2 transition-all hover:scale-110",
                     (value || field.defaultValue) === color 
@@ -106,7 +197,10 @@ function DynamicField({ field, value, onChange }) {
           </label>
           <select
             value={value || field.defaultValue || ''}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e) => {
+              console.log('📋 USER SELECTED option:', { fieldId: field.id, newValue: e.target.value });
+              onChange(e.target.value);
+            }}
             className="w-full px-3 py-2 rounded-lg bg-black/40 border border-pink-900/30 text-white text-sm focus:border-pink-600 focus:outline-none"
           >
             {field.options?.map((option) => (
@@ -115,6 +209,28 @@ function DynamicField({ field, value, onChange }) {
               </option>
             ))}
           </select>
+        </div>
+      );
+
+    case 'date':
+      return (
+        <div className="space-y-1.5">
+          <label className="text-xs text-white/60 flex items-center gap-1">
+            {field.label}
+            {field.required && <span className="text-pink-500">*</span>}
+          </label>
+          <input
+            type="date"
+            value={value || ''}
+            onChange={(e) => {
+              console.log('📅 USER SELECTED DATE:', { fieldId: field.id, newValue: e.target.value });
+              onChange(e.target.value);
+            }}
+            className="w-full px-3 py-2 rounded-lg bg-black/40 border border-pink-900/30 text-white text-sm focus:border-pink-600 focus:outline-none [color-scheme:dark]"
+          />
+          {field.hint && (
+            <div className="text-xs text-white/40">{field.hint}</div>
+          )}
         </div>
       );
 
@@ -141,14 +257,19 @@ export default function AIPanel({
 
   // Initialize field values when template changes
   useEffect(() => {
+    console.log('🔄 Template changed, initializing field values');
     if (selectedTemplate?.panelSchema?.fields) {
       const initialValues = {};
       selectedTemplate.panelSchema.fields.forEach((field) => {
         if (field.defaultValue !== undefined) {
           initialValues[field.id] = field.defaultValue;
+          console.log('  → Initialized field:', { id: field.id, type: field.type, defaultValue: field.defaultValue });
         }
       });
+      console.log('📦 Initial fieldValues:', initialValues);
       setFieldValues(initialValues);
+    } else {
+      console.log('⚠️ No panelSchema.fields found');
     }
     
     // Debug: Log template object when it changes
@@ -166,11 +287,32 @@ export default function AIPanel({
   }, [selectedTemplate?.id]);
 
   const updateFieldValue = (fieldId, value) => {
-    setFieldValues(prev => ({ ...prev, [fieldId]: value }));
+    console.log('👆 USER INTERACTION: Field value changed', {
+      fieldId,
+      value,
+      valueType: typeof value,
+      previousFieldValues: fieldValues,
+    });
+    setFieldValues(prev => {
+      const newValues = { ...prev, [fieldId]: value };
+      console.log('📝 Updated fieldValues:', newValues);
+      return newValues;
+    });
   };
 
   // Build the full prompt - prioritizes database prompt over buildPrompt function
   const buildPrompt = () => {
+    console.log('🔨 buildPrompt() called');
+    console.log('📊 Current state:', {
+      hasTemplate: !!selectedTemplate,
+      templateId: selectedTemplate?.id,
+      fieldValues: fieldValues,
+      fieldValuesKeys: Object.keys(fieldValues),
+      fieldValuesCount: Object.keys(fieldValues).length,
+      selectedColor,
+      photoCount: uploadedPhotos.length,
+    });
+    
     if (!selectedTemplate) {
       console.warn('⚠️ No template selected');
       return '';
@@ -184,30 +326,75 @@ export default function AIPanel({
     if (selectedTemplate.prompt && selectedTemplate.prompt.trim()) {
       let prompt = selectedTemplate.prompt;
       
-      // Collect user text inputs and replace placeholders
-      const textInputs = [];
-      let hasReplacedPlaceholder = false;
+      console.log('🔧 Building prompt - fieldValues:', fieldValues);
+      console.log('🔧 Template fields:', selectedTemplate.panelSchema?.fields);
+      
+      // Get dateFormat value (needed for date formatting)
+      let dateFormatValue = 'standard';
+      selectedTemplate.panelSchema?.fields?.forEach((field) => {
+        if (field.type === 'select' && field.id === 'dateFormat') {
+          const fieldValue = fieldValues[field.id];
+          dateFormatValue = fieldValue || field.defaultValue || 'standard';
+        }
+      });
+
+      // Collect all field values and append instructions at the end
+      const instructions = [];
       
       selectedTemplate.panelSchema?.fields?.forEach((field) => {
+        const fieldValue = fieldValues[field.id];
+        const value = fieldValue !== undefined && fieldValue !== null && fieldValue !== '' 
+          ? fieldValue 
+          : field.defaultValue;
+        
+        if (value === undefined || value === null || value === '') {
+          return; // Skip empty values
+        }
+        
+        // Handle colorPicker fields
+        if (field.type === 'colorPicker' && field.id === 'primaryColor') {
+          const colorValue = value;
+          const inverseColor = getInverseHexColor(colorValue);
+          
+          if (prompt.includes('[PRIMARY_COLOR]')) {
+            instructions.push(`use [PRIMARY_COLOR] = ${colorValue}`);
+          }
+          if (prompt.includes('[INVERSE_COLOR]')) {
+            instructions.push(`use [INVERSE_COLOR] = ${inverseColor}`);
+          }
+        }
+        
+        // Handle date fields
+        if (field.type === 'date' && field.id === 'eventDate') {
+          const formattedDate = formatDateValue(value, dateFormatValue);
+          if (prompt.includes('[DATE_VALUE]')) {
+            instructions.push(`use [DATE_VALUE] = ${formattedDate}`);
+          }
+        }
+        
+        // Handle select fields for date format
+        if (field.type === 'select' && field.id === 'dateFormat') {
+          if (prompt.includes('[DATE_FORMAT]')) {
+            instructions.push(`use [DATE_FORMAT] = ${value}`);
+          }
+        }
+        
+        // Handle text/textarea fields
         if (field.type === 'text' || field.type === 'textarea') {
-          const fieldValue = fieldValues[field.id];
-          if (fieldValue !== undefined && fieldValue !== null && String(fieldValue).trim() !== '') {
-            const textValue = String(fieldValue).trim();
-            textInputs.push(textValue);
-            
-            // Replace [USER TEXT] placeholder with actual text value
-            // This handles templates that use [USER TEXT] as a placeholder
+          const textValue = String(value).trim();
+          if (textValue) {
             if (prompt.includes('[USER TEXT]')) {
-              prompt = prompt.replace(/\[USER TEXT\]/g, textValue);
-              hasReplacedPlaceholder = true;
+              instructions.push(`use [USER TEXT] = ${textValue}`);
+            } else {
+              instructions.push(`TEXT: ${textValue}`);
             }
           }
         }
       });
 
-      // If [USER TEXT] wasn't found in prompt, append text inputs at the end (backwards compatibility)
-      if (textInputs.length > 0 && !hasReplacedPlaceholder) {
-        prompt += `\n\nTEXT: ${textInputs.join(', ')}`;
+      // Append all instructions at the end
+      if (instructions.length > 0) {
+        prompt += '\n\n' + instructions.join('\n');
       }
 
       // Add style tweaks if enabled and provided
@@ -216,7 +403,9 @@ export default function AIPanel({
       }
 
       console.log('📝 Using database prompt (from admin panel)');
-      console.log('📋 Text inputs appended:', textInputs);
+      console.log('📋 Instructions appended:', instructions);
+      console.log('🎨 Final prompt sent to Gemini:\n', prompt);
+      
       return prompt;
     }
 
@@ -427,6 +616,18 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
   };
 
   const handleGenerate = async () => {
+    console.log('🚀 USER CLICKED GENERATE BUTTON');
+    console.log('📊 State at generate click:', {
+      templateId: selectedTemplate?.id,
+      templateName: selectedTemplate?.name,
+      fieldValues: fieldValues,
+      fieldValuesStringified: JSON.stringify(fieldValues),
+      allFieldIds: selectedTemplate?.panelSchema?.fields?.map(f => f.id),
+      allFieldTypes: selectedTemplate?.panelSchema?.fields?.map(f => ({ id: f.id, type: f.type })),
+      photoCount: uploadedPhotos.length,
+      styleTweaks: styleTweaks,
+    });
+    
     if (!selectedTemplate) {
       setError('Please select a template first');
       return;
@@ -438,6 +639,7 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
     }
 
     const validation = validateFields();
+    console.log('✅ Field validation result:', validation);
     if (!validation.valid) {
       setError(validation.message);
       return;
@@ -447,7 +649,9 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
     setError(null);
 
     try {
+      console.log('🔨 Calling buildPrompt()...');
       const fullPrompt = buildPrompt();
+      console.log('📝 buildPrompt() returned, length:', fullPrompt?.length);
       
       // Validate prompt is not empty
       if (!fullPrompt || !fullPrompt.trim()) {
@@ -464,6 +668,7 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
 
       console.log('Generating design with prompt length:', fullPrompt.length);
       console.log('Number of photos:', photoUrls.length);
+      console.log('🎨 Final prompt sent to Gemini:\n', fullPrompt);
 
       const result = await base44.integrations.Core.GenerateImage({
         prompt: fullPrompt,

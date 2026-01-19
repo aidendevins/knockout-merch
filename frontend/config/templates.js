@@ -461,7 +461,7 @@ Produce a high-resolution, print-ready graphic suitable for t-shirt printing.`,
         'Well-lit photos produce the best designs',
       ],
     },
-    max_photos: 9,
+    max_photos: 1,
     gradient: 'from-red-600 to-pink-500',
   },
   {
@@ -637,6 +637,111 @@ OUTPUT:
     },
     max_photos: 1,
     gradient: 'from-slate-600 to-gray-600',
+  },
+  {
+    id: 'romantic-save-the-date',
+    name: 'Romantic Save The Date',
+    description: 'Elegant heart-framed couple portrait with decorative bow and custom date',
+    example_image: null,
+    reference_image: null, // Set via admin panel - upload reference image there
+    remove_background: 'remove-simple', // Enable background removal for the solid background
+    prompt: `You are creating a romantic save-the-date design following this EXACT specification:
+
+REFERENCE IMAGE ANALYSIS:
+- The first image provided shows the target design style and layout
+- Study the heart frame shape, bow placement, text positioning, and overall composition
+
+INPUT IMAGE PROCESSING:
+- The second image contains the couple's photo
+- Extract ONLY the two subjects (people) from this image
+- Convert the subjects to black and white with cinematic contrast (deep blacks, bright highlights, film-like grain)
+- Remove any original background from the subjects
+
+LAYOUT & COMPOSITION:
+- Create a heart-shaped frame with a decorative ribbon bow at the top-left
+- The heart should be drawn with clean, elegant linework matching the reference style
+- The bow should have flowing ribbon tails extending downward on the left side
+- Position the couple inside the heart frame, showing them from chest/shoulders up
+- The subjects should be intimately posed, filling approximately 70% of the heart's interior
+
+COLOR SCHEME:
+- Primary color: [PRIMARY_COLOR] - use for heart outline, bow outline, ribbon lines, and date text
+- Background color: [INVERSE_COLOR] - use for everything EXCEPT the subjects and line art
+- The background inside the heart (around the subjects) must be filled with [INVERSE_COLOR]
+- This creates clean separation: subjects + line art vs. solid background for easy removal
+
+SUBJECTS TREATMENT:
+- Convert subjects to black and white with cinematic grading
+- Maintain natural skin tones in grayscale with good contrast
+- Preserve facial details and emotional expression
+- Ensure subjects blend seamlessly into the heart frame composition
+
+DATE FORMATTING:
+- Position date text centered below the heart
+- Use elegant serif font (similar to Times New Roman or Garamond)
+- Format: [DATE_FORMAT]
+  * If "roman": Use Roman numerals (e.g., I.XII.MMXXV for 1.12.2025)
+  * If "standard": Use YYYY.MM.DD format (e.g., 2025.12.01)
+- The date to display is: [DATE_VALUE]
+- Date text color: [PRIMARY_COLOR] (same as primary color)
+- Text should be large, bold, and clearly legible
+- Add generous spacing between date and heart (similar to reference)
+
+TECHNICAL REQUIREMENTS:
+- Output resolution: minimum 2000x2000 pixels
+- Maintain crisp, clean lines on all drawn elements
+- Ensure perfect color separation between [PRIMARY_COLOR] and [INVERSE_COLOR]
+- No gradients, shadows, or anti-aliasing artifacts that would interfere with background removal
+- The entire background field must be solid [INVERSE_COLOR] with no variation
+
+STYLE MATCHING:
+- Match the whimsical, hand-drawn quality of the reference heart and bow
+- Keep line weights consistent (medium thickness, not too thin or heavy)
+- Bow should look dimensional with overlapping ribbon loops
+- Heart should have slight asymmetry for organic, romantic feel
+- Overall aesthetic: elegant, romantic, save-the-date card design
+
+CRITICAL: The output must have only two colors - [PRIMARY_COLOR] for all line art and text, and [INVERSE_COLOR] for the entire background. The subjects remain in black and white grayscale. This ensures a background remover will perfectly isolate the design (subjects + line art) from the solid background.`,
+    panel_schema: {
+      showStyleTweaks: false,
+      fields: [
+        {
+          type: 'date',
+          id: 'eventDate',
+          label: 'Event Date',
+          required: true,
+        },
+        {
+          type: 'select',
+          id: 'dateFormat',
+          label: 'Date Format',
+          defaultValue: 'roman',
+          options: [
+            { value: 'roman', label: 'Roman Numerals (I.XII.MMXXV)' },
+            { value: 'standard', label: 'Standard (2025.12.01)' },
+          ],
+        },
+        {
+          type: 'colorPicker',
+          id: 'primaryColor',
+          label: 'Primary Color',
+          hint: '(Heart, bow & date)',
+          defaultValue: '#c41e3a', // Deep romantic red
+        },
+      ],
+    },
+    upload_tips: {
+      title: 'Best Photos for Save The Date',
+      tips: [
+        'Use a <strong>couple portrait photo</strong> showing both people clearly',
+        'Choose photos with <strong>good lighting on faces</strong> for best B&W conversion',
+        'Photos with <strong>simple backgrounds</strong> work best for subject extraction',
+        'Intimate poses (close together, embracing) work great for the heart frame',
+        'Higher resolution photos (but max 10MB per file)',
+      ],
+    },
+    max_photos: 1,
+    gradient: 'from-rose-600 to-red-700',
   },
 ];
 
