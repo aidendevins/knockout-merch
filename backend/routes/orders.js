@@ -194,6 +194,15 @@ router.post('/free', async (req, res) => {
       const size = item.size || 'M';
       const quantity = item.quantity || 1;
 
+      // Get design to check if it has printify_product_id
+      const design = await db.get('SELECT id, printify_product_id FROM designs WHERE id = $1', [designId]);
+      
+      // Determine order status based on whether it can be fulfilled
+      let orderStatus = 'pending_approval'; // Default to pending approval
+      if (!design || !design.printify_product_id) {
+        orderStatus = 'needs_fulfillment'; // Missing Printify product
+      }
+      
       const result = await db.get(
         `INSERT INTO orders (
           design_id, customer_email, customer_name, shipping_address,
@@ -215,7 +224,7 @@ router.post('/free', async (req, res) => {
           }),
           quantity,
           0.00, // Free order (use number, not string)
-          'paid', // Mark as paid since it's free
+          orderStatus, // Use pending_approval for manual approval workflow
           'free-order',
           productType,
           size,
