@@ -352,6 +352,7 @@ router.post('/:id/approve-and-ship', async (req, res) => {
     console.log(`   Design: ${design.title} (${design.id})`);
     console.log(`   Printify Product ID: ${design.printify_product_id}`);
     console.log(`   Product Type: ${order.product_type || 'tshirt'}`);
+    console.log(`   Color: ${order.color || 'black'}`);
     console.log(`   Size: ${order.size || 'M'}`);
     console.log(`   Quantity: ${order.quantity || 1}`);
     console.log(`   Customer: ${order.customer_name} (${order.customer_email})`);
@@ -360,7 +361,7 @@ router.post('/:id/approve-and-ship', async (req, res) => {
     try {
       const printifyOrder = await printify.createOrder({
         productId: design.printify_product_id,
-        variantId: printify.getVariantId(order.product_type || 'tshirt', order.size || 'M'),
+        variantId: printify.getVariantId(order.product_type || 'tshirt', order.size || 'M', order.color || 'black'),
         quantity: order.quantity || 1,
         shippingAddress: {
           name: order.customer_name || 'Customer',
