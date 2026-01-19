@@ -172,9 +172,9 @@ async function sendOrderConfirmation({
     `;
 
     const { data, error } = await client.emails.send({
-      from: 'Knockout Club <onboarding@resend.dev>', // Change this once domain is verified
+      from: 'DesignForWear <noreply@designforwear.com>', // Update this after verifying domain in Resend
       to: [customerEmail],
-      subject: `Order Confirmation #${orderId.slice(-8)} - Knockout Club`,
+      subject: `Order Confirmation #${orderId.slice(-8)} - DesignForWear`,
       html: emailHtml,
     });
 
