@@ -133,7 +133,7 @@ export default function Admin() {
       queryClient.invalidateQueries(['admin-templates']);
       queryClient.invalidateQueries(['templates']);
       const { results } = result;
-      const summary = `Created: ${results.created.length}, Updated: ${results.updated.length}`;
+      const summary = `Created: ${results.created.length}, Skipped: ${results.skipped.length} (existing)`;
       if (results.errors.length > 0) {
         toast.warning(`${summary}, Errors: ${results.errors.length}`);
         console.error('Sync errors:', results.errors);
@@ -372,7 +372,7 @@ export default function Admin() {
             <div className="mb-4 flex items-center justify-between">
               <div className="text-sm text-gray-400">
                 <p>Local templates in <code className="text-pink-400">templates.js</code>: {LOCAL_TEMPLATES.length}</p>
-                <p className="text-xs mt-1">Click sync to upload new templates or update existing ones</p>
+                <p className="text-xs mt-1">Click sync to add new templates only (existing templates are skipped)</p>
               </div>
               <Button
                 onClick={() => syncTemplatesMutation.mutate()}

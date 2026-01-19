@@ -1,4 +1,6 @@
 const PRINTIFY_API_BASE = 'https://api.printify.com/v1';
+const s3 = require('./s3');
+const sharp = require('sharp');
 
 /**
  * Printify API Service
@@ -81,7 +83,27 @@ async function printifyRequest(endpoint, options = {}) {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Unknown error' }));
     console.error('Printify API error:', error);
-    throw new Error(error.message || `Printify API error: ${response.status}`);
+    
+    // Provide more detailed error information
+    let errorMessage = error.message || `Printify API error: ${response.status}`;
+    
+    if (error.code === 10300 && error.errors?.reason) {
+      errorMessage = `Printify upload failed: ${error.errors.reason}`;
+      if (error.errors.reason.includes('Failed to upload image')) {
+        errorMessage += '\nPossible causes:';
+        errorMessage += '\n- Image may be too large (max 100MB)';
+        errorMessage += '\n- Image format may be unsupported or corrupted';
+        errorMessage += '\n- PNG may be interlaced (must be non-interlaced)';
+        errorMessage += '\n- Image may have invalid color profile';
+        errorMessage += '\n- Base64 encoding may be malformed';
+      }
+    }
+    
+    const enhancedError = new Error(errorMessage);
+    enhancedError.status = response.status;
+    enhancedError.code = error.code;
+    enhancedError.originalError = error;
+    throw enhancedError;
   }
 
   return response.json();
@@ -126,13 +148,14 @@ async function uploadImage(imageData, fileName = 'design.png') {
   
   // Determine if we have a URL or base64 data
   let requestBody;
+  let base64String;
   
   if (typeof imageData === 'string') {
-    // Check if it's a base64 data URL or a regular URL
-    if (imageData.startsWith('data:') || imageData.startsWith('/9j/') || imageData.match(/^[A-Za-z0-9+/=]+$/)) {
-      // It's base64 data
-      let base64String = imageData;
-      // Remove data URL prefix if present (e.g., "data:image/png;base64,")
+    // Check if it's a base64 data URL (more specific check)
+    if (imageData.startsWith('data:image/')) {
+      // It's a base64 data URL
+      base64String = imageData;
+      // Remove data URL prefix (e.g., "data:image/png;base64,")
       if (base64String.includes(',')) {
         base64String = base64String.split(',')[1];
       }
@@ -141,44 +164,225 @@ async function uploadImage(imageData, fileName = 'design.png') {
         file_name: fileName,
         contents: base64String,
       };
+    } else if (imageData.startsWith('/9j/') || (imageData.length > 100 && /^[A-Za-z0-9+/=]+$/.test(imageData) && !imageData.includes('http'))) {
+      // It's raw base64 (JPEG marker /9j/ or long base64 string without http)
+      base64String = imageData;
+      
+      requestBody = {
+        file_name: fileName,
+        contents: base64String,
+      };
     } else {
-      // It's a URL - try to fetch and convert to base64
-      try {
-        const response = await fetch(imageData);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch image from URL: ${response.status}`);
+      // It's a URL - fetch and convert to base64
+      // NEVER pass URLs directly to Printify - always convert to base64
+      let imageUrl = imageData;
+      
+      // Handle proxy URLs - extract S3 key and fetch directly
+      if (imageUrl.includes('/proxy-image') && imageUrl.includes('key=')) {
+        try {
+          // Extract key from query string
+          const keyMatch = imageUrl.match(/[?&]key=([^&]+)/);
+          const key = keyMatch ? decodeURIComponent(keyMatch[1]) : null;
+          
+          if (key && s3.isConfigured()) {
+            console.log(`🔑 Extracting S3 key from proxy URL: ${key.substring(0, 50)}...`);
+            
+            // Fetch directly from S3 using presigned URL
+            const presignedUrl = await s3.getPresignedUrl(key, 3600);
+            const response = await fetch(presignedUrl);
+            
+            if (!response.ok) {
+              throw new Error(`Failed to fetch from S3: ${response.status}`);
+            }
+            
+            const arrayBuffer = await response.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            base64String = buffer.toString('base64');
+            
+            console.log(`✅ Fetched image from S3 (${(buffer.length / 1024).toFixed(2)}KB)`);
+          } else {
+            throw new Error('Could not extract S3 key from proxy URL');
+          }
+        } catch (s3Error) {
+          console.warn('⚠️ Failed to fetch from S3, trying URL fetch:', s3Error.message);
+          // Fall through to regular URL fetch
         }
-        const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const base64String = buffer.toString('base64');
-        
-        requestBody = {
-          file_name: fileName,
-          contents: base64String,
-        };
-      } catch (fetchError) {
-        // If fetching fails, fall back to URL (though this might fail)
-        console.warn('Failed to fetch image, using URL directly:', fetchError.message);
-        requestBody = {
-          file_name: fileName,
-          url: imageData,
-        };
       }
+      
+      // If we don't have base64 yet, fetch from URL
+      if (!base64String) {
+        // Handle relative URLs and proxy URLs
+        if (imageUrl.startsWith('/api/') || imageUrl.startsWith('/upload/')) {
+          // It's a relative/proxy URL - construct full URL
+          const baseUrl = process.env.FRONTEND_URL || process.env.BACKEND_URL || 'http://localhost:8000';
+          imageUrl = `${baseUrl}${imageUrl}`;
+          console.log(`🔄 Converted relative URL to absolute: ${imageUrl}`);
+        } else if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+          // Relative URL without leading slash
+          const baseUrl = process.env.FRONTEND_URL || process.env.BACKEND_URL || 'http://localhost:8000';
+          imageUrl = `${baseUrl}/${imageUrl}`;
+          console.log(`🔄 Converted relative URL to absolute: ${imageUrl}`);
+        }
+
+        console.log(`📥 Fetching image from URL: ${imageUrl.substring(0, 100)}...`);
+        
+        try {
+          const response = await fetch(imageUrl, {
+            headers: {
+              'User-Agent': 'Printify-Image-Uploader/1.0',
+            },
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to fetch image from URL: ${response.status} ${response.statusText}`);
+          }
+
+          const arrayBuffer = await response.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          
+          // Validate image size (Printify limit is 100MB)
+          const maxSize = 100 * 1024 * 1024; // 100MB
+          if (buffer.length > maxSize) {
+            throw new Error(`Image too large: ${(buffer.length / 1024 / 1024).toFixed(2)}MB. Maximum size is 100MB.`);
+          }
+          
+          base64String = buffer.toString('base64');
+          console.log(`✅ Successfully fetched and converted image to base64 (${(buffer.length / 1024).toFixed(2)}KB)`);
+        } catch (fetchError) {
+          console.error('❌ Failed to fetch image:', fetchError.message);
+          console.error('   URL:', imageUrl);
+          throw new Error(`Failed to fetch image for Printify upload: ${fetchError.message}. The image URL must be accessible from the server.`);
+        }
+      }
+      
+      requestBody = {
+        file_name: fileName,
+        contents: base64String,
+      };
     }
   } else if (Buffer.isBuffer(imageData)) {
     // It's a Buffer, convert to base64
+    base64String = imageData.toString('base64');
     requestBody = {
       file_name: fileName,
-      contents: imageData.toString('base64'),
+      contents: base64String,
     };
   } else {
     throw new Error('Invalid image data type. Expected URL string, base64 string, or Buffer');
   }
   
-  return printifyRequest(`/uploads/images.json`, {
-    method: 'POST',
-    body: JSON.stringify(requestBody),
-  });
+  // Validate base64 string
+  if (!base64String || base64String.length === 0) {
+    throw new Error('Empty image data provided');
+  }
+  
+  // Clean base64 string - remove any whitespace, newlines, or invalid characters
+  // This is important because base64 strings can sometimes have whitespace that breaks the API
+  base64String = base64String.trim().replace(/\s/g, '');
+  
+  // Validate base64 format (should only contain valid base64 characters)
+  if (!/^[A-Za-z0-9+/]+=*$/.test(base64String)) {
+    throw new Error(`Invalid base64 string format. First 100 chars: ${base64String.substring(0, 100)}`);
+  }
+  
+  // Decode base64 to buffer for format detection and conversion
+  let imageBuffer = Buffer.from(base64String, 'base64');
+  if (imageBuffer.length === 0) {
+    throw new Error('Base64 decodes to empty buffer');
+  }
+  
+  // Detect image format by file signature (magic bytes)
+  const isPNG = imageBuffer[0] === 0x89 && imageBuffer[1] === 0x50 && imageBuffer[2] === 0x4E && imageBuffer[3] === 0x47;
+  const isJPEG = imageBuffer[0] === 0xFF && imageBuffer[1] === 0xD8 && imageBuffer[2] === 0xFF;
+  const isWebP = imageBuffer[0] === 0x52 && imageBuffer[1] === 0x49 && imageBuffer[2] === 0x46 && imageBuffer[3] === 0x46; // "RIFF"
+  const isGIF = imageBuffer[0] === 0x47 && imageBuffer[1] === 0x49 && imageBuffer[2] === 0x46 && imageBuffer[3] === 0x38;
+  
+  console.log(`🔍 Detected image format: ${isPNG ? 'PNG' : isJPEG ? 'JPEG' : isWebP ? 'WebP' : isGIF ? 'GIF' : 'Unknown'}`);
+  console.log(`   First bytes: ${Array.from(imageBuffer.slice(0, 8)).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')}`);
+  
+  // Convert WebP to PNG (Printify doesn't support WebP)
+  if (isWebP) {
+    console.log('🔄 Converting WebP to PNG for Printify compatibility...');
+    try {
+      const originalSize = imageBuffer.length;
+      
+      // Use Sharp to convert WebP to PNG, preserving transparency
+      imageBuffer = await sharp(imageBuffer)
+        .png({
+          compressionLevel: 6, // Balance between file size and speed
+          adaptiveFiltering: false, // Non-interlaced (Printify requirement)
+        })
+        .toBuffer();
+      
+      // Update base64 with converted PNG
+      base64String = imageBuffer.toString('base64');
+      
+      // Update filename to .png
+      fileName = fileName.replace(/\.(webp|jpg|jpeg|gif)$/i, '.png');
+      if (!fileName.toLowerCase().endsWith('.png')) {
+        fileName = fileName.replace(/\.[^.]+$/, '.png');
+      }
+      
+      console.log(`✅ Converted WebP to PNG: ${(originalSize / 1024).toFixed(2)}KB → ${(imageBuffer.length / 1024).toFixed(2)}KB`);
+    } catch (conversionError) {
+      console.error('❌ Failed to convert WebP to PNG:', conversionError.message);
+      throw new Error(`Failed to convert WebP image to PNG: ${conversionError.message}`);
+    }
+  } else if (!isPNG && !isJPEG) {
+    // For other unsupported formats, try to convert to PNG
+    console.log('🔄 Converting unsupported format to PNG...');
+    try {
+      const originalSize = imageBuffer.length;
+      
+      imageBuffer = await sharp(imageBuffer)
+        .png({
+          compressionLevel: 6,
+          adaptiveFiltering: false,
+        })
+        .toBuffer();
+      
+      base64String = imageBuffer.toString('base64');
+      fileName = fileName.replace(/\.[^.]+$/, '.png');
+      
+      console.log(`✅ Converted to PNG: ${(originalSize / 1024).toFixed(2)}KB → ${(imageBuffer.length / 1024).toFixed(2)}KB`);
+    } catch (conversionError) {
+      console.error('❌ Failed to convert image to PNG:', conversionError.message);
+      throw new Error(`Failed to convert image to PNG: ${conversionError.message}`);
+    }
+  }
+  
+  // Validate file size from base64 (approximate: base64 is ~33% larger than binary)
+  const estimatedSize = (base64String.length * 3) / 4;
+  const maxSize = 100 * 1024 * 1024; // 100MB
+  if (estimatedSize > maxSize) {
+    throw new Error(`Image too large: ${(estimatedSize / 1024 / 1024).toFixed(2)}MB. Maximum size is 100MB.`);
+  }
+
+  // Ensure requestBody has the cleaned base64
+  requestBody = {
+    file_name: fileName,
+    contents: base64String,
+  };
+
+  console.log(`📤 Uploading image to Printify (${fileName}, ${(estimatedSize / 1024).toFixed(2)}KB estimated)`);
+  console.log(`📋 Request preview: file_name="${requestBody.file_name}", first 50 base64 chars: ${base64String.substring(0, 50)}...`);
+  
+  try {
+    const result = await printifyRequest(`/uploads/images.json`, {
+      method: 'POST',
+      body: JSON.stringify(requestBody),
+    });
+    
+    console.log(`✅ Successfully uploaded image to Printify: ${result.id}`);
+    return result;
+  } catch (uploadError) {
+    console.error('❌ Printify upload failed:', uploadError.message);
+    console.error('   File name:', requestBody.file_name);
+    console.error('   Base64 length:', base64String.length);
+    console.error('   Base64 preview (first 100 chars):', base64String.substring(0, 100));
+    console.error('   Estimated size:', `${(estimatedSize / 1024).toFixed(2)}KB`);
+    throw uploadError;
+  }
 }
 
 /**

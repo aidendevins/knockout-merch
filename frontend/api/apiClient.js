@@ -20,7 +20,7 @@ async function apiCall(endpoint, options = {}) {
 
   try {
     const response = await fetch(url, config);
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
       // Create an error with additional properties for better error handling
@@ -30,7 +30,7 @@ async function apiCall(endpoint, options = {}) {
       error.retryAfter = errorData.retryAfter;
       throw error;
     }
-    
+
     return response.json();
   } catch (error) {
     // Handle network errors (like connection refused)
@@ -231,23 +231,23 @@ const apiClient = {
     Order: new EntityAPI('order', '/orders'),
     Template: new TemplatesAPI(),
   },
-  
+
   // Upload file
   async uploadFile(file, folder = 'uploads') {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('folder', folder);
-    
+
     const response = await fetch(`${API_BASE_URL}/upload`, {
       method: 'POST',
       body: formData,
     });
-    
+
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Upload failed' }));
       throw new Error(error.error || 'Upload failed');
     }
-    
+
     return response.json();
   },
 
@@ -263,7 +263,7 @@ const apiClient = {
   async getAIStatus() {
     return apiCall('/upload/ai-status');
   },
-  
+
   // Integrations object for compatibility with base44Client
   integrations: {
     Core: {
@@ -276,19 +276,19 @@ const apiClient = {
       async GenerateImage({ prompt, existing_image_urls = [], template_id = null }) {
         const result = await apiCall('/upload/generate-image', {
           method: 'POST',
-          body: JSON.stringify({ 
-            prompt, 
+          body: JSON.stringify({
+            prompt,
             reference_image_urls: existing_image_urls,
-            template_id 
+            template_id
           }),
         });
-        
+
         // If useProxy is set, construct the proxy URL from the key
         // This bypasses S3 CORS issues by serving through our backend
         if (result.useProxy && result.key) {
           result.url = `${API_BASE_URL}/upload/proxy-image?key=${encodeURIComponent(result.key)}`;
         }
-        
+
         return result;
       },
     },
@@ -340,6 +340,13 @@ const apiClient = {
       });
     },
 
+    // Delete a product
+    async deleteProduct(productId, deleteDesign = false) {
+      return apiCall(`/printify/products/${productId}?deleteDesign=${deleteDesign}`, {
+        method: 'DELETE',
+      });
+    },
+
     // Calculate shipping
     async calculateShipping({ productId, variantId, address }) {
       return apiCall('/printify/shipping', {
@@ -376,7 +383,7 @@ const apiClient = {
       });
     },
   },
-  
+
   // Auth placeholder (if needed later)
   auth: {
     async me() {

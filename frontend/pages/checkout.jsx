@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { motion } from 'framer-motion';
-import { 
-  ShoppingBag, Package, Truck, CreditCard, Check, 
+import {
+  ShoppingBag, Package, Truck, CreditCard, Check,
   ArrowLeft, ChevronRight, Loader2, AlertCircle,
-  MapPin, Mail, User as UserIcon, Phone
+  MapPin, Mail, User as UserIcon, Phone, Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +17,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
-import apiClient from '@/api/apiClient';
 
 // Initialize Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
@@ -30,10 +30,101 @@ const US_STATES = [
   'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
 ];
 
+// Checkout Form Component (uses Stripe hooks)
+function CheckoutForm({ total, isProcessing, setIsProcessing, clearCart, navigate }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [errorMessage, setErrorMessage] = useState(null);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!stripe || !elements) {
+      // Stripe.js hasn't loaded yet
+      return;
+    }
+
+    setIsProcessing(true);
+    setErrorMessage(null);
+
+    try {
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/checkout/success`,
+        },
+        redirect: 'if_required',
+      });
+
+      if (error) {
+        // Show error to your customer
+        setErrorMessage(error.message);
+        toast.error(error.message);
+        setIsProcessing(false);
+      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+        // Payment succeeded
+        toast.success('Payment successful!');
+        clearCart();
+        navigate(`/checkout/success?payment_intent=${paymentIntent.id}`);
+      } else {
+        // Handle other statuses
+        setErrorMessage('Payment was not completed. Please try again.');
+        setIsProcessing(false);
+      }
+    } catch (err) {
+      console.error('Payment error:', err);
+      setErrorMessage('An unexpected error occurred. Please try again.');
+      toast.error('Payment failed. Please try again.');
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <PaymentElement
+        options={{
+          layout: 'tabs',
+        }}
+      />
+
+      {errorMessage && (
+        <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+          <p className="text-red-400 text-sm flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            {errorMessage}
+          </p>
+        </div>
+      )}
+
+      <Button
+        type="submit"
+        disabled={!stripe || isProcessing}
+        className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6 text-lg"
+      >
+        {isProcessing ? (
+          <>
+            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+            Processing...
+          </>
+        ) : (
+          <>
+            <Lock className="w-5 h-5 mr-2" />
+            Pay ${total.toFixed(2)}
+          </>
+        )}
+      </Button>
+
+      <p className="text-gray-500 text-xs text-center">
+        Secure payment powered by Stripe
+      </p>
+    </form>
+  );
+}
+
 export default function Checkout() {
   const navigate = useNavigate();
   const { cartItems, cartTotal, clearCart } = useCart();
-  
+
   const [step, setStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({
@@ -50,6 +141,10 @@ export default function Checkout() {
   const [discountCode, setDiscountCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(null);
   const [isApplyingDiscount, setIsApplyingDiscount] = useState(false);
+
+  // Stripe Elements state
+  const [clientSecret, setClientSecret] = useState(null);
+  const [paymentIntentId, setPaymentIntentId] = useState(null);
 
   // Debug logs
   console.log('Checkout mounted');
@@ -74,21 +169,21 @@ export default function Checkout() {
   };
 
   const shipping = calculateShipping();
-  
+
   // Calculate discount
-  const discountAmount = appliedDiscount 
-    ? (appliedDiscount.type === 'percentage' 
-        ? cartTotal * appliedDiscount.value 
-        : appliedDiscount.value)
+  const discountAmount = appliedDiscount
+    ? (appliedDiscount.type === 'percentage'
+      ? cartTotal * appliedDiscount.value
+      : appliedDiscount.value)
     : 0;
-  
+
   const total = cartTotal + shipping - discountAmount;
 
   // Apply discount code
   const applyDiscount = () => {
     setIsApplyingDiscount(true);
     const code = discountCode.toUpperCase();
-    
+
     // Valid discount codes
     const validCodes = {
       'KNOCKOUT10': {
@@ -110,7 +205,7 @@ export default function Checkout() {
         description: 'Free order - no payment required'
       }
     };
-    
+
     if (validCodes[code]) {
       setAppliedDiscount(validCodes[code]);
       toast.success('Discount code applied!');
@@ -130,8 +225,8 @@ export default function Checkout() {
   // Handle checkout with Stripe
   const handleCheckout = async () => {
     // Validate shipping info
-    if (!customerInfo.name || !customerInfo.email || !customerInfo.line1 || 
-        !customerInfo.city || !customerInfo.state || !customerInfo.postal_code) {
+    if (!customerInfo.name || !customerInfo.email || !customerInfo.line1 ||
+      !customerInfo.city || !customerInfo.state || !customerInfo.postal_code) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -166,8 +261,8 @@ export default function Checkout() {
         return;
       }
 
-      // Regular Stripe checkout
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/stripe/create-checkout-session`, {
+      // Create PaymentIntent for in-app payment
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/stripe/create-payment-intent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -179,21 +274,20 @@ export default function Checkout() {
         }),
       });
 
-      const session = await response.json();
+      const result = await response.json();
 
-      if (session.error) {
-        toast.error(session.error);
+      if (result.error) {
+        toast.error(result.error);
         setIsProcessing(false);
         return;
       }
 
-      // Redirect to Stripe Checkout (modern approach)
-      if (session.url) {
-        window.location.href = session.url;
-      } else {
-        toast.error('Failed to create checkout session');
-        setIsProcessing(false);
-      }
+      // Set client secret for Stripe Elements
+      setClientSecret(result.clientSecret);
+      setPaymentIntentId(result.paymentIntentId);
+      setStep(2);
+      setIsProcessing(false);
+
     } catch (error) {
       console.error('Checkout error:', error);
       toast.error('Failed to process checkout');
@@ -228,18 +322,18 @@ export default function Checkout() {
             <div className={`flex items-center gap-2 ${step >= 1 ? 'text-red-500' : 'text-gray-600'}`}>
               <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${step >= 1 ? 'bg-red-500 text-white' : 'bg-gray-800 text-gray-400'}`}>
                 {step > 1 ? <Check className="w-5 h-5" /> : '1'}
-                  </div>
+              </div>
               <span className="hidden sm:inline font-semibold">Shipping</span>
-                  </div>
+            </div>
             <ChevronRight className="text-gray-600" />
             <div className={`flex items-center gap-2 ${step >= 2 ? 'text-red-500' : 'text-gray-600'}`}>
               <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${step >= 2 ? 'bg-red-500 text-white' : 'bg-gray-800 text-gray-400'}`}>
                 2
               </div>
               <span className="hidden sm:inline font-semibold">Payment</span>
-                </div>
-          </div>
             </div>
+          </div>
+        </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Left Column: Forms */}
@@ -285,7 +379,7 @@ export default function Checkout() {
                         />
                       </div>
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="phone" className="text-gray-400">Phone</Label>
                       <Input
@@ -310,7 +404,7 @@ export default function Checkout() {
                         required
                       />
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="line2" className="text-gray-400">Apartment, suite, etc.</Label>
                       <Input
@@ -322,7 +416,7 @@ export default function Checkout() {
                         className="bg-gray-800 border-gray-700 text-white"
                       />
                     </div>
-                    
+
                     <div className="grid md:grid-cols-3 gap-4">
                       <div>
                         <Label htmlFor="city" className="text-gray-400">City *</Label>
@@ -366,20 +460,20 @@ export default function Checkout() {
                       </div>
                     </div>
 
-                      <Button
+                    <Button
                       onClick={() => setStep(2)}
                       className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6"
-                      >
-                        Continue to Payment
+                    >
+                      Continue to Payment
                       <ChevronRight className="w-5 h-5 ml-2" />
-                      </Button>
+                    </Button>
                   </CardContent>
                 </Card>
               </motion.div>
             )}
 
             {/* Step 2: Review & Pay */}
-            {step === 2 && (
+            {step === 2 && clientSecret && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -393,7 +487,7 @@ export default function Checkout() {
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {/* Shipping Address Review */}
-                        <div>
+                    <div>
                       <h3 className="text-white font-semibold mb-2">Shipping Address</h3>
                       <div className="text-gray-400 text-sm space-y-1">
                         <p>{customerInfo.name}</p>
@@ -404,7 +498,10 @@ export default function Checkout() {
                       </div>
                       <Button
                         variant="link"
-                        onClick={() => setStep(1)}
+                        onClick={() => {
+                          setStep(1);
+                          setClientSecret(null);
+                        }}
                         className="text-red-500 p-0 h-auto mt-2"
                       >
                         Edit
@@ -429,41 +526,49 @@ export default function Checkout() {
                               <p className="text-gray-400 text-xs capitalize">
                                 {item.design?.product_type || 'tshirt'} • {item.design?.selectedColor || 'black'} • {item.size} • Qty: {item.quantity}
                               </p>
-                      </div>
+                            </div>
                             <p className="text-white font-bold">
                               ${(parseFloat(item.design.price) * item.quantity).toFixed(2)}
                             </p>
-                      </div>
+                          </div>
                         ))}
                       </div>
                     </div>
 
-                      <Button
-                      onClick={handleCheckout}
-                      disabled={isProcessing}
-                      className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6 text-lg"
-                    >
-                      {isProcessing ? (
-                        <>
-                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            Processing...
-                          </>
-                        ) : appliedDiscount?.code === 'FREE' ? (
-                          <>
-                          <Check className="w-5 h-5 mr-2" />
-                          Complete Free Order
-                          </>
-                        ) : (
-                          <>
-                          <CreditCard className="w-5 h-5 mr-2" />
-                          Pay ${total.toFixed(2)}
-                          </>
-                        )}
-                      </Button>
+                    <Separator className="bg-gray-800" />
 
-                    <p className="text-gray-500 text-xs text-center">
-                      Secure payment powered by Stripe
-                    </p>
+                    {/* Stripe Payment Form */}
+                    <div>
+                      <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                        <Lock className="w-4 h-4" />
+                        Payment Information
+                      </h3>
+                      <Elements
+                        stripe={stripePromise}
+                        options={{
+                          clientSecret,
+                          appearance: {
+                            theme: 'night',
+                            variables: {
+                              colorPrimary: '#dc2626',
+                              colorBackground: '#1f2937',
+                              colorText: '#ffffff',
+                              colorTextSecondary: '#9ca3af',
+                              colorDanger: '#ef4444',
+                              borderRadius: '8px',
+                            },
+                          },
+                        }}
+                      >
+                        <CheckoutForm
+                          total={total}
+                          isProcessing={isProcessing}
+                          setIsProcessing={setIsProcessing}
+                          clearCart={clearCart}
+                          navigate={navigate}
+                        />
+                      </Elements>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
