@@ -386,13 +386,34 @@ async function uploadImage(imageData, fileName = 'design.png') {
 }
 
 /**
+ * Map color names to Printify color names
+ * @param {string} color - Internal color name
+ * @returns {string} - Printify color name
+ */
+function mapColorToPrintify(color) {
+  const colorMap = {
+    'light-pink': 'Pink',
+    'lightPink': 'Pink',
+    'light_pink': 'Pink',
+    'black': 'Black',
+    'white': 'White',
+  };
+  
+  // Normalize color input (lowercase, replace underscores/dashes)
+  const normalized = color.toLowerCase().replace(/[_-]/g, '-');
+  
+  // Return mapped color or capitalize the original
+  return colorMap[normalized] || color.charAt(0).toUpperCase() + color.slice(1);
+}
+
+/**
  * Create a product on Printify
  * @param {Object} options
  * @param {string} options.title - Product title
  * @param {string} options.description - Product description
  * @param {string} options.imageUrl - URL of the design image
  * @param {string} options.productType - 'tshirt' or 'hoodie'
- * @param {string} options.color - 'black' or 'white'
+ * @param {string} options.color - 'black', 'white', or 'light-pink'
  * @param {Object} options.canvasData - Position data from the canvas editor
  * @returns {Promise<{id: string, mockup_urls: string[], ...}>}
  */
@@ -405,10 +426,14 @@ async function createProduct({ title, description, imageUrl, productType = 'tshi
   }
 
   // Validate color
-  const validColors = ['black', 'white'];
-  if (!validColors.includes(color)) {
-    throw new Error(`Invalid color: ${color}. Must be 'black' or 'white'.`);
+  const validColors = ['black', 'white', 'light-pink', 'lightPink', 'light_pink'];
+  if (!validColors.includes(color.toLowerCase())) {
+    throw new Error(`Invalid color: ${color}. Must be 'black', 'white', or 'light-pink'.`);
   }
+
+  // Map color to Printify color name (e.g., "light-pink" -> "Soft Pink")
+  const printifyColor = mapColorToPrintify(color);
+  console.log(`🎨 Color mapping: "${color}" -> "${printifyColor}"`);
 
   // First, upload the image to Printify
   const uploadedImage = await uploadImage(imageUrl, `${title.replace(/\s+/g, '-')}.png`);
@@ -431,7 +456,9 @@ async function createProduct({ title, description, imageUrl, productType = 'tshi
   } catch (error) {
     console.warn('⚠️ Failed to fetch variants from Printify, using hardcoded values:', error.message);
     // Fall back to hardcoded variants
-    const colorVariants = blueprint.variants[color];
+    // Note: Hardcoded variants only support 'black' and 'white'
+    const colorKey = color.toLowerCase() === 'light-pink' ? 'white' : color.toLowerCase();
+    const colorVariants = blueprint.variants[colorKey];
     if (!colorVariants) {
       throw new Error(`No variants found for color: ${color}`);
     }
@@ -477,7 +504,8 @@ async function createProduct({ title, description, imageUrl, productType = 'tshi
       print_provider_id: blueprint.printProviderId,
       variants_count: variants.length,
       variant_ids: variantIds,
-      color: color,
+      color: printifyColor,
+      original_color: color,
       product_type: productType
     });
 
@@ -491,29 +519,34 @@ async function createProduct({ title, description, imageUrl, productType = 'tshi
       printify_product_id: product.id,
       title: product.title,
       blueprint_id: blueprint.id,
-      color: color,
+      color: printifyColor,
+      original_color: color,
       images: product.images || [],
     };
   }
   
   // Filter variants by color and size
   const availableSizes = ['S', 'M', 'L', 'XL', '2XL'];
-  const colorName = color.charAt(0).toUpperCase() + color.slice(1); // Capitalize first letter
   
+  // Use Printify color name for filtering (e.g., "Soft Pink" instead of "light-pink")
   const filteredVariants = printifyVariants.variants?.filter(variant => {
     // Check if variant matches our color and size requirements
-    const variantColor = variant.options?.color?.toLowerCase();
+    // Printify API returns color names like "Soft Pink", "Black", "White"
+    const variantColor = variant.options?.color;
     const variantSize = variant.options?.size;
     
-    return variantColor === color.toLowerCase() && 
-           availableSizes.includes(variantSize);
+    // Compare using the Printify color name (case-insensitive)
+    const colorMatches = variantColor && 
+      variantColor.toLowerCase() === printifyColor.toLowerCase();
+    
+    return colorMatches && availableSizes.includes(variantSize);
   }) || [];
   
   if (filteredVariants.length === 0) {
-    throw new Error(`No variants found for ${color} color in blueprint ${blueprint.id}`);
+    throw new Error(`No variants found for ${printifyColor} color (mapped from "${color}") in blueprint ${blueprint.id}`);
   }
   
-  console.log(`✅ Found ${filteredVariants.length} matching variants for ${color} color`);
+  console.log(`✅ Found ${filteredVariants.length} matching variants for ${printifyColor} color`);
   
   // Create variants array with pricing
   const variants = filteredVariants.map(variant => ({
@@ -570,11 +603,12 @@ async function createProduct({ title, description, imageUrl, productType = 'tshi
     id: product.id,
     printify_product_id: product.id,
     title: product.title,
-    blueprint_id: blueprint.id,
-    color: color,
-    images: product.images || [],
-  };
-}
+      blueprint_id: blueprint.id,
+      color: printifyColor,
+      original_color: color,
+      images: product.images || [],
+    };
+  }
 
 /**
  * Get all products from the shop
