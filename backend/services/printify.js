@@ -507,9 +507,10 @@ async function calculateShipping(productId, variantId, address) {
 
 /**
  * Get variant ID for a size and color
+ * @deprecated Use getProductVariantId instead for actual products
  */
 function getVariantId(productType, size, color = 'black') {
-  console.log(`\n🔍 getVariantId called:`);
+  console.log(`\n🔍 getVariantId called (HARDCODED - may not match actual product):`);
   console.log(`   Product Type: "${productType}"`);
   console.log(`   Size: "${size}"`);
   console.log(`   Color: "${color}"`);
@@ -546,6 +547,75 @@ function getVariantId(productType, size, color = 'black') {
 }
 
 /**
+ * Get product details from Printify
+ */
+async function getProduct(productId) {
+  const shopId = process.env.PRINTIFY_SHOP_ID;
+  return printifyRequest(`/shops/${shopId}/products/${productId}.json`);
+}
+
+/**
+ * Get the correct variant ID from an existing Printify product
+ * This queries the actual product to get real variant IDs instead of using hardcoded values
+ * @param {string} productId - Printify product ID
+ * @param {string} size - Size (S, M, L, XL, 2XL)
+ * @param {string} color - Color (black, white)
+ * @returns {Promise<number>} - The variant ID
+ */
+async function getProductVariantId(productId, size, color) {
+  console.log(`\n🔍 Getting variant ID from Printify product (DYNAMIC):`);
+  console.log(`   Product ID: ${productId}`);
+  console.log(`   Requested Size: ${size}`);
+  console.log(`   Requested Color: ${color}`);
+  
+  try {
+    const product = await getProduct(productId);
+    console.log(`✅ Fetched product from Printify: "${product.title}"`);
+    console.log(`   Product has ${product.variants?.length || 0} variants`);
+    
+    if (!product.variants || product.variants.length === 0) {
+      throw new Error('Product has no variants');
+    }
+    
+    // Log all available variants for debugging
+    console.log(`   Available variants:`);
+    product.variants.forEach(v => {
+      console.log(`     - ID: ${v.id}, Title: "${v.title}", Price: $${v.price/100}`);
+    });
+    
+    // Find the matching variant by looking at the title
+    // Printify variant titles are like "Bella+Canvas 3001 Unisex / Black / S"
+    const matchingVariant = product.variants.find(variant => {
+      const title = variant.title || '';
+      const titleLower = title.toLowerCase();
+      
+      // Check if title contains the color and size
+      const hasColor = titleLower.includes(color.toLowerCase());
+      const hasSize = title.includes(` / ${size}`) || title.endsWith(` ${size}`);
+      
+      return hasColor && hasSize;
+    });
+    
+    if (!matchingVariant) {
+      console.error(`❌ No matching variant found for size "${size}" and color "${color}"`);
+      console.error(`   Please check the variant titles above`);
+      throw new Error(`No matching variant found for size ${size} and color ${color}`);
+    }
+    
+    console.log(`✅ Found matching variant:`);
+    console.log(`   ID: ${matchingVariant.id}`);
+    console.log(`   Title: "${matchingVariant.title}"`);
+    console.log(`   Price: $${matchingVariant.price/100}\n`);
+    
+    return matchingVariant.id;
+    
+  } catch (error) {
+    console.error(`❌ Error fetching product variant:`, error.message);
+    throw error;
+  }
+}
+
+/**
  * Get all variant IDs for a product type and color
  */
 function getColorVariants(productType, color) {
@@ -576,6 +646,7 @@ module.exports = {
   getOrder,
   calculateShipping,
   getVariantId,
+  getProductVariantId, // NEW: Dynamic variant ID lookup from actual products
   getColorVariants,
   isConfigured,
   BLUEPRINTS,

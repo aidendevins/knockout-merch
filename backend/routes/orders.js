@@ -425,11 +425,28 @@ router.post('/:id/approve-and-ship', async (req, res) => {
     console.log(`   Quantity: ${order.quantity || 1}`);
     console.log(`   Customer: ${order.customer_name} (${order.customer_email})`);
     
+    // Get the correct variant ID from the actual Printify product (not hardcoded)
+    let variantId;
+    try {
+      variantId = await printify.getProductVariantId(
+        design.printify_product_id,
+        order.size || 'M',
+        order.color || 'black'
+      );
+      console.log(`✅ Retrieved variant ID from Printify product: ${variantId}`);
+    } catch (variantError) {
+      console.error(`❌ Failed to get variant ID from Printify product:`, variantError.message);
+      return res.status(400).json({
+        error: 'Cannot determine product variant',
+        message: `Unable to find a matching variant for size ${order.size} and color ${order.color}. ${variantError.message}`
+      });
+    }
+    
     // Send order to Printify
     try {
       const printifyOrder = await printify.createOrder({
         productId: design.printify_product_id,
-        variantId: printify.getVariantId(order.product_type || 'tshirt', order.size || 'M', order.color || 'black'),
+        variantId: variantId,
         quantity: order.quantity || 1,
         shippingAddress: {
           name: order.customer_name || 'Customer',
