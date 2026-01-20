@@ -380,12 +380,12 @@ router.post('/:id/approve-and-ship', async (req, res) => {
     console.log(`   quantity: "${order.quantity}" (type: ${typeof order.quantity})`);
     
     // Check if order is in correct status
-    if (order.status !== 'pending_approval' && order.status !== 'paid' && order.status !== 'payment_received') {
+    if (order.status !== 'pending_approval' && order.status !== 'paid' && order.status !== 'payment_received' && order.status !== 'printify_error') {
       console.log(`⚠️ Order ${orderId} status is "${order.status}" - not pending approval`);
       return res.status(400).json({ 
         error: 'Order not pending approval', 
         currentStatus: order.status,
-        message: 'Only orders with status "pending_approval", "paid", or "payment_received" can be approved'
+        message: 'Only orders with status "pending_approval", "paid", "payment_received", or "printify_error" can be approved'
       });
     }
     
