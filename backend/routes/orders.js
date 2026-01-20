@@ -262,8 +262,8 @@ router.post('/free', async (req, res) => {
         `INSERT INTO orders (
           design_id, customer_email, customer_name, shipping_address,
           quantity, total_amount, status, stripe_session_id,
-          product_type, size
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          product_type, size, color
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING *`,
         [
           designId, // REQUIRED - cannot be null
@@ -283,6 +283,7 @@ router.post('/free', async (req, res) => {
           'free-order',
           productType,
           size,
+          item.color || item.design?.color || 'black', // Add color from cart item
         ]
       );
 
