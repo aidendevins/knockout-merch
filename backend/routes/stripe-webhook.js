@@ -285,8 +285,8 @@ async function handleStripeWebhook(req, res) {
             `INSERT INTO orders 
              (design_id, customer_email, customer_name, shipping_address, 
               quantity, total_amount, status, stripe_session_id, stripe_payment_id,
-              product_type, size)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+              product_type, size, color)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
              RETURNING id`,
             [
               designId,
@@ -295,11 +295,12 @@ async function handleStripeWebhook(req, res) {
               JSON.stringify(shippingAddress),
               item.quantity,
               parseFloat(pricePerItem),
-              'paid', // Status is 'paid' because payment was verified above
+              'pending_approval', // Status requires manual approval before sending to Printify
               session.id,
               paymentIntentId,
               productType,
               size,
+              colors[i] || 'black', // Add color from metadata
             ]
           );
           
@@ -336,69 +337,35 @@ async function handleStripeWebhook(req, res) {
         // Get the orderId for this iteration (last one created)
         const currentOrderId = orderIds[orderIds.length - 1];
         
-        // Send order to Printify for fulfillment
+        // ⚠️ MANUAL APPROVAL WORKFLOW - Do NOT auto-send to Printify
+        // Orders will be set to "pending_approval" and must be manually approved in admin panel
+        
         if (!design.printify_product_id) {
-          console.warn(`\n⚠️ ORDER ${currentOrderId} CANNOT BE SENT TO PRINTIFY`);
+          console.warn(`\n⚠️ ORDER ${currentOrderId} MISSING PRINTIFY PRODUCT ID`);
           console.warn(`   Design "${design.title}" (${designId}) has no printify_product_id`);
-          console.warn(`   Order was created in database but needs manual fulfillment`);
+          console.warn(`   Order needs manual attention`);
           await db.query(
             `UPDATE orders SET status = 'needs_fulfillment' WHERE id = $1`,
             [currentOrderId]
           );
         } else if (!shippingAddress?.line1) {
-          console.warn(`\n⚠️ ORDER ${currentOrderId} CANNOT BE SENT TO PRINTIFY`);
-          console.warn(`   Missing shipping address`);
+          console.warn(`\n⚠️ ORDER ${currentOrderId} MISSING SHIPPING ADDRESS`);
+          console.warn(`   Order needs manual attention`);
           await db.query(
             `UPDATE orders SET status = 'needs_fulfillment' WHERE id = $1`,
             [currentOrderId]
           );
         } else {
-          try {
-            console.log(`\n📦 SENDING ORDER ${currentOrderId} TO PRINTIFY...`);
-            console.log(`   Design: ${design.title} (${designId})`);
-            console.log(`   Printify Product ID: ${design.printify_product_id}`);
-            
-            const printifyOrder = await printify.createOrder({
-              productId: design.printify_product_id,
-              variantId: printify.getVariantId(productType, size),
-              quantity: item.quantity,
-              shippingAddress: {
-                name: customerName,
-                email: customerEmail,
-                phone: session.customer_details?.phone || '',
-                line1: shippingAddress.line1,
-                line2: shippingAddress.line2 || '',
-                city: shippingAddress.city,
-                state: shippingAddress.state,
-                postal_code: shippingAddress.postal_code,
-                country: shippingAddress.country || 'US',
-              },
-              externalId: currentOrderId,
-            });
-            
-            // Update order with Printify order ID and status
-            await db.query(
-              `UPDATE orders SET 
-                printify_order_id = $1,
-                status = 'processing'
-               WHERE id = $2`,
-              [printifyOrder.id, currentOrderId]
-            );
-            
-            console.log(`\n✅ ORDER ${currentOrderId} SENT TO PRINTIFY SUCCESSFULLY`);
-            console.log(`   Printify Order ID: ${printifyOrder.id}`);
-            console.log(`   Status updated to: processing`);
-          } catch (printifyError) {
-            console.error(`\n❌ ERROR SENDING ORDER ${currentOrderId} TO PRINTIFY`);
-            console.error('   Error:', printifyError.message);
-            console.error('   Stack:', printifyError.stack);
-            // Don't fail the whole webhook if Printify fails - order is still created in DB
-            await db.query(
-              `UPDATE orders SET status = 'payment_received' WHERE id = $1`,
-              [currentOrderId]
-            );
-            console.log(`   Order status updated to: payment_received (awaiting Printify retry)`);
-          }
+          // Order is ready for fulfillment, but requires manual approval
+          console.log(`\n✅ ORDER ${currentOrderId} READY FOR APPROVAL`);
+          console.log(`   Design: ${design.title} (${designId})`);
+          console.log(`   Printify Product ID: ${design.printify_product_id}`);
+          console.log(`   Status: pending_approval - Admin must approve before shipping`);
+          
+          await db.query(
+            `UPDATE orders SET status = 'pending_approval' WHERE id = $1`,
+            [currentOrderId]
+          );
         }
       }
 

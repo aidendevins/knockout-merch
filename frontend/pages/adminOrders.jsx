@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/api/apiClient';
 import { motion } from 'framer-motion';
 import { 
   Package, Mail, User, MapPin, DollarSign, Calendar, 
   Filter, Download, Search, Eye, Loader2, AlertCircle,
-  CheckCircle, Clock, XCircle, TrendingUp
+  CheckCircle, Clock, XCircle, TrendingUp, Send, AlertTriangle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,10 +13,13 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
 
 export default function AdminOrders() {
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [approvingOrderId, setApprovingOrderId] = useState(null);
 
   // Fetch orders
   const { data: orders = [], isLoading, error } = useQuery({
@@ -29,6 +32,46 @@ export default function AdminOrders() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
+  // Mutation to approve and ship order
+  const approveOrderMutation = useMutation({
+    mutationFn: async (orderId) => {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/orders/${orderId}/approve-and-ship`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to approve order');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data, orderId) => {
+      toast.success('Order approved and sent to Printify!', {
+        description: `Printify Order ID: ${data.printify_order_id}`,
+      });
+      queryClient.invalidateQueries(['admin-orders']);
+      setApprovingOrderId(null);
+    },
+    onError: (error, orderId) => {
+      toast.error('Failed to approve order', {
+        description: error.message,
+      });
+      setApprovingOrderId(null);
+    },
+  });
+
+  const handleApproveOrder = (orderId) => {
+    if (window.confirm('Are you sure you want to approve this order and send it to Printify for fulfillment?')) {
+      setApprovingOrderId(orderId);
+      approveOrderMutation.mutate(orderId);
+    }
+  };
+
   // Filter orders
   const filteredOrders = orders.filter((order) => {
     const matchesSearch = 
@@ -36,18 +79,34 @@ export default function AdminOrders() {
       order.customer_email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.id?.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesStatus = statusFilter === 'all' || order.payment_status === statusFilter;
+    // Use order.status if available (more specific), fallback to payment_status
+    const orderStatus = order.status || order.payment_status;
+    const matchesStatus = statusFilter === 'all' || orderStatus === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
+
+  // 🔍 DEBUG: Log full order IDs for pending approval orders
+  React.useEffect(() => {
+    const pendingOrders = filteredOrders.filter(o => (o.status || o.payment_status) === 'pending_approval');
+    if (pendingOrders.length > 0) {
+      console.log('🔍 PENDING APPROVAL ORDERS - FULL IDs:');
+      pendingOrders.forEach(order => {
+        console.log(`   ${order.customer_name || 'Unknown'}: ${order.id}`);
+        console.log(`   Debug URL: https://knockout-merch-production.up.railway.app/api/orders/${order.id}/debug`);
+      });
+    }
+  }, [filteredOrders]);
 
   // Calculate stats
   const stats = {
     total: orders.length,
     paid: orders.filter(o => o.payment_status === 'paid').length,
     pending: orders.filter(o => o.payment_status === 'pending').length,
+    pendingApproval: orders.filter(o => o.status === 'pending_approval' || o.payment_status === 'pending_approval').length,
+    processing: orders.filter(o => o.status === 'processing' || o.payment_status === 'processing').length,
     revenue: orders
-      .filter(o => o.payment_status === 'paid')
+      .filter(o => o.payment_status === 'paid' || o.status === 'paid')
       .reduce((sum, o) => sum + (parseFloat(o.total_price) || 0), 0),
   };
 
@@ -55,9 +114,15 @@ export default function AdminOrders() {
     switch (status) {
       case 'paid':
         return 'bg-green-500/20 text-green-400 border-green-500/50';
+      case 'pending_approval':
+        return 'bg-orange-500/20 text-orange-400 border-orange-500/50';
+      case 'processing':
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/50';
       case 'pending':
         return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50';
       case 'failed':
+      case 'printify_error':
+      case 'needs_fulfillment':
         return 'bg-red-500/20 text-red-400 border-red-500/50';
       default:
         return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
@@ -68,13 +133,25 @@ export default function AdminOrders() {
     switch (status) {
       case 'paid':
         return <CheckCircle className="w-4 h-4" />;
+      case 'pending_approval':
+        return <AlertTriangle className="w-4 h-4" />;
+      case 'processing':
+        return <Package className="w-4 h-4" />;
       case 'pending':
         return <Clock className="w-4 h-4" />;
       case 'failed':
+      case 'printify_error':
+      case 'needs_fulfillment':
         return <XCircle className="w-4 h-4" />;
       default:
         return <Clock className="w-4 h-4" />;
     }
+  };
+
+  const getStatusDisplay = (order) => {
+    // Use order.status if available (more specific), fallback to payment_status
+    const status = order.status || order.payment_status;
+    return status.replace(/_/g, ' ');
   };
 
   return (
@@ -90,7 +167,7 @@ export default function AdminOrders() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid md:grid-cols-4 gap-4 mb-8">
+        <div className="grid md:grid-cols-5 gap-4 mb-8">
           <Card className="bg-gray-900 border-gray-800">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -103,14 +180,14 @@ export default function AdminOrders() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-gray-900 border-gray-800 border-orange-500/30">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm mb-1">Paid</p>
-                  <p className="text-3xl font-black text-green-400">{stats.paid}</p>
+                  <p className="text-gray-400 text-sm mb-1">⚠️ Needs Approval</p>
+                  <p className="text-3xl font-black text-orange-400">{stats.pendingApproval}</p>
                 </div>
-                <CheckCircle className="w-10 h-10 text-green-500/50" />
+                <AlertTriangle className="w-10 h-10 text-orange-500/50" />
               </div>
             </CardContent>
           </Card>
@@ -119,10 +196,22 @@ export default function AdminOrders() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm mb-1">Pending</p>
-                  <p className="text-3xl font-black text-yellow-400">{stats.pending}</p>
+                  <p className="text-gray-400 text-sm mb-1">Processing</p>
+                  <p className="text-3xl font-black text-blue-400">{stats.processing}</p>
                 </div>
-                <Clock className="w-10 h-10 text-yellow-500/50" />
+                <Package className="w-10 h-10 text-blue-500/50" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-900 border-gray-800">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 text-sm mb-1">Paid</p>
+                  <p className="text-3xl font-black text-green-400">{stats.paid}</p>
+                </div>
+                <CheckCircle className="w-10 h-10 text-green-500/50" />
               </div>
             </CardContent>
           </Card>
@@ -157,6 +246,8 @@ export default function AdminOrders() {
               <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full sm:w-auto">
                 <TabsList className="bg-gray-800">
                   <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="pending_approval">⚠️ Needs Approval</TabsTrigger>
+                  <TabsTrigger value="processing">Processing</TabsTrigger>
                   <TabsTrigger value="paid">Paid</TabsTrigger>
                   <TabsTrigger value="pending">Pending</TabsTrigger>
                   <TabsTrigger value="failed">Failed</TabsTrigger>
@@ -213,9 +304,9 @@ export default function AdminOrders() {
                         {/* Order Info */}
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <Badge className={getStatusColor(order.payment_status)}>
-                              {getStatusIcon(order.payment_status)}
-                              <span className="ml-1 capitalize">{order.payment_status}</span>
+                            <Badge className={getStatusColor(order.status || order.payment_status)}>
+                              {getStatusIcon(order.status || order.payment_status)}
+                              <span className="ml-1 capitalize">{getStatusDisplay(order)}</span>
                             </Badge>
                             <span className="text-gray-500 text-xs">
                               Order #{order.id?.slice(-8)}
@@ -264,7 +355,34 @@ export default function AdminOrders() {
                             {order.stripe_session_id && (
                               <p className="text-xs text-gray-500">via Stripe</p>
                             )}
+                            {order.printify_order_id && (
+                              <p className="text-xs text-blue-400">Printify: {order.printify_order_id.slice(0, 10)}...</p>
+                            )}
                           </div>
+                          
+                          {/* Approve & Ship Button for pending_approval orders */}
+                          {(order.status === 'pending_approval' || order.payment_status === 'pending_approval') && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white shadow-lg shadow-orange-600/30"
+                              onClick={() => handleApproveOrder(order.id)}
+                              disabled={approvingOrderId === order.id}
+                            >
+                              {approvingOrderId === order.id ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Approving...
+                                </>
+                              ) : (
+                                <>
+                                  <Send className="w-4 h-4 mr-2" />
+                                  Approve & Ship
+                                </>
+                              )}
+                            </Button>
+                          )}
+                          
                           <Button
                             variant="outline"
                             size="icon"

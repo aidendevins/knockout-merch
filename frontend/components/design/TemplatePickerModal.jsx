@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
 } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { fetchTemplates, PRODUCT_TYPES, COLOR_OPTIONS } from '@/config/templates';
 
@@ -324,22 +325,24 @@ export default function TemplatePickerModal({
           </div>
         </div>
 
-        {/* Content area with slide animation */}
-        <div className="relative min-h-[350px] overflow-hidden">
-          <AnimatePresence mode="wait" custom={direction}>
-            <motion.div
-              key={currentStep}
-              custom={direction}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-              className="p-6"
-            >
-              {renderStepContent()}
-            </motion.div>
-          </AnimatePresence>
+        {/* Content area with slide animation and scroll */}
+        <div className="relative">
+          <ScrollArea className="h-[500px]">
+            <AnimatePresence mode="wait" custom={direction}>
+              <motion.div
+                key={currentStep}
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className="p-6"
+              >
+                {renderStepContent()}
+              </motion.div>
+            </AnimatePresence>
+          </ScrollArea>
         </div>
 
         {/* Footer with navigation */}
