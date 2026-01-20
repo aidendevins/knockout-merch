@@ -86,6 +86,18 @@ export default function AdminOrders() {
     return matchesSearch && matchesStatus;
   });
 
+  // 🔍 DEBUG: Log full order IDs for pending approval orders
+  React.useEffect(() => {
+    const pendingOrders = filteredOrders.filter(o => (o.status || o.payment_status) === 'pending_approval');
+    if (pendingOrders.length > 0) {
+      console.log('🔍 PENDING APPROVAL ORDERS - FULL IDs:');
+      pendingOrders.forEach(order => {
+        console.log(`   ${order.customer_name || 'Unknown'}: ${order.id}`);
+        console.log(`   Debug URL: https://knockout-merch-production.up.railway.app/api/orders/${order.id}/debug`);
+      });
+    }
+  }, [filteredOrders]);
+
   // Calculate stats
   const stats = {
     total: orders.length,
