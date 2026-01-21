@@ -108,6 +108,7 @@ const ProductCanvas = forwardRef(({
 
   // Product mockup images
   const [tshirtImage, setTshirtImage] = useState(null);
+  const [tshirtMockupLoaded, setTshirtMockupLoaded] = useState(false);
 
   // Get product config and override baseColor with selectedColor
   const product = useMemo(() => {
@@ -130,6 +131,20 @@ const ProductCanvas = forwardRef(({
       setCtx(context);
       setPreviewCtx(previewContext);
     }
+  }, []);
+
+  // Load t-shirt mockup image
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => {
+      setTshirtImage(img);
+      setTshirtMockupLoaded(true);
+    };
+    img.onerror = () => {
+      console.error('Failed to load t-shirt mockup image');
+      setTshirtMockupLoaded(false);
+    };
+    img.src = '/tshirt-black.png';
   }, []);
 
   // Load the generated image when it changes
@@ -228,12 +243,15 @@ const ProductCanvas = forwardRef(({
     // Clear canvas
     ctx.clearRect(0, 0, w, h);
 
-    // Fill background with light neutral color so colored shirts are visible
+    // Fill background with light neutral color
     ctx.fillStyle = '#2a2a2a';
     ctx.fillRect(0, 0, w, h);
 
-    // Draw product mockup (filled t-shirt or hoodie in selected color)
-    drawProductMockup(ctx, productType, selectedColor, w, h);
+    // Draw t-shirt mockup image if loaded
+    if (tshirtImage && tshirtMockupLoaded) {
+      // Draw the t-shirt image to fill the canvas
+      ctx.drawImage(tshirtImage, 0, 0, w, h);
+    }
 
     // Draw print area guide
     if (showGrid) {
@@ -281,113 +299,7 @@ const ProductCanvas = forwardRef(({
         h * (area.y + area.height / 2)
       );
     }
-  }, [ctx, product, productType, designLayers, selectedLayerId, showGrid, selectedColor]);
-
-  // Draw product mockup (filled t-shirt/hoodie in selected color)
-  const drawProductMockup = (ctx, type, color, w, h) => {
-    ctx.save();
-
-    // Map color names to hex values
-    const colorMap = {
-      'black': '#1a1a1a',
-      'white': '#f5f5f5',
-      'light-pink': '#ffc0cb',
-      'lightPink': '#ffc0cb',
-      'light_pink': '#ffc0cb',
-      'pink': '#ffc0cb',
-    };
-
-    const fillColor = colorMap[color?.toLowerCase()] || '#1a1a1a';
-
-    if (type === 'tshirt') {
-      // Draw realistic t-shirt shape
-      ctx.beginPath();
-      
-      // Start at left shoulder
-      ctx.moveTo(w * 0.30, h * 0.12);
-      
-      // Left sleeve
-      ctx.lineTo(w * 0.22, h * 0.15);
-      ctx.lineTo(w * 0.10, h * 0.20);
-      ctx.lineTo(w * 0.12, h * 0.28);
-      ctx.lineTo(w * 0.22, h * 0.30);
-      
-      // Left side of body
-      ctx.lineTo(w * 0.24, h * 0.32);
-      ctx.lineTo(w * 0.24, h * 0.92);
-      
-      // Bottom
-      ctx.lineTo(w * 0.76, h * 0.92);
-      
-      // Right side of body
-      ctx.lineTo(w * 0.76, h * 0.32);
-      ctx.lineTo(w * 0.78, h * 0.30);
-      
-      // Right sleeve
-      ctx.lineTo(w * 0.88, h * 0.28);
-      ctx.lineTo(w * 0.90, h * 0.20);
-      ctx.lineTo(w * 0.78, h * 0.15);
-      ctx.lineTo(w * 0.70, h * 0.12);
-      
-      // Neckline (curved)
-      ctx.quadraticCurveTo(w * 0.50, h * 0.17, w * 0.30, h * 0.12);
-      ctx.closePath();
-
-      // Fill with selected color
-      ctx.fillStyle = fillColor;
-      ctx.fill();
-
-      // Add subtle border for depth
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Draw neckline detail
-      ctx.beginPath();
-      ctx.moveTo(w * 0.38, h * 0.13);
-      ctx.quadraticCurveTo(w * 0.50, h * 0.16, w * 0.62, h * 0.13);
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-    } else if (type === 'hoodie') {
-      // Draw filled hoodie
-      ctx.beginPath();
-      ctx.moveTo(w * 0.30, h * 0.18);
-      ctx.lineTo(w * 0.25, h * 0.23);
-      ctx.lineTo(w * 0.12, h * 0.20);
-      ctx.lineTo(w * 0.08, h * 0.30);
-      ctx.lineTo(w * 0.18, h * 0.35);
-      ctx.lineTo(w * 0.18, h * 0.92);
-      ctx.lineTo(w * 0.82, h * 0.92);
-      ctx.lineTo(w * 0.82, h * 0.35);
-      ctx.lineTo(w * 0.92, h * 0.30);
-      ctx.lineTo(w * 0.88, h * 0.20);
-      ctx.lineTo(w * 0.75, h * 0.23);
-      ctx.lineTo(w * 0.70, h * 0.18);
-      ctx.quadraticCurveTo(w * 0.50, h * 0.25, w * 0.30, h * 0.18);
-      ctx.closePath();
-
-      // Fill with selected color
-      ctx.fillStyle = fillColor;
-      ctx.fill();
-
-      // Add subtle border for depth
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Hood outline
-      ctx.beginPath();
-      ctx.moveTo(w * 0.40, h * 0.18);
-      ctx.quadraticCurveTo(w * 0.50, h * 0.05, w * 0.60, h * 0.18);
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    ctx.restore();
-  };
+  }, [ctx, product, productType, designLayers, selectedLayerId, showGrid, selectedColor, tshirtImage, tshirtMockupLoaded]);
 
   // Draw selection box with handles
   const drawSelectionBox = (ctx, element) => {
