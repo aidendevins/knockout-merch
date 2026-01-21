@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -45,8 +45,12 @@ const getImageUrl = (url) => {
 
 export default function DesignStudio() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const canvasRef = useRef(null);
+  
+  // Get template ID from URL if present
+  const urlTemplateId = searchParams.get('template');
   
   // Template picker state
   const [showTemplatePicker, setShowTemplatePicker] = useState(true);
@@ -531,6 +535,7 @@ export default function DesignStudio() {
           }
         }}
         onComplete={handleTemplatePickerComplete}
+        initialTemplateId={urlTemplateId}
       />
 
       {/* AI Panel */}

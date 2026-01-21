@@ -19,28 +19,28 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * Get templates with Printify products (for landing page)
+ * Get all visible templates for landing page
  * GET /api/templates/with-products
  * 
- * Returns templates that have a linked Printify product, 
- * with mockup URLs fetched from Printify API
+ * Returns all non-hidden templates, enriching those with Printify products
+ * with mockup URLs and pricing from Printify API
  */
 router.get('/with-products', async (req, res) => {
   try {
     const printify = require('../services/printify');
     
+    // Get ALL non-hidden templates
     const templates = await db.all(`
       SELECT * FROM templates 
-      WHERE printify_product_id IS NOT NULL 
-        AND printify_product_id != ''
-        AND is_hidden = false
+      WHERE is_hidden = false
       ORDER BY created_at ASC
     `);
     
-    // Fetch Printify product details for each template
+    // Enrich templates with Printify data where available
     const templatesWithProducts = await Promise.all(
       templates.map(async (template) => {
         try {
+          // If template has a Printify product, fetch its details
           if (printify.isConfigured() && template.printify_product_id) {
             const productDetails = await printify.getProductDetails(template.printify_product_id);
             const mockupUrls = (productDetails.images || []).map(img => img.src);
@@ -62,18 +62,28 @@ router.get('/with-products', async (req, res) => {
               display_title: template.name || productDetails.title,
             };
           }
-          return template;
+          
+          // Return template without Printify data (use reference image instead)
+          return {
+            ...template,
+            mockup_urls: [], // No mockups for templates without Printify product
+            price: 29.99, // Default price
+            display_title: template.name,
+          };
         } catch (err) {
           console.error(`Error fetching Printify product for template ${template.id}:`, err.message);
-          return template; // Return template without product data on error
+          // Return template with defaults on error
+          return {
+            ...template,
+            mockup_urls: [],
+            price: 29.99,
+            display_title: template.name,
+          };
         }
       })
     );
     
-    // Filter out templates that don't have mockups (failed to fetch)
-    const validTemplates = templatesWithProducts.filter(t => t.mockup_urls && t.mockup_urls.length > 0);
-    
-    res.json(validTemplates);
+    res.json(templatesWithProducts);
   } catch (error) {
     console.error('Error fetching templates with products:', error);
     res.status(500).json({ error: 'Failed to fetch templates with products' });
