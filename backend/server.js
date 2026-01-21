@@ -111,7 +111,7 @@ process.on('SIGTERM', async () => {
 db.init().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Backend server running on http://localhost:${PORT}`);
-    console.log(`📦 Database: ${process.env.DATABASE_URL ? 'Neon PostgreSQL' : 'Not configured'}`);
+    console.log(`📦 Database: ${process.env.DATABASE_URL ? 'PostgreSQL (Railway)' : 'Not configured'}`);
     console.log(`☁️  S3: ${process.env.AWS_S3_BUCKET ? 'Configured' : 'Local fallback'}`);
     console.log(`🤖 Gemini: ${process.env.GEMINI_API_KEY ? 'Configured' : 'Not configured'}`);
     console.log(`🖨️  Printify: ${process.env.PRINTIFY_API_KEY ? 'Configured' : 'Not configured'}`);
@@ -121,9 +121,9 @@ db.init().then(() => {
   console.error('\n💡 Troubleshooting tips:');
   console.error('   1. Check that DATABASE_URL is set in your .env file');
   console.error('   2. Verify the database URL is correct and accessible');
-  console.error('   3. For Neon databases, ensure the connection string includes SSL parameters');
+  console.error('   3. For cloud databases, ensure the connection string includes SSL parameters if required');
   console.error('   4. Check your network connection and firewall settings');
   console.error('   5. Verify the database server is running and accessible');
-  console.error('   6. If using Neon, check if the database is paused (Neon pauses inactive databases)');
+  console.error('   6. If using Railway, check the database service status in your Railway dashboard');
   process.exit(1);
 });

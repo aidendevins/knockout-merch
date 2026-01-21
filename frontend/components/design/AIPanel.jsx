@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { base44 } from '@/api/base44Client';
 import { COLOR_PRESETS, getColorHex, getBuildPromptFunction } from '@/config/templates';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 // Helper function to compute inverse/contrasting hex color
 function getInverseHexColor(hexColor) {
@@ -675,6 +676,13 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
         existing_image_urls: photoUrls,
         template_id: selectedTemplate?.id, // Pass template ID to fetch reference image
       });
+
+      // Show fallback notification if fallback model was used
+      if (result?.fallbackUsed) {
+        toast.warning('Nano Banana Pro is not working, trying Nano Banana', {
+          duration: 5000,
+        });
+      }
 
       if (result?.url) {
         // onImageGenerated is async and handles setting isGenerating to false

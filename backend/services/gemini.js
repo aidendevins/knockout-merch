@@ -5,19 +5,33 @@ const s3 = require('./s3');
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 /**
- * Generate an image using Gemini's image generation capabilities
+ * Helper function to create a timeout promise
+ */
+function createTimeout(ms) {
+  return new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('TIMEOUT')), ms);
+  });
+}
+
+/**
+ * Generate an image using Gemini's image generation capabilities with timeout and fallback
  * @param {string} prompt - The design prompt (full prompt from template)
  * @param {string[]} referenceImageUrls - URLs/base64 of reference images
- * @returns {Promise<{url: string, key: string, prompt: string}>}
+ * @returns {Promise<{url: string, key: string, prompt: string, model: string, fallbackUsed: boolean}>}
  */
 async function generateImage(prompt, referenceImageUrls = []) {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY is not configured');
   }
 
-  try {
-    // Use Gemini 2.0 Flash with image generation
-    const modelName = "gemini-3-pro-image-preview";
+  // Primary model
+  const primaryModelName = "gemini-3-pro-image-preview";
+  // Fallback model
+  const fallbackModelName = "gemini-2.5-flash-image";
+  const TIMEOUT_MS = 60000; // 1 minute
+
+  // Helper function to generate with a specific model
+  const generateWithModel = async (modelName, imageParts, parts) => {
     const model = genAI.getGenerativeModel({
       model: modelName,
       generationConfig: {
@@ -25,7 +39,15 @@ async function generateImage(prompt, referenceImageUrls = []) {
       },
     });
     console.log(`Using model: ${modelName} for image generation`);
+    
+    const result = await model.generateContent({
+      contents: [{ parts: parts }],
+    });
+    
+    return { result, modelName };
+  };
 
+  try {
     // Fetch reference images if provided
     const imageParts = [];
     if (referenceImageUrls.length > 0) {
@@ -82,31 +104,40 @@ async function generateImage(prompt, referenceImageUrls = []) {
     const parts = [...imageParts, { text: prompt }];
 
     let result;
+    let modelName = primaryModelName;
+    let fallbackUsed = false;
+
     try {
-      result = await model.generateContent({
-        contents: [{ parts: parts }],
-      });
-      console.log('Image generation request completed');
-    } catch (apiError) {
-      console.error('Gemini API error:', apiError.message);
-
-      // Check for model not supporting image generation
-      if (apiError.message?.includes('does not support') ||
-        apiError.message?.includes('response modalities') ||
-        apiError.message?.includes('IMAGE')) {
-        const unsupportedError = new Error('Image generation is not supported by this model. Please ensure your Gemini API has image generation enabled.');
-        unsupportedError.status = 400;
-        unsupportedError.code = 'MODEL_NOT_SUPPORTED';
-        throw unsupportedError;
+      // Try primary model with timeout
+      console.log(`⏱️ Attempting generation with ${primaryModelName} (timeout: ${TIMEOUT_MS}ms)`);
+      result = await Promise.race([
+        generateWithModel(primaryModelName, imageParts, parts),
+        createTimeout(TIMEOUT_MS)
+      ]);
+      console.log('Image generation request completed with primary model');
+    } catch (timeoutError) {
+      if (timeoutError.message === 'TIMEOUT') {
+        console.warn(`⏰ Primary model ${primaryModelName} timed out after ${TIMEOUT_MS}ms`);
+        console.log(`🔄 Falling back to ${fallbackModelName}`);
+        fallbackUsed = true;
+        
+        // Try fallback model
+        try {
+          result = await generateWithModel(fallbackModelName, imageParts, parts);
+          modelName = fallbackModelName;
+          console.log('Image generation request completed with fallback model');
+        } catch (fallbackError) {
+          console.error('Fallback model also failed:', fallbackError.message);
+          throw fallbackError;
+        }
+      } else {
+        // Re-throw if it's not a timeout error
+        throw timeoutError;
       }
-
-      // Re-throw other errors with status preserved
-      const err = new Error(apiError.message);
-      err.status = apiError.status || 500;
-      throw err;
     }
 
-    const response = result.response;
+    modelName = result.modelName || modelName;
+    const response = result.result.response;
 
     // Check if we got an image in the response
     if (response.candidates && response.candidates[0]?.content?.parts) {
@@ -128,7 +159,8 @@ async function generateImage(prompt, referenceImageUrls = []) {
             key: uploaded.key,
             prompt: prompt.substring(0, 500) + '...', // Truncate for logging
             model: modelName,
-            useProxy: true
+            useProxy: true,
+            fallbackUsed: fallbackUsed
           };
         }
       }
@@ -153,7 +185,8 @@ async function generateImage(prompt, referenceImageUrls = []) {
             key: uploaded.key,
             prompt: prompt.substring(0, 500) + '...',
             model: modelName,
-            useProxy: true
+            useProxy: true,
+            fallbackUsed: fallbackUsed
           };
         }
       }

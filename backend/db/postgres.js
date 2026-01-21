@@ -10,8 +10,8 @@ if (!process.env.DATABASE_URL) {
 // Create connection pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  // Enable SSL for Neon and other cloud databases (they require SSL)
-  ssl: process.env.DATABASE_URL && (process.env.DATABASE_URL.includes('neon.tech') || process.env.DATABASE_URL.includes('amazonaws.com') || process.env.NODE_ENV === 'production') 
+  // Enable SSL for cloud databases (Railway, AWS RDS, etc. require SSL)
+  ssl: process.env.DATABASE_URL && (process.env.DATABASE_URL.includes('amazonaws.com') || process.env.DATABASE_URL.includes('railway.app') || process.env.NODE_ENV === 'production') 
     ? { rejectUnauthorized: false } 
     : false,
   max: 20,
@@ -76,7 +76,7 @@ async function init() {
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
     console.error('💡 Check your DATABASE_URL and network connectivity.');
-    console.error('💡 For Neon databases, ensure SSL is enabled.');
+    console.error('💡 For cloud databases, ensure SSL is enabled if required.');
     throw error;
   }
   
