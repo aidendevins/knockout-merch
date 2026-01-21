@@ -300,21 +300,37 @@ const ProductCanvas = forwardRef(({
     const fillColor = colorMap[color?.toLowerCase()] || '#1a1a1a';
 
     if (type === 'tshirt') {
-      // Draw filled t-shirt
+      // Draw realistic t-shirt shape
       ctx.beginPath();
-      ctx.moveTo(w * 0.30, h * 0.15);
-      ctx.lineTo(w * 0.25, h * 0.20);
-      ctx.lineTo(w * 0.15, h * 0.18);
-      ctx.lineTo(w * 0.12, h * 0.25);
-      ctx.lineTo(w * 0.20, h * 0.30);
-      ctx.lineTo(w * 0.20, h * 0.90);
-      ctx.lineTo(w * 0.80, h * 0.90);
-      ctx.lineTo(w * 0.80, h * 0.30);
-      ctx.lineTo(w * 0.88, h * 0.25);
-      ctx.lineTo(w * 0.85, h * 0.18);
-      ctx.lineTo(w * 0.75, h * 0.20);
-      ctx.lineTo(w * 0.70, h * 0.15);
-      ctx.quadraticCurveTo(w * 0.50, h * 0.20, w * 0.30, h * 0.15);
+      
+      // Start at left shoulder
+      ctx.moveTo(w * 0.30, h * 0.12);
+      
+      // Left sleeve
+      ctx.lineTo(w * 0.22, h * 0.15);
+      ctx.lineTo(w * 0.10, h * 0.20);
+      ctx.lineTo(w * 0.12, h * 0.28);
+      ctx.lineTo(w * 0.22, h * 0.30);
+      
+      // Left side of body
+      ctx.lineTo(w * 0.24, h * 0.32);
+      ctx.lineTo(w * 0.24, h * 0.92);
+      
+      // Bottom
+      ctx.lineTo(w * 0.76, h * 0.92);
+      
+      // Right side of body
+      ctx.lineTo(w * 0.76, h * 0.32);
+      ctx.lineTo(w * 0.78, h * 0.30);
+      
+      // Right sleeve
+      ctx.lineTo(w * 0.88, h * 0.28);
+      ctx.lineTo(w * 0.90, h * 0.20);
+      ctx.lineTo(w * 0.78, h * 0.15);
+      ctx.lineTo(w * 0.70, h * 0.12);
+      
+      // Neckline (curved)
+      ctx.quadraticCurveTo(w * 0.50, h * 0.17, w * 0.30, h * 0.12);
       ctx.closePath();
 
       // Fill with selected color
@@ -324,6 +340,14 @@ const ProductCanvas = forwardRef(({
       // Add subtle border for depth
       ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
       ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Draw neckline detail
+      ctx.beginPath();
+      ctx.moveTo(w * 0.38, h * 0.13);
+      ctx.quadraticCurveTo(w * 0.50, h * 0.16, w * 0.62, h * 0.13);
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+      ctx.lineWidth = 1.5;
       ctx.stroke();
 
     } else if (type === 'hoodie') {
