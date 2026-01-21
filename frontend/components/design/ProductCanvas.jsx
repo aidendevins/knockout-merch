@@ -107,13 +107,18 @@ const ProductCanvas = forwardRef(({
   const [designImage, setDesignImage] = useState(null);
 
   // Product mockup images
-  const [tshirtImages, setTshirtImages] = useState({ black: null, white: null });
-  const [tshirtMockupsLoaded, setTshirtMockupsLoaded] = useState({ black: false, white: false });
+  const [tshirtImages, setTshirtImages] = useState({ black: null, white: null, pink: null });
+  const [tshirtMockupsLoaded, setTshirtMockupsLoaded] = useState({ black: false, white: false, pink: false });
 
   // Get product config and override baseColor with selectedColor
   const product = useMemo(() => {
     const baseProduct = PRODUCT_TYPES[productType];
-    const effectiveColor = selectedColor === 'white' ? '#f5f5f5' : '#1a1a1a';
+    let effectiveColor = '#1a1a1a'; // default black
+    if (selectedColor === 'white') {
+      effectiveColor = '#f5f5f5';
+    } else if (selectedColor === 'pink') {
+      effectiveColor = '#FFB6C1'; // light pink
+    }
     return {
       ...baseProduct,
       baseColor: effectiveColor,
@@ -133,7 +138,7 @@ const ProductCanvas = forwardRef(({
     }
   }, []);
 
-  // Load t-shirt mockup images (black and white)
+  // Load t-shirt mockup images (black, white, and pink)
   useEffect(() => {
     // Load black t-shirt
     const blackImg = new Image();
@@ -158,6 +163,18 @@ const ProductCanvas = forwardRef(({
       setTshirtMockupsLoaded(prev => ({ ...prev, white: false }));
     };
     whiteImg.src = '/tshirt-white.png';
+
+    // Load pink t-shirt
+    const pinkImg = new Image();
+    pinkImg.onload = () => {
+      setTshirtImages(prev => ({ ...prev, pink: pinkImg }));
+      setTshirtMockupsLoaded(prev => ({ ...prev, pink: true }));
+    };
+    pinkImg.onerror = () => {
+      console.error('Failed to load pink t-shirt mockup image');
+      setTshirtMockupsLoaded(prev => ({ ...prev, pink: false }));
+    };
+    pinkImg.src = '/tshirt-pink.png';
   }, []);
 
   // Load the generated image when it changes
@@ -261,7 +278,12 @@ const ProductCanvas = forwardRef(({
     ctx.fillRect(0, 0, w, h);
 
     // Draw t-shirt mockup image if loaded (select based on color)
-    const currentColor = selectedColor === 'white' ? 'white' : 'black';
+    let currentColor = 'black'; // default
+    if (selectedColor === 'white') {
+      currentColor = 'white';
+    } else if (selectedColor === 'pink') {
+      currentColor = 'pink';
+    }
     const currentTshirtImage = tshirtImages[currentColor];
     const isMockupLoaded = tshirtMockupsLoaded[currentColor];
     
