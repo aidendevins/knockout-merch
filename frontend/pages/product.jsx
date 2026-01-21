@@ -39,6 +39,16 @@ export default function Product() {
   const [isFetchingMockups, setIsFetchingMockups] = useState(false);
   const [mockupsByColor, setMockupsByColor] = useState({}); // Cache mockups by color
 
+  // Reset state when designId changes (when navigating between different products)
+  React.useEffect(() => {
+    setSelectedSize('M');
+    setCurrentImageIndex(0);
+    setQuantity(1);
+    setSelectedColor(null);
+    setIsFetchingMockups(false);
+    setMockupsByColor({});
+  }, [designId]);
+
   // Fetch design
   const { data: design, isLoading } = useQuery({
     queryKey: ['design', designId],
