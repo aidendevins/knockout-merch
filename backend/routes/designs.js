@@ -3,10 +3,21 @@ const router = express.Router();
 const db = require('../db/postgres');
 const s3 = require('../services/s3');
 
+// Helper to check if a string is a valid UUID
+const isValidUUID = (str) => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+};
+
 // Get all designs with optional filtering
 router.get('/', async (req, res) => {
   try {
     const { is_featured, is_published, id, sort = '-created_at', limit } = req.query;
+    
+    // If filtering by ID and it's not a valid UUID, return empty array
+    if (id && !isValidUUID(id)) {
+      return res.json([]);
+    }
     
     let query = 'SELECT * FROM designs WHERE 1=1';
     const params = [];
@@ -65,6 +76,11 @@ router.get('/', async (req, res) => {
 // Get single design
 router.get('/:id', async (req, res) => {
   try {
+    // If not a valid UUID, return 404
+    if (!isValidUUID(req.params.id)) {
+      return res.status(404).json({ error: 'Design not found' });
+    }
+    
     const row = await db.get('SELECT * FROM designs WHERE id = $1', [req.params.id]);
     if (!row) {
       return res.status(404).json({ error: 'Design not found' });
@@ -208,7 +224,15 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Design not found' });
     }
     
-    // Delete from database
+    // Delete any associated orders first
+    const deleteOrdersResult = await db.query('DELETE FROM orders WHERE design_id = $1', [req.params.id]);
+    const ordersDeleted = deleteOrdersResult.rowCount || 0;
+    
+    if (ordersDeleted > 0) {
+      console.log(`Deleted ${ordersDeleted} orders for design ${req.params.id}`);
+    }
+    
+    // Now delete the design
     await db.query('DELETE FROM designs WHERE id = $1', [req.params.id]);
     
     // Try to delete image from S3
@@ -223,7 +247,7 @@ router.delete('/:id', async (req, res) => {
       }
     }
     
-    res.json({ success: true });
+    res.json({ success: true, ordersDeleted });
   } catch (error) {
     console.error('Error deleting design:', error);
     res.status(500).json({ error: 'Failed to delete design' });

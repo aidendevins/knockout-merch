@@ -1,26 +1,33 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import apiClient from '@/api/apiClient';
 import HeroSection from '@/components/landing/HeroSection';
 import StudioCarousel from '@/components/landing/StudioCarousel';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Home() {
-  // Studio Designs query (unpublished - the available designs for both hero and carousel)
-  const { data: studioDesigns = [], isLoading: studioLoading } = useQuery({
-    queryKey: ['studio-designs'],
+  // Fetch templates that have Printify products linked (curated collection)
+  const { data: templateProducts = [], isLoading: productsLoading } = useQuery({
+    queryKey: ['template-products'],
     queryFn: async () => {
       try {
-        // Fetch unpublished designs (studio collection)
-        const allDesigns = await base44.entities.Design.filter(
-          { is_published: false },
-          '-created_date',
-          null
-        );
-        console.log('Studio designs fetched:', allDesigns);
-        return allDesigns; // Return all designs for both carousels
+        // Fetch templates with Printify products
+        const templates = await apiClient.entities.Template.listWithProducts();
+        console.log('Template products fetched:', templates);
+        
+        // Transform templates to match the expected product format
+        return templates.map(template => ({
+          id: template.printify_product_id, // Use Printify product ID for navigation
+          template_id: template.id,
+          title: template.display_title || template.name,
+          description: template.description,
+          mockup_urls: template.mockup_urls || [],
+          price: template.price || 29.99,
+          product_type: 'tshirt', // Default
+          color: 'black', // Default
+        }));
       } catch (error) {
-        console.error('Error fetching studio designs:', error);
+        console.error('Error fetching template products:', error);
         throw error;
       }
     },
@@ -28,11 +35,11 @@ export default function Home() {
 
   return (
     <div className="bg-black min-h-screen">
-      {/* Hero Section with Product Carousel - uses same studio designs */}
-      <HeroSection products={studioDesigns} isLoading={studioLoading} />
+      {/* Hero Section with Product Carousel - uses template products */}
+      <HeroSection products={templateProducts} isLoading={productsLoading} />
 
-      {/* Studio Designs Carousel */}
-      {studioLoading ? (
+      {/* Studio Collection Carousel */}
+      {productsLoading ? (
         <section className="py-24 relative overflow-hidden">
           {/* Background image */}
           <div className="absolute inset-0">
@@ -66,7 +73,7 @@ export default function Home() {
             ))}
           </div>
         </section>
-      ) : studioDesigns.length === 0 ? (
+      ) : templateProducts.length === 0 ? (
         <section className="py-24 relative overflow-hidden">
           {/* Background image */}
           <div className="absolute inset-0">
@@ -83,14 +90,14 @@ export default function Home() {
             <div className="w-20 h-20 bg-gradient-to-br from-pink-900/30 to-red-900/30 rounded-full mx-auto mb-6 flex items-center justify-center border border-pink-600/30">
               <span className="text-4xl">💕</span>
             </div>
-            <h3 className="text-2xl font-bold text-white mb-3">No Studio Designs Yet</h3>
+            <h3 className="text-2xl font-bold text-white mb-3">Coming Soon</h3>
             <p className="text-pink-300/70 text-lg">
-              Check back soon for new studio designs!
+              Our curated collection is being prepared. Check back soon!
             </p>
           </div>
         </section>
       ) : (
-        <StudioCarousel designs={studioDesigns} />
+        <StudioCarousel designs={templateProducts} />
       )}
       
       {/* Footer */}

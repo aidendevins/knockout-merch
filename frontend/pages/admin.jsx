@@ -59,6 +59,10 @@ export default function Admin() {
   const [editingSchema, setEditingSchema] = useState(null);
   const [editedSchema, setEditedSchema] = useState(null);
   const [editingMaxPhotos, setEditingMaxPhotos] = useState({});
+  const [editingPrintifyId, setEditingPrintifyId] = useState({});
+  const [expandedDesign, setExpandedDesign] = useState(null);
+  const [quickDeleteMode, setQuickDeleteMode] = useState(false);
+  const [deleteModal, setDeleteModal] = useState({ open: false, design: null });
 
   // Fetch data
   const { data: templates = [], isLoading: templatesLoading } = useQuery({
@@ -155,6 +159,43 @@ export default function Admin() {
     },
   });
 
+  const deleteDesignMutation = useMutation({
+    mutationFn: (id) => base44.entities.Design.delete(id),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(['admin-designs']);
+      queryClient.invalidateQueries(['admin-orders']);
+      if (data.ordersDeleted > 0) {
+        toast.success(`Design and ${data.ordersDeleted} order(s) deleted`);
+      } else {
+        toast.success('Design deleted');
+      }
+      setExpandedDesign(null);
+      setDeleteModal({ open: false, design: null });
+    },
+    onError: (err) => {
+      toast.error('Failed to delete: ' + (err.message || 'Unknown error'));
+      console.error(err);
+      setDeleteModal({ open: false, design: null });
+    },
+  });
+
+  // Handle delete click - show modal or delete directly if quick delete mode
+  const handleDeleteClick = (design, e) => {
+    if (e) e.stopPropagation();
+    
+    if (quickDeleteMode) {
+      deleteDesignMutation.mutate(design.id);
+    } else {
+      setDeleteModal({ open: true, design });
+    }
+  };
+
+  // Confirm delete from modal
+  const confirmDelete = () => {
+    if (!deleteModal.design) return;
+    deleteDesignMutation.mutate(deleteModal.design.id);
+  };
+
   const handleEditPrompt = (template) => {
     setEditingTemplate(template);
     setEditedPrompt(template.prompt || '');
@@ -244,6 +285,26 @@ export default function Admin() {
     
     // Clear the editing state for this template
     setEditingMaxPhotos(prev => {
+      const newState = { ...prev };
+      delete newState[templateId];
+      return newState;
+    });
+  };
+
+  const handlePrintifyIdChange = (templateId, value) => {
+    setEditingPrintifyId(prev => ({ ...prev, [templateId]: value }));
+  };
+
+  const handleSavePrintifyId = (templateId) => {
+    const printifyId = editingPrintifyId[templateId];
+    
+    updateTemplateMutation.mutate({
+      id: templateId,
+      data: { printify_product_id: printifyId || null },
+    });
+    
+    // Clear the editing state for this template
+    setEditingPrintifyId(prev => {
       const newState = { ...prev };
       delete newState[templateId];
       return newState;
@@ -481,6 +542,63 @@ export default function Admin() {
                           )}
                         </div>
                         <p className="text-gray-500 text-xs mt-1">Maximum number of photos users can upload for this template</p>
+                      </div>
+
+                      {/* Printify Product ID Section */}
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <Label className="text-white font-medium flex items-center gap-2">
+                            <Package className="w-4 h-4 text-pink-400" />
+                            Printify Product ID
+                          </Label>
+                          {template.printify_product_id && (
+                            <Badge className="bg-green-500/20 text-green-400 text-xs">
+                              Linked to Printify
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="text"
+                            value={editingPrintifyId[template.id] !== undefined ? editingPrintifyId[template.id] : (template.printify_product_id || '')}
+                            onChange={(e) => handlePrintifyIdChange(template.id, e.target.value)}
+                            className="flex-1 bg-gray-800 border-pink-900/30 text-white font-mono text-sm"
+                            placeholder="Enter Printify Product ID..."
+                          />
+                          {editingPrintifyId[template.id] !== undefined && editingPrintifyId[template.id] !== (template.printify_product_id || '') && (
+                            <>
+                              <Button
+                                size="sm"
+                                onClick={() => handleSavePrintifyId(template.id)}
+                                disabled={updateTemplateMutation.isPending}
+                                className="bg-pink-600 hover:bg-pink-700 text-white"
+                              >
+                                {updateTemplateMutation.isPending ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Save className="w-3 h-3" />
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  setEditingPrintifyId(prev => {
+                                    const newState = { ...prev };
+                                    delete newState[template.id];
+                                    return newState;
+                                  });
+                                }}
+                                className="text-gray-400 hover:text-white"
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                        <p className="text-gray-500 text-xs mt-1">
+                          Link this template to a Printify product to display it on the landing page
+                        </p>
                       </div>
 
                       {/* Background Removal Section */}
@@ -734,8 +852,31 @@ export default function Admin() {
           <TabsContent value="designs">
             <Card className="bg-gray-900/50 border-pink-900/30 backdrop-blur">
               <CardHeader>
-                <CardTitle className="text-white">Published Designs</CardTitle>
-                <p className="text-gray-400 text-sm">Designs created and purchased by users</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-white">All Designs ({designs.length})</CardTitle>
+                    <p className="text-gray-400 text-sm">User-created designs - click to expand details</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <span className="text-gray-400 text-sm">Quick Delete</span>
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          checked={quickDeleteMode}
+                          onChange={(e) => setQuickDeleteMode(e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-red-500/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600"></div>
+                      </div>
+                    </label>
+                    {quickDeleteMode && (
+                      <Badge className="bg-red-500/20 text-red-400 text-xs">
+                        No confirmation
+                      </Badge>
+                    )}
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 {designsLoading ? (
@@ -748,60 +889,193 @@ export default function Admin() {
                     <p>No designs created yet</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  <div className="space-y-3">
                     {designs.map((design) => (
                       <div 
                         key={design.id}
-                        className="relative group bg-gray-800/50 rounded-lg overflow-hidden border border-pink-900/20 hover:border-pink-600/50 transition-colors"
+                        className="bg-gray-800/50 rounded-lg overflow-hidden border border-pink-900/20 hover:border-pink-600/50 transition-colors"
                       >
-                        <div className="aspect-square bg-black flex items-center justify-center">
-                          {design.design_image_url ? (
-                            <img 
-                              src={design.design_image_url} 
-                              alt={design.title}
-                              className="w-full h-full object-contain p-2"
-                            />
-                          ) : (
-                            <Package className="w-8 h-8 text-gray-600" />
-                          )}
-                        </div>
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => toggleDesignFeatureMutation.mutate({ 
-                              id: design.id, 
-                              is_featured: design.is_featured 
-                            })}
-                            className="bg-white/10 hover:bg-white/20"
-                          >
-                            {design.is_featured ? (
-                              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                        {/* Collapsed View - Always Visible */}
+                        <div 
+                          className="flex items-center gap-4 p-4 cursor-pointer"
+                          onClick={() => setExpandedDesign(expandedDesign === design.id ? null : design.id)}
+                        >
+                          {/* Thumbnail */}
+                          <div className="w-16 h-16 bg-black rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
+                            {design.mockup_urls?.[0] ? (
+                              <img 
+                                src={design.mockup_urls[0]} 
+                                alt={design.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : design.design_image_url ? (
+                              <img 
+                                src={design.design_image_url} 
+                                alt={design.title}
+                                className="w-full h-full object-contain p-1"
+                              />
                             ) : (
-                              <StarOff className="w-4 h-4 text-gray-400" />
+                              <Package className="w-6 h-6 text-gray-600" />
                             )}
-                          </Button>
-                        </div>
-                        <div className="p-3">
-                          <p className="text-white text-xs font-medium truncate">{design.title}</p>
-                          <div className="flex items-center justify-between mt-1">
-                            <span className="text-gray-500 text-xs">{design.sales_count || 0} sales</span>
+                          </div>
+                          
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white font-medium truncate">{design.title}</p>
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              <span className="text-gray-400 text-xs">{design.product_type || 'tshirt'}</span>
+                              <span className="text-gray-600">•</span>
+                              <span className="text-gray-400 text-xs">{design.color || 'black'}</span>
+                              <span className="text-gray-600">•</span>
+                              <span className="text-gray-400 text-xs">${parseFloat(design.price || 29.99).toFixed(2)}</span>
+                              {design.template_id && (
+                                <>
+                                  <span className="text-gray-600">•</span>
+                                  <Badge className="bg-purple-500/20 text-purple-300 text-[10px]">
+                                    {design.template_id}
+                                  </Badge>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Badges */}
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {design.is_featured && (
+                              <Badge className="bg-yellow-500/20 text-yellow-400 text-[10px]">
+                                Featured
+                              </Badge>
+                            )}
                             {design.is_published && (
                               <Badge className="bg-green-500/20 text-green-400 text-[10px]">
                                 Published
                               </Badge>
                             )}
+                            <span className="text-gray-500 text-sm">
+                              {expandedDesign === design.id ? '▲' : '▼'}
+                            </span>
                           </div>
-                          {design.template_id && (
-                            <Badge className="mt-1 bg-purple-500/20 text-purple-300 text-[10px]">
-                              {design.template_id}
-                            </Badge>
-                          )}
                         </div>
-                        {design.is_featured && (
-                          <Badge className="absolute top-2 left-2 bg-yellow-500 text-black text-[10px]">
-                            Featured
-                          </Badge>
+                        
+                        {/* Expanded View */}
+                        {expandedDesign === design.id && (
+                          <div className="border-t border-pink-900/20 p-4 space-y-4 bg-black/20">
+                            {/* Mockups Gallery */}
+                            {design.mockup_urls && design.mockup_urls.length > 0 && (
+                              <div>
+                                <Label className="text-gray-400 text-xs mb-2 block">Mockups ({design.mockup_urls.length})</Label>
+                                <div className="flex gap-2 overflow-x-auto pb-2">
+                                  {design.mockup_urls.map((url, idx) => (
+                                    <img 
+                                      key={idx}
+                                      src={url} 
+                                      alt={`Mockup ${idx + 1}`}
+                                      className="w-24 h-24 object-cover rounded-lg flex-shrink-0 border border-pink-900/30"
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Design Image */}
+                            {design.design_image_url && (
+                              <div>
+                                <Label className="text-gray-400 text-xs mb-2 block">Design Image</Label>
+                                <img 
+                                  src={design.design_image_url} 
+                                  alt="Design"
+                                  className="w-32 h-32 object-contain rounded-lg border border-pink-900/30 bg-white/5"
+                                />
+                              </div>
+                            )}
+                            
+                            {/* Details Grid */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              <div>
+                                <Label className="text-gray-500 text-xs">ID</Label>
+                                <p className="text-white text-xs font-mono truncate">{design.id}</p>
+                              </div>
+                              <div>
+                                <Label className="text-gray-500 text-xs">Printify ID</Label>
+                                <p className="text-white text-xs font-mono truncate">{design.printify_product_id || 'N/A'}</p>
+                              </div>
+                              <div>
+                                <Label className="text-gray-500 text-xs">Sales Count</Label>
+                                <p className="text-white text-xs">{design.sales_count || 0}</p>
+                              </div>
+                              <div>
+                                <Label className="text-gray-500 text-xs">Created</Label>
+                                <p className="text-white text-xs">{design.created_at ? new Date(design.created_at).toLocaleDateString() : 'N/A'}</p>
+                              </div>
+                            </div>
+                            
+                            {/* Prompt Used */}
+                            {design.prompt_used && (
+                              <div>
+                                <Label className="text-gray-500 text-xs mb-1 block">Prompt Used</Label>
+                                <p className="text-gray-300 text-xs bg-black/40 p-2 rounded-lg max-h-20 overflow-y-auto">
+                                  {design.prompt_used}
+                                </p>
+                              </div>
+                            )}
+                            
+                            {/* Actions */}
+                            <div className="flex items-center gap-2 pt-2 border-t border-pink-900/20">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleDesignFeatureMutation.mutate({ 
+                                    id: design.id, 
+                                    is_featured: design.is_featured 
+                                  });
+                                }}
+                                className={design.is_featured ? 'text-yellow-400 hover:text-yellow-300' : 'text-gray-400 hover:text-white'}
+                              >
+                                {design.is_featured ? (
+                                  <>
+                                    <Star className="w-4 h-4 mr-1 fill-current" />
+                                    Unfeature
+                                  </>
+                                ) : (
+                                  <>
+                                    <StarOff className="w-4 h-4 mr-1" />
+                                    Feature
+                                  </>
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(`/product/${design.id}`, '_blank');
+                                }}
+                                className="text-pink-400 hover:text-pink-300"
+                              >
+                                <Eye className="w-4 h-4 mr-1" />
+                                View Product
+                              </Button>
+                              <div className="flex-1" />
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={(e) => handleDeleteClick(design, e)}
+                                disabled={deleteDesignMutation.isPending}
+                                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                              >
+                                {deleteDesignMutation.isPending && deleteModal.design?.id === design.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <Trash2 className="w-4 h-4 mr-1" />
+                                    Delete
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
                         )}
                       </div>
                     ))}
@@ -1124,6 +1398,72 @@ export default function Admin() {
                 </>
               )}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteModal.open} onOpenChange={(open) => !open && setDeleteModal({ open: false, design: null })}>
+        <DialogContent className="bg-gray-900 border-pink-900/30 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-red-400" />
+              Delete Design
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-gray-300">
+              Are you sure you want to delete <span className="font-semibold text-white">"{deleteModal.design?.title}"</span>?
+            </p>
+            <p className="text-gray-400 text-sm">
+              This will also delete any associated orders. This action cannot be undone.
+            </p>
+            
+            {/* Preview thumbnail */}
+            {deleteModal.design && (
+              <div className="flex items-center gap-3 p-3 bg-black/40 rounded-lg border border-pink-900/20">
+                <div className="w-12 h-12 bg-black rounded flex-shrink-0 overflow-hidden">
+                  {deleteModal.design.mockup_urls?.[0] ? (
+                    <img src={deleteModal.design.mockup_urls[0]} alt="" className="w-full h-full object-cover" />
+                  ) : deleteModal.design.design_image_url ? (
+                    <img src={deleteModal.design.design_image_url} alt="" className="w-full h-full object-contain" />
+                  ) : (
+                    <Package className="w-6 h-6 text-gray-600 m-auto mt-3" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-medium truncate">{deleteModal.design.title}</p>
+                  <p className="text-gray-500 text-xs">{deleteModal.design.product_type} • {deleteModal.design.color}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 justify-end pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setDeleteModal({ open: false, design: null })}
+                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmDelete}
+                disabled={deleteDesignMutation.isPending}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {deleteDesignMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

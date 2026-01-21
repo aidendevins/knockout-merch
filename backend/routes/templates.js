@@ -19,6 +19,68 @@ router.get('/', async (req, res) => {
 });
 
 /**
+ * Get templates with Printify products (for landing page)
+ * GET /api/templates/with-products
+ * 
+ * Returns templates that have a linked Printify product, 
+ * with mockup URLs fetched from Printify API
+ */
+router.get('/with-products', async (req, res) => {
+  try {
+    const printify = require('../services/printify');
+    
+    const templates = await db.all(`
+      SELECT * FROM templates 
+      WHERE printify_product_id IS NOT NULL 
+        AND printify_product_id != ''
+        AND is_hidden = false
+      ORDER BY created_at ASC
+    `);
+    
+    // Fetch Printify product details for each template
+    const templatesWithProducts = await Promise.all(
+      templates.map(async (template) => {
+        try {
+          if (printify.isConfigured() && template.printify_product_id) {
+            const productDetails = await printify.getProductDetails(template.printify_product_id);
+            const mockupUrls = (productDetails.images || []).map(img => img.src);
+            
+            // Extract price from variants (first variant's price)
+            let price = 29.99;
+            const variants = productDetails.variants || [];
+            if (variants.length > 0 && variants[0].price) {
+              price = variants[0].price / 100; // Price is in cents
+            }
+            
+            return {
+              ...template,
+              // Include product data for display
+              mockup_urls: mockupUrls,
+              price: price,
+              printify_title: productDetails.title,
+              // Use template name as title, fallback to Printify title
+              display_title: template.name || productDetails.title,
+            };
+          }
+          return template;
+        } catch (err) {
+          console.error(`Error fetching Printify product for template ${template.id}:`, err.message);
+          return template; // Return template without product data on error
+        }
+      })
+    );
+    
+    // Filter out templates that don't have mockups (failed to fetch)
+    const validTemplates = templatesWithProducts.filter(t => t.mockup_urls && t.mockup_urls.length > 0);
+    
+    res.json(validTemplates);
+  } catch (error) {
+    console.error('Error fetching templates with products:', error);
+    res.status(500).json({ error: 'Failed to fetch templates with products' });
+  }
+});
+
+/**
  * Get a single template by ID
  * GET /api/templates/:id
  */
@@ -112,6 +174,7 @@ router.put('/:id', async (req, res) => {
       gradient,
       is_hidden,
       remove_background,
+      printify_product_id,
     } = req.body;
 
     // Check if template exists
@@ -168,6 +231,10 @@ router.put('/:id', async (req, res) => {
     if (remove_background !== undefined) {
       updates.push(`remove_background = $${paramCount++}`);
       values.push(remove_background);
+    }
+    if (printify_product_id !== undefined) {
+      updates.push(`printify_product_id = $${paramCount++}`);
+      values.push(printify_product_id);
     }
 
     // Always update updated_at

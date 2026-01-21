@@ -123,6 +123,10 @@ class TemplatesAPI {
     return apiCall(this.basePath);
   }
 
+  async listWithProducts() {
+    return apiCall(`${this.basePath}/with-products`);
+  }
+
   async get(id) {
     return apiCall(`${this.basePath}/${id}`);
   }
@@ -326,6 +330,11 @@ const apiClient = {
           design_id: designId,
         }),
       });
+    },
+
+    // Get product details by Printify product ID
+    async getProduct(productId) {
+      return apiCall(`/printify/products/${productId}`);
     },
 
     // Get mockups for a product
