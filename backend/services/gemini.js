@@ -107,6 +107,14 @@ async function generateImage(prompt, referenceImageUrls = []) {
     let modelName = primaryModelName;
     let fallbackUsed = false;
 
+    // Helper to check if error should trigger fallback
+    const shouldUseFallback = (error) => {
+      return error.message === 'TIMEOUT' || 
+             error.status === 503 || 
+             error.message?.includes('overloaded') ||
+             error.message?.includes('503');
+    };
+
     try {
       // Try primary model with timeout
       console.log(`⏱️ Attempting generation with ${primaryModelName} (timeout: ${TIMEOUT_MS}ms)`);
@@ -115,9 +123,10 @@ async function generateImage(prompt, referenceImageUrls = []) {
         createTimeout(TIMEOUT_MS)
       ]);
       console.log('Image generation request completed with primary model');
-    } catch (timeoutError) {
-      if (timeoutError.message === 'TIMEOUT') {
-        console.warn(`⏰ Primary model ${primaryModelName} timed out after ${TIMEOUT_MS}ms`);
+    } catch (primaryError) {
+      if (shouldUseFallback(primaryError)) {
+        const reason = primaryError.message === 'TIMEOUT' ? 'timed out' : 'overloaded (503)';
+        console.warn(`⏰ Primary model ${primaryModelName} ${reason}`);
         console.log(`🔄 Falling back to ${fallbackModelName}`);
         fallbackUsed = true;
         
@@ -131,8 +140,8 @@ async function generateImage(prompt, referenceImageUrls = []) {
           throw fallbackError;
         }
       } else {
-        // Re-throw if it's not a timeout error
-        throw timeoutError;
+        // Re-throw if it's not a fallback-eligible error
+        throw primaryError;
       }
     }
 

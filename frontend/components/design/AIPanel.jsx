@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Loader2, AlertCircle, RefreshCw, Heart, ImageIcon, Check, Scissors } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle, RefreshCw, Heart, ImageIcon, Check, Scissors, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -111,7 +111,6 @@ function DynamicField({ field, value, onChange }) {
             type="text"
             value={value || ''}
             onChange={(e) => {
-              console.log('⌨️ USER TYPING in text field:', { fieldId: field.id, newValue: e.target.value });
               // Enforce maxLength if specified
               if (field.maxLength && e.target.value.length > field.maxLength) {
                 return;
@@ -164,10 +163,7 @@ function DynamicField({ field, value, onChange }) {
               {COLOR_PRESETS.map((color) => (
                 <button
                   key={color}
-                  onClick={() => {
-                    console.log('🎨 USER CLICKED COLOR:', { fieldId: field.id, color });
-                    onChange(color);
-                  }}
+                  onClick={() => onChange(color)}
                   className={cn(
                     "w-6 h-6 rounded-full border-2 transition-all hover:scale-110",
                     (value || field.defaultValue) === color 
@@ -198,10 +194,7 @@ function DynamicField({ field, value, onChange }) {
           </label>
           <select
             value={value || field.defaultValue || ''}
-            onChange={(e) => {
-              console.log('📋 USER SELECTED option:', { fieldId: field.id, newValue: e.target.value });
-              onChange(e.target.value);
-            }}
+            onChange={(e) => onChange(e.target.value)}
             className="w-full px-3 py-2 rounded-lg bg-black/40 border border-pink-900/30 text-white text-sm focus:border-pink-600 focus:outline-none"
           >
             {field.options?.map((option) => (
@@ -223,10 +216,7 @@ function DynamicField({ field, value, onChange }) {
           <input
             type="date"
             value={value || ''}
-            onChange={(e) => {
-              console.log('📅 USER SELECTED DATE:', { fieldId: field.id, newValue: e.target.value });
-              onChange(e.target.value);
-            }}
+            onChange={(e) => onChange(e.target.value)}
             className="w-full px-3 py-2 rounded-lg bg-black/40 border border-pink-900/30 text-white text-sm focus:border-pink-600 focus:outline-none [color-scheme:dark]"
           />
           {field.hint && (
@@ -255,67 +245,44 @@ export default function AIPanel({
   const [fieldValues, setFieldValues] = useState({});
   const [styleTweaks, setStyleTweaks] = useState('');
   const [error, setError] = useState(null);
+  const [previousDesigns, setPreviousDesigns] = useState([]);
 
   // Initialize field values when template changes
   useEffect(() => {
-    console.log('🔄 Template changed, initializing field values');
     if (selectedTemplate?.panelSchema?.fields) {
       const initialValues = {};
       selectedTemplate.panelSchema.fields.forEach((field) => {
         if (field.defaultValue !== undefined) {
           initialValues[field.id] = field.defaultValue;
-          console.log('  → Initialized field:', { id: field.id, type: field.type, defaultValue: field.defaultValue });
         }
       });
-      console.log('📦 Initial fieldValues:', initialValues);
       setFieldValues(initialValues);
-    } else {
-      console.log('⚠️ No panelSchema.fields found');
     }
-    
-    // Debug: Log template object when it changes
-    if (selectedTemplate) {
-      console.log('🔍 Template object updated:', {
-        id: selectedTemplate.id,
-        name: selectedTemplate.name,
-        hasPrompt: !!selectedTemplate.prompt,
-        promptType: typeof selectedTemplate.prompt,
-        promptValue: selectedTemplate.prompt,
-        hasBuildPrompt: !!selectedTemplate.buildPrompt,
-        buildPromptType: typeof selectedTemplate.buildPrompt,
-      });
-    }
+    // Clear previous designs when template changes
+    setPreviousDesigns([]);
   }, [selectedTemplate?.id]);
 
   const updateFieldValue = (fieldId, value) => {
-    console.log('👆 USER INTERACTION: Field value changed', {
-      fieldId,
-      value,
-      valueType: typeof value,
-      previousFieldValues: fieldValues,
-    });
-    setFieldValues(prev => {
-      const newValues = { ...prev, [fieldId]: value };
-      console.log('📝 Updated fieldValues:', newValues);
-      return newValues;
-    });
+    setFieldValues(prev => ({ ...prev, [fieldId]: value }));
+  };
+
+  // Restore a previous design
+  const restorePreviousDesign = (imageUrl, index) => {
+    // Save current design to history before restoring
+    if (generatedImage) {
+      setPreviousDesigns(prev => {
+        // Remove the selected design from history and add current to front
+        const newHistory = prev.filter((_, i) => i !== index);
+        return [generatedImage, ...newHistory];
+      });
+    }
+    // Restore the selected design
+    onImageGenerated({ url: imageUrl, skipBackgroundRemoval: true });
   };
 
   // Build the full prompt - prioritizes database prompt over buildPrompt function
   const buildPrompt = () => {
-    console.log('🔨 buildPrompt() called');
-    console.log('📊 Current state:', {
-      hasTemplate: !!selectedTemplate,
-      templateId: selectedTemplate?.id,
-      fieldValues: fieldValues,
-      fieldValuesKeys: Object.keys(fieldValues),
-      fieldValuesCount: Object.keys(fieldValues).length,
-      selectedColor,
-      photoCount: uploadedPhotos.length,
-    });
-    
     if (!selectedTemplate) {
-      console.warn('⚠️ No template selected');
       return '';
     }
 
@@ -326,9 +293,6 @@ export default function AIPanel({
     // PRIORITY 1: Use database prompt if available (edited via admin panel)
     if (selectedTemplate.prompt && selectedTemplate.prompt.trim()) {
       let prompt = selectedTemplate.prompt;
-      
-      console.log('🔧 Building prompt - fieldValues:', fieldValues);
-      console.log('🔧 Template fields:', selectedTemplate.panelSchema?.fields);
       
       // Get dateFormat value (needed for date formatting)
       let dateFormatValue = 'standard';
@@ -403,45 +367,29 @@ export default function AIPanel({
         prompt += `\n\n**Additional Style Instructions:** ${styleTweaks}`;
       }
 
-      console.log('📝 Using database prompt (from admin panel)');
-      console.log('📋 Instructions appended:', instructions);
-      console.log('🎨 Final prompt sent to Gemini:\n', prompt);
-      
       return prompt;
     }
 
     // PRIORITY 2: Use buildPrompt function from templates.js config
     // Try to get buildPrompt from template object first, then fallback to importing it
-    console.log('🔍 PRIORITY 2: Checking for buildPrompt function...');
-    console.log('   Template ID:', selectedTemplate.id);
-    console.log('   Template object keys:', Object.keys(selectedTemplate));
-    console.log('   Template has buildPrompt property:', !!selectedTemplate.buildPrompt);
-    console.log('   buildPrompt type:', typeof selectedTemplate.buildPrompt);
-    console.log('   buildPrompt value:', selectedTemplate.buildPrompt);
-    
     let buildPromptFn = selectedTemplate.buildPrompt;
     
     // If not found on template object, try to get it directly
     if (!buildPromptFn && selectedTemplate.id) {
-      console.log('   ⚠️ Template object missing buildPrompt, trying getBuildPromptFunction...');
       try {
         buildPromptFn = getBuildPromptFunction(selectedTemplate.id);
-        console.log('   getBuildPromptFunction returned type:', typeof buildPromptFn);
-        console.log('   getBuildPromptFunction returned value:', buildPromptFn ? 'function exists' : 'null/undefined');
       } catch (err) {
-        console.error('   ❌ Error calling getBuildPromptFunction:', err);
+        // Silently handle error
       }
     }
     
     // Last resort: hardcode for retro-name-portrait if ID matches
     // This is a direct fix to ensure retro-name-portrait always works
     if (!buildPromptFn && selectedTemplate.id === 'retro-name-portrait') {
-      console.log('   ⚠️ Attempting direct import fallback for retro-name-portrait...');
       buildPromptFn = getBuildPromptFunction('retro-name-portrait');
       
       // If that still doesn't work, we'll inline the logic as a final fallback
       if (!buildPromptFn || typeof buildPromptFn !== 'function') {
-        console.log('   ⚠️ getBuildPromptFunction failed, using inline fallback for retro-name-portrait...');
         // Inline fallback - directly build the prompt for retro-name-portrait
         const personName = fieldValues.customName || 'AMELIA';
         const textColor = fieldValues.textColor || '#3b82f6';
@@ -557,35 +505,17 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
     }
     
     if (buildPromptFn && typeof buildPromptFn === 'function') {
-      console.log('✅ Found buildPrompt function! Using it now...');
-      console.log('📋 Template ID:', selectedTemplate.id);
-      console.log('📋 Field values:', fieldValues);
-      console.log('📋 Background color:', backgroundColorHex);
-      console.log('📋 Photo count:', photoCount);
-      
       try {
         const prompt = buildPromptFn(fieldValues, backgroundColorHex, photoCount, styleTweaks);
-        console.log('📝 Generated prompt length:', prompt?.length || 0);
-        console.log('📝 Prompt preview (first 200 chars):', prompt?.substring(0, 200));
-        
-        if (!prompt || !prompt.trim()) {
-          console.error('❌ buildPrompt function returned empty prompt');
-          console.error('   Field values were:', fieldValues);
-        } else {
+        if (prompt && prompt.trim()) {
           return prompt;
         }
       } catch (err) {
-        console.error('❌ Error executing buildPrompt function:', err);
+        // Silently handle error, fall through to fallback
       }
-    } else {
-      console.error('❌ No buildPrompt function available');
-      console.error('   Template ID:', selectedTemplate.id);
-      console.error('   buildPromptFn:', buildPromptFn);
     }
 
     // PRIORITY 3: Fallback to old prompt building method (for backwards compatibility)
-    console.log('📝 Using fallback prompt method - THIS SHOULD NOT HAPPEN FOR retro-name-portrait');
-    console.log('   ⚠️ PRIORITY 2 failed - buildPrompt not available');
     let prompt = selectedTemplate.aiPrompt || '';
     
     // Add field-specific prompt parts
@@ -617,18 +547,6 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
   };
 
   const handleGenerate = async () => {
-    console.log('🚀 USER CLICKED GENERATE BUTTON');
-    console.log('📊 State at generate click:', {
-      templateId: selectedTemplate?.id,
-      templateName: selectedTemplate?.name,
-      fieldValues: fieldValues,
-      fieldValuesStringified: JSON.stringify(fieldValues),
-      allFieldIds: selectedTemplate?.panelSchema?.fields?.map(f => f.id),
-      allFieldTypes: selectedTemplate?.panelSchema?.fields?.map(f => ({ id: f.id, type: f.type })),
-      photoCount: uploadedPhotos.length,
-      styleTweaks: styleTweaks,
-    });
-    
     if (!selectedTemplate) {
       setError('Please select a template first');
       return;
@@ -640,36 +558,30 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
     }
 
     const validation = validateFields();
-    console.log('✅ Field validation result:', validation);
     if (!validation.valid) {
       setError(validation.message);
       return;
+    }
+
+    // Save current design to history if regenerating
+    if (generatedImage) {
+      setPreviousDesigns(prev => [generatedImage, ...prev]);
     }
 
     setIsGenerating(true);
     setError(null);
 
     try {
-      console.log('🔨 Calling buildPrompt()...');
       const fullPrompt = buildPrompt();
-      console.log('📝 buildPrompt() returned, length:', fullPrompt?.length);
       
       // Validate prompt is not empty
       if (!fullPrompt || !fullPrompt.trim()) {
         setError('Prompt is required. Please check that all required fields are filled.');
         setIsGenerating(false);
-        console.error('❌ Empty prompt generated. Template:', selectedTemplate?.id);
-        console.error('   Template has buildPrompt:', !!selectedTemplate?.buildPrompt);
-        console.error('   Template has prompt:', !!selectedTemplate?.prompt);
-        console.error('   Field values:', fieldValues);
         return;
       }
       
       const photoUrls = uploadedPhotos.map(p => p.preview);
-
-      console.log('Generating design with prompt length:', fullPrompt.length);
-      console.log('Number of photos:', photoUrls.length);
-      console.log('🎨 Final prompt sent to Gemini:\n', fullPrompt);
 
       const result = await base44.integrations.Core.GenerateImage({
         prompt: fullPrompt,
@@ -690,8 +602,6 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
         await onImageGenerated(result);
       }
     } catch (err) {
-      console.error('Generation error:', err);
-
       const errorMessage = err.message?.toLowerCase() || '';
       const errorCode = err.code;
       const errorStatus = err.status;
@@ -911,6 +821,34 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
                   className="w-full aspect-square object-contain bg-black/40"
                 />
               </div>
+
+              {/* Previous designs */}
+              {previousDesigns.length > 0 && (
+                <div className="mt-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <History className="w-3 h-3 text-white/40" />
+                    <span className="text-xs text-white/40">Previous designs</span>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    {previousDesigns.map((imageUrl, index) => (
+                      <button
+                        key={`${imageUrl}-${index}`}
+                        onClick={() => restorePreviousDesign(imageUrl, index)}
+                        className="relative w-16 h-16 rounded-lg overflow-hidden border border-pink-900/30 hover:border-pink-500 transition-all hover:scale-105 group"
+                      >
+                        <img 
+                          src={imageUrl} 
+                          alt={`Previous design ${index + 1}`}
+                          className="w-full h-full object-contain bg-black/40"
+                        />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <span className="text-white text-xs font-medium">Use</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

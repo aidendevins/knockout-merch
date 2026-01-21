@@ -20,7 +20,7 @@ export default function Layout({ children }) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen w-full bg-black">
       <Toaster 
         position="top-center" 
         richColors 
@@ -34,7 +34,7 @@ export default function Layout({ children }) {
       />
       <Navbar user={user} />
       <CartDrawer />
-      <main>
+      <main className="w-full">
         {children}
       </main>
     </div>

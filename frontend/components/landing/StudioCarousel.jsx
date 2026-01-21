@@ -84,8 +84,8 @@ export default function StudioCarousel({ designs }) {
   };
 
   return (
-    <section className="py-24 overflow-hidden relative">
-      <div className="max-w-7xl mx-auto px-4 relative z-10">
+    <section className="py-24 overflow-hidden relative w-full">
+      <div className="max-w-[2400px] mx-auto px-4 md:px-8 lg:px-16 xl:px-24 2xl:px-32 relative z-10">
         {/* Section header */}
         <div className="text-center mb-12">
           <Badge className="bg-gradient-to-r from-pink-600 to-red-600 text-white border-0 mb-4 text-sm px-4 py-1.5 shadow-lg shadow-pink-600/30">
@@ -99,8 +99,8 @@ export default function StudioCarousel({ designs }) {
           </p>
         </div>
 
-        {/* 3-column grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Responsive grid - up to 4 columns on ultrawide */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
           {designs.map((design, index) => (
             <motion.div
               key={design.id}

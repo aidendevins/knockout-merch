@@ -118,14 +118,17 @@ export default function DesignStudio() {
   const handleImageGenerated = async (result) => {
     // result can be a URL string (backward compatibility) or an object with url
     const imageUrl = typeof result === 'string' ? result : result.url;
+    const skipBackgroundRemoval = typeof result === 'object' && result.skipBackgroundRemoval;
 
-    // Cache the original Gemini-generated image for retry functionality
-    setCachedGeminiImage(imageUrl);
+    // Cache the original Gemini-generated image for retry functionality (unless restoring previous)
+    if (!skipBackgroundRemoval) {
+      setCachedGeminiImage(imageUrl);
+    }
 
     // Check if template requires background removal - do it immediately after generation
     // Support both string ("remove-simple") and boolean (for backwards compatibility)
     const removeBgValue = selectedTemplate?.remove_background || selectedTemplate?.removeBackground;
-    const needsBackgroundRemoval = removeBgValue === 'remove-simple' || removeBgValue === true;
+    const needsBackgroundRemoval = (removeBgValue === 'remove-simple' || removeBgValue === true) && !skipBackgroundRemoval;
 
     if (needsBackgroundRemoval) {
       // Don't set the image yet - wait for background removal to complete

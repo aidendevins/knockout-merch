@@ -66,7 +66,7 @@ export default function Navbar({ user }) {
               <Heart className="w-5 h-5 text-white fill-white" />
             </div>
             <span className="font-bold text-white text-lg tracking-tight hidden sm:block">
-              LoveForge
+              DesignForWear
             </span>
           </Link>
 

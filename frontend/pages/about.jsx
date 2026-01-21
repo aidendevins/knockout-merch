@@ -11,7 +11,7 @@ export default function About() {
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-600 to-red-600 text-white px-4 py-2 rounded-full text-sm font-semibold mb-6 shadow-lg shadow-pink-600/30">
             <Heart className="w-4 h-4" />
-            About LoveForge
+            About DesignForWear
           </div>
           <h1 className="text-4xl md:text-6xl font-black text-white tracking-tight mb-4">
             Making Gifting Personal
@@ -27,7 +27,7 @@ export default function About() {
           <section className="bg-gradient-to-br from-red-950/30 via-pink-950/20 to-red-950/30 rounded-2xl p-8 border border-pink-900/30 backdrop-blur-sm">
             <h2 className="text-3xl font-bold text-white mb-6">Our Mission</h2>
             <p className="text-white/80 leading-relaxed text-lg">
-              LoveForge exists to make gifting personal again - without the wait. We help you turn your favorite photos, 
+              DesignForWear exists to make gifting personal again - without the wait. We help you turn your favorite photos, 
               names, and inside jokes into a shirt you're genuinely proud to give (or wear). In under a minute, you can 
               create something that feels thoughtful, custom, and uniquely yours - then we print it and ship it fast.
             </p>
@@ -40,7 +40,7 @@ export default function About() {
           <section className="bg-gradient-to-br from-red-950/30 via-pink-950/20 to-red-950/30 rounded-2xl p-8 border border-pink-900/30 backdrop-blur-sm">
             <h2 className="text-3xl font-bold text-white mb-6">What We Do</h2>
             <p className="text-white/80 leading-relaxed text-lg mb-4">
-              LoveForge combines an easy creator studio with AI-assisted design to produce gift-ready tees instantly. 
+              DesignForWear combines an easy creator studio with AI-assisted design to produce gift-ready tees instantly. 
               Upload photos, type what you want ("I ❤️ my girlfriend," a name collage, a tour-tee vibe), and we generate 
               a clean layout with the right cutouts, effects, and typography - plus a true-to-life preview on a real shirt. 
               When you approve it, we handle the rest: high-quality printing, secure checkout, and dependable fulfillment.
@@ -54,7 +54,7 @@ export default function About() {
           <section className="bg-gradient-to-br from-red-950/30 via-pink-950/20 to-red-950/30 rounded-2xl p-8 border border-pink-900/30 backdrop-blur-sm">
             <h2 className="text-3xl font-bold text-white mb-6">Get Started</h2>
             <p className="text-white/80 leading-relaxed text-lg mb-8">
-              Pick a style, upload a few photos, and type a prompt - LoveForge will generate options in seconds. Tweak 
+              Pick a style, upload a few photos, and type a prompt - DesignForWear will generate options in seconds. Tweak 
               the text, choose your shirt color and size, preview it, and check out when it looks perfect. Whether you're 
               shopping for Valentine's, an anniversary, or a just-because gift, you can make something memorable in minutes.
             </p>
@@ -77,10 +77,10 @@ export default function About() {
         {/* Footer Note */}
         <div className="mt-16 text-center">
           <p className="text-white/40 text-sm flex items-center justify-center gap-2">
-            Made with <Heart className="w-4 h-4 text-pink-500" /> by LoveForge
+            Made with <Heart className="w-4 h-4 text-pink-500" /> by DesignForWear
           </p>
           <p className="text-white/40 text-sm mt-2">
-            © 2025 LoveForge. All rights reserved.
+            © 2025 DesignForWear. All rights reserved.
           </p>
         </div>
       </div>

@@ -22,10 +22,10 @@ export default function HeroSection({ products = [], isLoading = false }) {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden">
+    <section className="relative min-h-screen w-full flex items-center overflow-hidden">
       
       {/* Content - Split Layout */}
-      <div className="relative z-10 w-full max-w-[1600px] mx-auto px-4 md:px-8 lg:px-12 pt-24 pb-12">
+      <div className="relative z-10 w-full max-w-[2400px] mx-auto px-4 md:px-8 lg:px-16 xl:px-24 2xl:px-32 pt-24 pb-12">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-4 items-center min-h-[calc(100vh-12rem)]">
           
           {/* Left Side - Text Content */}

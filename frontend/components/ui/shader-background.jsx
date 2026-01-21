@@ -145,16 +145,21 @@ export default function ShaderBackground() {
   return (
     <div 
       ref={canvasRef} 
-      className={`bg-black absolute inset-0 z-0 w-full h-full transition-all duration-1000 ease-out ${
+      className={`bg-black fixed top-0 left-0 w-screen h-screen transition-all duration-1000 ease-out ${
         isLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-70 scale-110 blur-lg'
       }`}
+      style={{ 
+        margin: 0,
+        padding: 0,
+        zIndex: 0,
+      }}
       aria-hidden
     >
       <Canvas
         camera={camera}
         gl={{ antialias: true, alpha: false }}
         dpr={[1, 2]}
-        style={{ width: '100%', height: '100%' }}
+        className="w-full h-full block"
       >
         <ShaderPlane />
       </Canvas>

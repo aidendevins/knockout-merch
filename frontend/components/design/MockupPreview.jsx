@@ -125,7 +125,7 @@ export default function MockupPreview({
                   <Badge className="bg-gradient-to-r from-pink-600 to-red-600 text-white">
                     {productType === 'tshirt' ? 'T-Shirt' : 'Hoodie'}
                   </Badge>
-                  <span className="text-white/70 text-sm">Limited Edition LoveForge</span>
+                  <span className="text-white/70 text-sm">Limited Edition DesignForWear</span>
                 </div>
               </div>
               <div className="text-right">

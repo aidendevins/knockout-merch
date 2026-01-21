@@ -37,7 +37,7 @@ export default function Home() {
   });
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-screen w-full">
       {/* Global Shader Background - covers entire page */}
       <div className="fixed inset-0 z-0">
         <Suspense fallback={
@@ -48,14 +48,14 @@ export default function Home() {
       </div>
 
       {/* Page Content */}
-      <div className="relative z-10">
+      <div className="relative z-10 w-full">
         {/* Hero Section with Product Carousel - uses template products */}
         <HeroSection products={templateProducts} isLoading={productsLoading} />
 
         {/* Studio Collection Carousel */}
         {productsLoading ? (
           <section className="py-24 relative overflow-hidden">
-            <div className="max-w-7xl mx-auto px-4 text-center mb-12 relative z-10">
+            <div className="max-w-[2400px] mx-auto px-4 md:px-8 lg:px-16 xl:px-24 2xl:px-32 text-center mb-12 relative z-10">
               <div className="inline-block bg-gradient-to-r from-pink-600 to-red-600 text-white border-0 rounded-full px-4 py-1.5 text-sm mb-4 shadow-lg shadow-pink-600/30">
                 Studio Collection
               </div>
@@ -94,10 +94,10 @@ export default function Home() {
         )}
       
         {/* Footer */}
-        <footer className="border-t border-pink-900/20 py-12 mt-24">
-          <div className="max-w-7xl mx-auto px-4 text-center">
+        <footer className="border-t border-pink-900/20 py-12 mt-24 w-full">
+          <div className="max-w-[2400px] mx-auto px-4 md:px-8 lg:px-16 xl:px-24 2xl:px-32 text-center">
             <p className="text-pink-300/60 text-sm">
-              © 2026 LoveForge. Spread the love with custom Valentine's shirts.
+              © 2026 DesignForWear. Spread the love with custom Valentine's shirts.
             </p>
             <p className="text-pink-300/40 text-xs mt-2">
               Made with 💕 for Valentine's Day
@@ -108,3 +108,4 @@ export default function Home() {
     </div>
   );
 }
+
