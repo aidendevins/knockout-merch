@@ -597,18 +597,26 @@ export default function DesignStudio() {
           selectedColor={selectedColor}
         />
 
-        {/* Past Generations */}
-        {pastGenerations.length > 0 && (
-          <div className="mt-6 px-6 pb-6">
-            <div className="flex items-center gap-2 mb-4">
-              <svg className="w-4 h-4 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <h3 className="text-sm font-semibold text-pink-300">
-                Past Generations
-              </h3>
+        {/* Past Generations - Always show, even when empty */}
+        <div className="mt-6 px-6 pb-6 border-t border-pink-900/20 pt-6">
+          <div className="flex items-center gap-2 mb-4">
+            <svg className="w-4 h-4 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 className="text-sm font-semibold text-pink-300">
+              Past Generations
+            </h3>
+            {pastGenerations.length > 0 && (
               <span className="text-xs text-gray-500">({pastGenerations.length})</span>
+            )}
+          </div>
+          
+          {pastGenerations.length === 0 ? (
+            <div className="text-center py-6 text-gray-500 text-xs">
+              <p>Your design history will</p>
+              <p>appear here as you generate</p>
             </div>
+          ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {pastGenerations.map((gen) => (
                 <button
@@ -638,8 +646,8 @@ export default function DesignStudio() {
                 </button>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Main canvas area */}

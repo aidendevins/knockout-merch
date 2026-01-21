@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Move, ZoomIn, ZoomOut, RotateCw, Save, Undo2, Redo2, Hand, MousePointer2, Grid3X3 } from 'lucide-react';
+import { Move, ZoomIn, ZoomOut, RotateCw, Save, Hand, MousePointer2, Grid3X3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
@@ -101,10 +101,6 @@ const ProductCanvas = forwardRef(({
   const [isPanning, setIsPanning] = useState(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
-
-  // History for undo/redo
-  const [undoStack, setUndoStack] = useState([]);
-  const [redoStack, setRedoStack] = useState([]);
 
   // Loading/export state
   const [isExporting, setIsExporting] = useState(false);
@@ -214,40 +210,13 @@ const ProductCanvas = forwardRef(({
     }
   }, [designLayers.design]);
 
-  // Save state for undo
-  const saveState = useCallback(() => {
-    setUndoStack(prev => [...prev, JSON.parse(JSON.stringify(designLayers))]);
-    setRedoStack([]);
-  }, [designLayers]);
-
-  // Undo
-  const handleUndo = useCallback(() => {
-    if (undoStack.length === 0) return;
-
-    const prevState = undoStack[undoStack.length - 1];
-    setRedoStack(prev => [...prev, JSON.parse(JSON.stringify(designLayers))]);
-    setUndoStack(prev => prev.slice(0, -1));
-    setDesignLayers(prevState);
-  }, [undoStack, designLayers]);
-
-  // Redo
-  const handleRedo = useCallback(() => {
-    if (redoStack.length === 0) return;
-
-    const nextState = redoStack[redoStack.length - 1];
-    setUndoStack(prev => [...prev, JSON.parse(JSON.stringify(designLayers))]);
-    setRedoStack(prev => prev.slice(0, -1));
-    setDesignLayers(nextState);
-  }, [redoStack, designLayers]);
-
   // Update layer helper
   const updateLayer = useCallback((layerId, updates) => {
-    saveState();
     setDesignLayers(prev => ({
       ...prev,
       [layerId]: { ...prev[layerId], ...updates }
     }));
-  }, [saveState]);
+  }, []);
 
   // Draw canvas
   const drawCanvas = useCallback(() => {
@@ -444,18 +413,6 @@ const ProductCanvas = forwardRef(({
       if (e.key === 'h' && !e.target.matches('input, textarea')) {
         setActiveTool('pan');
       }
-
-      // Ctrl/Cmd + Z for undo
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        handleUndo();
-      }
-
-      // Ctrl/Cmd + Shift + Z for redo
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
-        e.preventDefault();
-        handleRedo();
-      }
     };
 
     const handleKeyUp = (e) => {
@@ -471,7 +428,7 @@ const ProductCanvas = forwardRef(({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [handleUndo, handleRedo]);
+  }, []);
 
   // Wheel handler for zoom/pan
   useEffect(() => {
@@ -593,9 +550,6 @@ const ProductCanvas = forwardRef(({
     const design = designLayers.design;
     if (!design) return;
 
-    // Save state before any interaction
-    saveState();
-
     // Check rotation handle first
     if (selectedLayerId === 'design' && isOnRotationHandle(canvasX, canvasY, design)) {
       setIsRotating(true);
@@ -644,7 +598,7 @@ const ProductCanvas = forwardRef(({
 
     // Click outside - deselect
     setSelectedLayerId(null);
-  }, [getCanvasCoords, isSpacePressed, activeTool, designLayers, selectedLayerId, saveState]);
+  }, [getCanvasCoords, isSpacePressed, activeTool, designLayers, selectedLayerId]);
 
   // Mouse move handler
   const handleMouseMove = useCallback((e) => {
@@ -879,28 +833,6 @@ const ProductCanvas = forwardRef(({
       <div className="h-12 bg-gradient-to-r from-red-950/30 to-black border-b border-pink-900/30 flex items-center justify-between px-4">
         {/* Left: Tools */}
         <div className="flex items-center gap-2">
-          {/* Undo/Redo */}
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={handleUndo}
-            disabled={undoStack.length === 0}
-            className="h-8 w-8 text-white/60 hover:text-white hover:bg-pink-600/10 disabled:opacity-30"
-          >
-            <Undo2 className="w-4 h-4" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={handleRedo}
-            disabled={redoStack.length === 0}
-            className="h-8 w-8 text-white/60 hover:text-white hover:bg-pink-600/10 disabled:opacity-30"
-          >
-            <Redo2 className="w-4 h-4" />
-          </Button>
-          
-          <div className="w-px h-6 bg-pink-900/30 mx-2" />
-          
           {/* Tool switcher */}
           <div className="flex bg-black/40 border border-pink-900/30 rounded-lg p-1">
             <Button
