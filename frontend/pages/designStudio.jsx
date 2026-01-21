@@ -11,6 +11,9 @@ import BackgroundRemovalModal from '@/components/design/BackgroundRemovalModal';
 import MockupPreviewModal from '@/components/design/MockupPreviewModal';
 import apiClient from '@/api/apiClient';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 // Helper to get image URL (use proxy if needed for CORS)
 const getImageUrl = (url) => {
@@ -77,11 +80,15 @@ export default function DesignStudio() {
   const [pendingProductData, setPendingProductData] = useState(null);
   // Cache the original Gemini-generated image (before background removal)
   const [cachedGeminiImage, setCachedGeminiImage] = useState(null);
-
+  
   // Mockup preview state
   const [showMockupPreview, setShowMockupPreview] = useState(false);
   const [createdProductData, setCreatedProductData] = useState(null);
   const [isDeletingProduct, setIsDeletingProduct] = useState(false);
+
+  // Design naming state
+  const [showNameDialog, setShowNameDialog] = useState(false);
+  const [designName, setDesignName] = useState('');
 
   // Create design mutation
   const createDesignMutation = useMutation({
@@ -339,7 +346,7 @@ export default function DesignStudio() {
     try {
       // Step 2: Save the design to the database
       const user = await base44.auth.me();
-      const designTitle = `Valentine's Design ${Date.now()}`;
+      const designTitle = designName || `Valentine's Design ${Date.now()}`; // Use user-provided name or fallback
       
       const design = await createDesignMutation.mutateAsync({
         title: designTitle,
@@ -430,19 +437,30 @@ export default function DesignStudio() {
     }
   };
 
-  const handleCreateProduct = async () => {
+  const handleCreateProduct = () => {
     if (!generatedImage) {
       toast.error('Please generate a design first');
       return;
     }
 
+    // Show name dialog first
+    setShowNameDialog(true);
+  };
+
+  const handleNameSubmit = async () => {
+    if (!designName.trim()) {
+      toast.error('Please enter a name for your design');
+      return;
+    }
+
+    setShowNameDialog(false);
     setIsCreatingProduct(true);
 
     try {
       // Step 1: Export the canvas design if canvas ref is available
       let designImageUrl = generatedImage;
       let designImageBase64 = null;
-
+      
       if (canvasRef.current?.exportDesign) {
         try {
           const exportData = await canvasRef.current.exportDesign();
@@ -621,6 +639,54 @@ export default function DesignStudio() {
         onDecline={handleDeclineProduct}
         isDeleting={isDeletingProduct}
       />
+
+      {/* Design Name Dialog */}
+      <Dialog open={showNameDialog} onOpenChange={setShowNameDialog}>
+        <DialogContent className="bg-gradient-to-br from-gray-900 to-black border border-pink-900/30 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-red-400">
+              Name Your Design
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Give your design a memorable name so you can easily find it later in "My Designs"
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <Input
+              type="text"
+              placeholder="e.g., Anniversary Gift, Mom's Birthday..."
+              value={designName}
+              onChange={(e) => setDesignName(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && designName.trim()) {
+                  handleNameSubmit();
+                }
+              }}
+              className="bg-black/50 border-pink-900/30 text-white placeholder:text-gray-500 focus:border-pink-500"
+              autoFocus
+            />
+            <div className="flex gap-3">
+              <Button
+                onClick={() => {
+                  setShowNameDialog(false);
+                  setDesignName('');
+                }}
+                variant="outline"
+                className="flex-1 border-gray-700 hover:bg-gray-800 text-white"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleNameSubmit}
+                disabled={!designName.trim()}
+                className="flex-1 bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white shadow-lg shadow-pink-600/30 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Create Design
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

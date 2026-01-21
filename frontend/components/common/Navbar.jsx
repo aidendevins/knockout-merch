@@ -141,14 +141,19 @@ export default function Navbar({ user }) {
             {/* My Designs Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="relative text-white/70 hover:text-white transition-colors p-2">
-                  <FolderHeart className="w-5 h-5" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="relative text-white/70 hover:text-white hover:bg-white/10 rounded-full gap-2 font-normal"
+                >
+                  <FolderHeart className="w-4 h-4" />
+                  <span className="hidden sm:inline">My Designs</span>
                   {userDesignIds.length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-purple-500 to-pink-600 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg">
+                    <span className="w-5 h-5 bg-gradient-to-br from-purple-500 to-pink-600 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg">
                       {userDesignIds.length > 9 ? '9+' : userDesignIds.length}
                     </span>
                   )}
-                </button>
+                </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent 
                 align="end" 
