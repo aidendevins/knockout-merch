@@ -292,24 +292,25 @@ async function createProduct({ title, description, imageUrl, productType = 'tshi
     };
   }
   
-  // Filter variants by color and size
+  // Filter variants by BOTH colors and size (to allow user to choose either color later)
   const availableSizes = ['S', 'M', 'L', 'XL', '2XL'];
-  const colorName = color.charAt(0).toUpperCase() + color.slice(1); // Capitalize first letter
+  const availableColors = ['black', 'white']; // Always create both color variants
   
   const filteredVariants = printifyVariants.variants?.filter(variant => {
-    // Check if variant matches our color and size requirements
+    // Check if variant matches our size requirements and is black or white
     const variantColor = variant.options?.color?.toLowerCase();
     const variantSize = variant.options?.size;
     
-    return variantColor === color.toLowerCase() && 
+    return availableColors.includes(variantColor) && 
            availableSizes.includes(variantSize);
   }) || [];
   
   if (filteredVariants.length === 0) {
-    throw new Error(`No variants found for ${color} color in blueprint ${blueprint.id}`);
+    throw new Error(`No variants found for black/white colors in blueprint ${blueprint.id}`);
   }
   
-  console.log(`✅ Found ${filteredVariants.length} matching variants for ${color} color`);
+  console.log(`✅ Found ${filteredVariants.length} matching variants for both black and white colors`);
+  console.log(`   Originally selected color: ${color}`);
   
   // Create variants array with pricing
   const variants = filteredVariants.map(variant => ({
@@ -329,7 +330,7 @@ async function createProduct({ title, description, imageUrl, productType = 'tshi
     variants,
     print_areas: [
       {
-        variant_ids: variantIds,
+        variant_ids: variantIds, // All variants (both colors) use the same design
         placeholders: [
           {
             position: 'front',
@@ -352,8 +353,9 @@ async function createProduct({ title, description, imageUrl, productType = 'tshi
     blueprint_id: blueprint.id,
     print_provider_id: blueprint.printProviderId,
     variants_count: variants.length,
-    variant_ids: variantIds,
-    color: color,
+    variant_ids: variantIds.length,
+    colors: 'black and white',
+    originally_selected_color: color,
     product_type: productType
   });
 
@@ -367,7 +369,7 @@ async function createProduct({ title, description, imageUrl, productType = 'tshi
     printify_product_id: product.id,
     title: product.title,
     blueprint_id: blueprint.id,
-    color: color,
+    color: color, // Store originally selected color as default
     images: product.images || [],
   };
 }
