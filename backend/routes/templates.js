@@ -19,6 +19,78 @@ router.get('/', async (req, res) => {
 });
 
 /**
+ * Get all visible templates for landing page
+ * GET /api/templates/with-products
+ * 
+ * Returns all non-hidden templates, enriching those with Printify products
+ * with mockup URLs and pricing from Printify API
+ */
+router.get('/with-products', async (req, res) => {
+  try {
+    const printify = require('../services/printify');
+    
+    // Get ALL non-hidden templates
+    const templates = await db.all(`
+      SELECT * FROM templates 
+      WHERE is_hidden = false
+      ORDER BY created_at ASC
+    `);
+    
+    // Enrich templates with Printify data where available
+    const templatesWithProducts = await Promise.all(
+      templates.map(async (template) => {
+        try {
+          // If template has a Printify product, fetch its details
+          if (printify.isConfigured() && template.printify_product_id) {
+            const productDetails = await printify.getProductDetails(template.printify_product_id);
+            const mockupUrls = (productDetails.images || []).map(img => img.src);
+            
+            // Extract price from variants (first variant's price)
+            let price = 29.99;
+            const variants = productDetails.variants || [];
+            if (variants.length > 0 && variants[0].price) {
+              price = variants[0].price / 100; // Price is in cents
+            }
+            
+            return {
+              ...template,
+              // Include product data for display
+              mockup_urls: mockupUrls,
+              price: price,
+              printify_title: productDetails.title,
+              // Use template name as title, fallback to Printify title
+              display_title: template.name || productDetails.title,
+            };
+          }
+          
+          // Return template without Printify data (use reference image instead)
+          return {
+            ...template,
+            mockup_urls: [], // No mockups for templates without Printify product
+            price: 29.99, // Default price
+            display_title: template.name,
+          };
+        } catch (err) {
+          console.error(`Error fetching Printify product for template ${template.id}:`, err.message);
+          // Return template with defaults on error
+          return {
+            ...template,
+            mockup_urls: [],
+            price: 29.99,
+            display_title: template.name,
+          };
+        }
+      })
+    );
+    
+    res.json(templatesWithProducts);
+  } catch (error) {
+    console.error('Error fetching templates with products:', error);
+    res.status(500).json({ error: 'Failed to fetch templates with products' });
+  }
+});
+
+/**
  * Get a single template by ID
  * GET /api/templates/:id
  */
@@ -112,6 +184,7 @@ router.put('/:id', async (req, res) => {
       gradient,
       is_hidden,
       remove_background,
+      printify_product_id,
     } = req.body;
 
     // Check if template exists
@@ -168,6 +241,10 @@ router.put('/:id', async (req, res) => {
     if (remove_background !== undefined) {
       updates.push(`remove_background = $${paramCount++}`);
       values.push(remove_background);
+    }
+    if (printify_product_id !== undefined) {
+      updates.push(`printify_product_id = $${paramCount++}`);
+      values.push(printify_product_id);
     }
 
     // Always update updated_at

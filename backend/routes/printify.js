@@ -185,6 +185,68 @@ router.post('/products', async (req, res) => {
   }
 });
 
+// Get product details by Printify product ID
+// This returns data in a format compatible with the design object
+router.get('/products/:productId', async (req, res) => {
+  try {
+    const { productId } = req.params;
+
+    if (!printify.isConfigured() || productId.startsWith('mock-')) {
+      return res.json({
+        id: productId,
+        printify_product_id: productId,
+        title: 'Sample Product',
+        mockup_urls: [
+          'https://via.placeholder.com/800x800/1a1a1a/DC2626?text=T-Shirt+Front',
+          'https://via.placeholder.com/800x800/1a1a1a/DC2626?text=T-Shirt+Back',
+        ],
+        price: 29.99,
+        product_type: 'tshirt',
+        color: 'black',
+        is_mock: true,
+      });
+    }
+
+    const productDetails = await printify.getProductDetails(productId);
+    const mockupUrls = (productDetails.images || []).map(img => img.src);
+    
+    // Extract price from variants
+    let price = 29.99;
+    const variants = productDetails.variants || [];
+    if (variants.length > 0 && variants[0].price) {
+      price = variants[0].price / 100;
+    }
+    
+    // Determine product type from blueprint_id
+    let productType = 'tshirt';
+    if (productDetails.blueprint_id === 77) {
+      productType = 'hoodie';
+    }
+    
+    // Try to get color from first variant
+    let color = 'black';
+    if (variants.length > 0 && variants[0].options?.color) {
+      color = variants[0].options.color.toLowerCase();
+    }
+
+    res.json({
+      id: productId,
+      printify_product_id: productId,
+      title: productDetails.title,
+      mockup_urls: mockupUrls,
+      price: price,
+      product_type: productType,
+      color: color,
+      blueprint_id: productDetails.blueprint_id,
+      variants: variants,
+      is_printify_product: true,
+    });
+  } catch (error) {
+    console.error('Error fetching product:', error);
+    res.status(500).json({ error: 'Failed to fetch product details' });
+  }
+});
+
 // Get mockups for a product
 router.get('/products/:productId/mockups', async (req, res) => {
   try {

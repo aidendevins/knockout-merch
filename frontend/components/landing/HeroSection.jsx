@@ -1,50 +1,28 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
-import { Sparkles, Zap, CheckCircle2, Truck, MapPin, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { ProductCarousel } from '@/components/ui/feature-carousel';
+import { Sparkles, Loader2, Heart, ChevronDown } from 'lucide-react';
+import ProductDisplayCards from '@/components/ui/display-cards';
 
 export default function HeroSection({ products = [], isLoading = false }) {
   const navigate = useNavigate();
-  const [prompt, setPrompt] = useState('');
 
   const handleCreate = () => {
     navigate(createPageUrl('DesignStudio'));
   };
 
-  const handleProductClick = (product) => {
-    navigate(`/product/${product.id}`);
+  const handleProductClick = () => {
+    // Scroll down to the templates section instead of navigating
+    window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
   };
 
-  const designCategories = [
-    { label: 'AI Generated', icon: Sparkles },
-    { label: 'Quick Start', icon: Zap },
-    { label: 'Browse Designs', onClick: () => {
-      window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
-    }},
-  ];
+  const handleBrowseDesigns = () => {
+    window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+  };
 
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden bg-black">
-      {/* Background image */}
-      <div className="absolute inset-0 overflow-hidden">
-        <img 
-          src="/hero-bg.png" 
-          alt="Boxing background"
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            console.error('Failed to load background image:', e.target.src);
-          }}
-        />
-      </div>
-      
-      {/* Overlay for readability */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/30" />
-      
-      {/* Extra gradient fade to next section */}
-      <div className="absolute bottom-0 left-0 right-0 h-[500px] bg-gradient-to-b from-transparent via-red-950/20 via-red-950/40 via-red-950/60 to-red-950/80" />
+    <section className="relative min-h-screen flex items-center overflow-hidden">
       
       {/* Content - Split Layout */}
       <div className="relative z-10 w-full max-w-[1600px] mx-auto px-4 md:px-8 lg:px-12 pt-24 pb-12">
@@ -55,81 +33,73 @@ export default function HeroSection({ products = [], isLoading = false }) {
             initial={{ opacity: 0, x: -40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
-            className="space-y-8 lg:pr-8"
+            className="space-y-6 lg:pr-8"
           >
-            {/* Main headline */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-[1.1] tracking-tight">
+            {/* Badge */}
+            <motion.div 
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 backdrop-blur-sm"
+            >
+              <span className="text-[10px] font-light uppercase tracking-[0.08em] text-white/70">Valentine's 2026</span>
+              <span className="h-1 w-1 rounded-full bg-pink-400/60" />
+              <span className="text-xs font-light tracking-tight text-white/80">Custom Shirts</span>
+            </motion.div>
+
+            {/* Main headline - Lighter weight typography */}
+            <h1 className="max-w-2xl text-left text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extralight leading-[1.05] tracking-tight text-white">
               Make a Valentine shirt
               <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-red-500">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-red-400">
                 in 60 seconds
               </span>
             </h1>
             
-            <p className="text-lg md:text-xl text-white/80 max-w-xl font-normal leading-relaxed">
-              Upload photos, type a prompt, and see an instant preview
-              on a real shirt. Approve it — we print & ship.
+            <p className="max-w-xl text-left text-base font-light leading-relaxed tracking-tight text-white/75 sm:text-lg">
+              Upload photos, fill in the details, and see an instant preview
+              on a real shirt. Approve it — we print & ship. It's that simple.
             </p>
             
-            {/* Input Field with Create Button */}
-            <div className="max-w-xl">
-              <div className="relative bg-black/50 backdrop-blur-xl rounded-[28px] px-4 py-5 border border-white/20 shadow-2xl">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={handleCreate}
-                    className="flex items-center justify-center w-12 h-12 bg-white/10 hover:bg-white/20 rounded-[18px] transition-colors flex-shrink-0"
-                  >
-                    <Sparkles className="w-5 h-5 text-white" />
-                  </button>
-                  <input
-                    type="text"
-                    placeholder="Describe your design idea..."
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-                    className="flex-1 bg-transparent text-white text-base placeholder:text-white/60 outline-none font-normal min-w-0"
-                  />
-                  <Button
-                    onClick={handleCreate}
-                    className="bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white rounded-[18px] px-6 py-5 font-semibold text-sm shadow-lg hover:shadow-pink-600/50 transition-all flex-shrink-0"
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Create
-                  </Button>
+            {/* CTA Buttons - Split Layout */}
+            <div className="max-w-xl flex gap-3">
+              <button
+                onClick={handleCreate}
+                className="flex-1 group relative bg-white/10 hover:bg-white/15 backdrop-blur-xl rounded-2xl px-6 py-5 border border-white/20 hover:border-white/30 shadow-2xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white/30"
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <Heart className="w-5 h-5 text-pink-400 group-hover:scale-110 transition-transform duration-300" />
+                  <span className="text-base font-light tracking-tight text-white">
+                    Design the perfect gift
+                  </span>
                 </div>
-              </div>
-
-              {/* Category Pills */}
-              <div className="flex flex-wrap items-center gap-2 mt-6">
-                {designCategories.map((category, index) => {
-                  const Icon = category.icon;
-                  return (
-                    <button
-                      key={index}
-                      onClick={category.onClick || handleCreate}
-                      className="px-5 py-2.5 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-white/80 hover:text-white border border-white/20 hover:border-white/40 transition-all font-normal text-sm"
-                    >
-                      {Icon && <Icon className="w-4 h-4 inline mr-2" />}
-                      {category.label}
-                    </button>
-                  );
-                })}
-              </div>
+              </button>
+              <button
+                onClick={handleBrowseDesigns}
+                className="flex-1 group relative bg-white/5 hover:bg-white/10 backdrop-blur-xl rounded-2xl px-6 py-5 border border-white/10 hover:border-white/20 shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white/20"
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <span className="text-base font-light tracking-tight text-white/80 group-hover:text-white">
+                    Browse designs
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-white/60 group-hover:text-white/80 group-hover:translate-y-0.5 transition-all duration-300" />
+                </div>
+              </button>
             </div>
 
-            {/* Feature Highlights */}
+            {/* Feature Highlights - Refined Style */}
             <div className="flex flex-wrap items-center gap-6 pt-4">
-              <div className="flex items-center gap-2 text-white/80">
-                <CheckCircle2 className="w-5 h-5 text-green-400" />
-                <span className="font-normal text-sm">Proof in seconds</span>
+              <div className="flex items-center gap-2 text-white/60">
+                <span className="h-1 w-1 rounded-full bg-white/40" />
+                <span className="font-extralight text-xs tracking-tight">Proof in seconds</span>
               </div>
-              <div className="flex items-center gap-2 text-white/80">
-                <Truck className="w-5 h-5 text-blue-400" />
-                <span className="font-normal text-sm">Ships fast</span>
+              <div className="flex items-center gap-2 text-white/60">
+                <span className="h-1 w-1 rounded-full bg-white/40" />
+                <span className="font-extralight text-xs tracking-tight">Ships fast</span>
               </div>
-              <div className="flex items-center gap-2 text-white/80">
-                <MapPin className="w-5 h-5 text-red-400" />
-                <span className="font-normal text-sm">Printed in the USA</span>
+              <div className="flex items-center gap-2 text-white/60">
+                <span className="h-1 w-1 rounded-full bg-white/40" />
+                <span className="font-extralight text-xs tracking-tight">Printed in the USA</span>
               </div>
             </div>
           </motion.div>
@@ -151,21 +121,14 @@ export default function HeroSection({ products = [], isLoading = false }) {
                 </div>
               </div>
             ) : products.length > 0 ? (
-              <div className="relative">
-                {/* Glow effect behind carousel */}
+              <div className="relative flex items-center justify-center min-h-[500px]">
+                {/* Glow effect behind cards */}
                 <div className="absolute inset-0 bg-gradient-to-r from-pink-600/20 via-red-600/10 to-transparent blur-3xl" />
                 
-                <ProductCarousel 
+                <ProductDisplayCards 
                   products={products}
                   onProductClick={handleProductClick}
                 />
-                
-                {/* Label */}
-                <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 z-40">
-                  <span className="px-4 py-2 bg-gradient-to-r from-pink-600/90 to-red-600/90 backdrop-blur-sm rounded-full text-white text-xs font-semibold shadow-lg shadow-pink-600/30">
-                    ✨ Studio Collection
-                  </span>
-                </div>
               </div>
             ) : (
               <div className="flex items-center justify-center h-[500px]">

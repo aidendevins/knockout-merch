@@ -247,6 +247,17 @@ async function init() {
       END $$;
     `);
 
+    // Add printify_product_id column to templates if it doesn't exist
+    // This links a template to a Printify product for display on landing page
+    await query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'templates' AND column_name = 'printify_product_id') THEN
+          ALTER TABLE templates ADD COLUMN printify_product_id VARCHAR(255) DEFAULT NULL;
+        END IF;
+      END $$;
+    `);
+
     // Add template_id to designs table if it doesn't exist
     await query(`
       DO $$ 

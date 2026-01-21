@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import apiClient from '@/api/apiClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ShoppingCart, Heart, Share2, ChevronLeft, ChevronRight,
@@ -51,12 +52,37 @@ export default function Product() {
     setMockupsByProductTypeAndColor({});
   }, [designId]);
 
-  // Fetch design
+  // Fetch design - first try database, then try Printify directly
   const { data: design, isLoading } = useQuery({
     queryKey: ['design', designId],
     queryFn: async () => {
-      const designs = await base44.entities.Design.filter({ id: designId });
-      return designs[0];
+      // First, try to fetch from designs database
+      try {
+        const designs = await base44.entities.Design.filter({ id: designId });
+        if (designs && designs.length > 0) {
+          console.log('Found design in database:', designs[0].id);
+          return designs[0];
+        }
+      } catch (err) {
+        console.log('Design not found in database, trying Printify...');
+      }
+      
+      // If not found in database, try to fetch from Printify directly
+      // This handles template products that are linked via printify_product_id
+      try {
+        const printifyProduct = await apiClient.printify.getProduct(designId);
+        if (printifyProduct) {
+          console.log('Found product in Printify:', printifyProduct.id);
+          return {
+            ...printifyProduct,
+            is_printify_product: true,
+          };
+        }
+      } catch (err) {
+        console.error('Failed to fetch from Printify:', err);
+      }
+      
+      return null;
     },
     enabled: !!designId,
   });
@@ -165,16 +191,8 @@ export default function Product() {
 
     setIsFetchingMockups(true);
     try {
-      // Fetch ALL mockups from Printify for this product
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/printify/products/${productId}/mockups`
-      );
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch mockups');
-      }
-      
-      const allMockups = await response.json();
+      // Fetch ALL mockups from Printify using the apiClient
+      const allMockups = await base44.printify.getMockups(design.printify_product_id);
       
       // Filter mockups by the requested color
       const colorMockups = filterMockupsByColor(allMockups, color);

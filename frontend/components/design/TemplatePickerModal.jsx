@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, ChevronRight, ChevronLeft, Check, Sparkles, Loader2 } from 'lucide-react';
@@ -52,7 +52,8 @@ export default function TemplatePickerModal({
   isOpen, 
   onClose, 
   onComplete,
-  initialTemplate = null,
+  initialTemplateId = null, // Template ID from URL
+  initialTemplate = null,   // Direct template object (legacy support)
   initialProduct = null,
   initialColor = null,
 }) {
@@ -61,6 +62,7 @@ export default function TemplatePickerModal({
   const [selectedTemplate, setSelectedTemplate] = useState(initialTemplate);
   const [selectedProduct, setSelectedProduct] = useState(initialProduct);
   const [selectedColor, setSelectedColor] = useState(initialColor);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Fetch templates from API (excluding hidden templates)
   const { data: templates = [], isLoading: templatesLoading } = useQuery({
@@ -68,6 +70,22 @@ export default function TemplatePickerModal({
     queryFn: () => fetchTemplates(false), // Explicitly pass false to exclude hidden templates
     staleTime: 0, // Don't cache - always fetch fresh data
   });
+
+  // When templates load and we have an initialTemplateId, find and select that template
+  // Then skip to step 2 (product selection)
+  useEffect(() => {
+    if (!hasInitialized && templates.length > 0) {
+      const templateIdToFind = initialTemplateId || initialTemplate?.id;
+      if (templateIdToFind) {
+        const foundTemplate = templates.find(t => t.id === templateIdToFind);
+        if (foundTemplate) {
+          setSelectedTemplate(foundTemplate);
+          setCurrentStep(1); // Skip to step 2 (product selection)
+          setHasInitialized(true);
+        }
+      }
+    }
+  }, [initialTemplateId, initialTemplate, templates, hasInitialized]);
 
   const handleNext = () => {
     if (currentStep < STEPS.length - 1) {
