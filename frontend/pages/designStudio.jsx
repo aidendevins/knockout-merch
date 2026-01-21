@@ -346,6 +346,14 @@ export default function DesignStudio() {
         creator_name: user?.full_name || 'Anonymous',
       });
 
+      // Store design ID in localStorage for "My Designs"
+      const userDesigns = JSON.parse(localStorage.getItem('userDesigns') || '[]');
+      if (!userDesigns.includes(design.id)) {
+        userDesigns.push(design.id);
+        localStorage.setItem('userDesigns', JSON.stringify(userDesigns));
+        console.log('✅ Design saved to localStorage:', design.id);
+      }
+
       // Step 3: Create the product on Printify
       toast.info('Creating your product...');
       

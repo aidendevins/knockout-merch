@@ -1,15 +1,52 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Heart, Palette, ShieldCheck, Info, ShoppingCart } from 'lucide-react';
+import { Heart, Palette, ShieldCheck, Info, ShoppingCart, FolderHeart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/context/CartContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
 
 export default function Navbar({ user }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const currentPath = location.pathname;
   const { cartCount, setIsCartOpen } = useCart();
+  const [userDesignIds, setUserDesignIds] = useState([]);
+
+  // Load user's design IDs from localStorage
+  useEffect(() => {
+    const designIds = JSON.parse(localStorage.getItem('userDesigns') || '[]');
+    setUserDesignIds(designIds);
+  }, [location.pathname]); // Refresh when page changes
+
+  // Fetch user's designs
+  const { data: userDesigns = [], isLoading: designsLoading } = useQuery({
+    queryKey: ['user-designs', userDesignIds],
+    queryFn: async () => {
+      if (userDesignIds.length === 0) return [];
+      
+      // Fetch designs by ID
+      const designs = await Promise.all(
+        userDesignIds.map(id => 
+          base44.entities.Design.get(id).catch(() => null)
+        )
+      );
+      
+      // Filter out null values (deleted designs) and return in reverse order (newest first)
+      return designs.filter(d => d !== null).reverse();
+    },
+    enabled: userDesignIds.length > 0,
+  });
 
   const navLinks = [
     { name: 'Home', page: 'Home', icon: Heart },
@@ -70,8 +107,67 @@ export default function Navbar({ user }) {
             </span>
           </Link>
 
-          {/* Right side: Cart + CTA */}
+          {/* Right side: My Designs + Cart + CTA */}
           <div className="flex items-center justify-end gap-2 flex-1">
+            {/* My Designs Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="relative text-white/70 hover:text-white transition-colors p-2">
+                  <FolderHeart className="w-5 h-5" />
+                  {userDesignIds.length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-purple-500 to-pink-600 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg">
+                      {userDesignIds.length > 9 ? '9+' : userDesignIds.length}
+                    </span>
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent 
+                align="end" 
+                className="w-80 bg-gradient-to-b from-gray-900 to-black border border-pink-900/30 text-white"
+              >
+                <DropdownMenuLabel className="text-pink-300 font-semibold">
+                  My Designs
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-pink-900/30" />
+                
+                {designsLoading ? (
+                  <div className="py-8 text-center text-white/50 text-sm">
+                    Loading your designs...
+                  </div>
+                ) : userDesigns.length === 0 ? (
+                  <div className="py-8 text-center">
+                    <Heart className="w-8 h-8 mx-auto mb-2 text-pink-500/30" />
+                    <p className="text-white/50 text-sm">No designs yet</p>
+                    <p className="text-white/30 text-xs mt-1">Create your first design!</p>
+                  </div>
+                ) : (
+                  <div className="max-h-[400px] overflow-y-auto">
+                    {userDesigns.map((design) => (
+                      <DropdownMenuItem
+                        key={design.id}
+                        onClick={() => navigate(`/product/${design.id}`)}
+                        className="cursor-pointer hover:bg-pink-900/20 focus:bg-pink-900/20 p-3 flex gap-3 items-center"
+                      >
+                        <img
+                          src={design.design_image_url}
+                          alt={design.title}
+                          className="w-12 h-12 object-cover rounded border border-pink-900/30"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-sm font-medium truncate">
+                            {design.title}
+                          </p>
+                          <p className="text-white/40 text-xs">
+                            {new Date(design.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {/* Cart Icon with Badge */}
             <button
               onClick={() => setIsCartOpen(true)}

@@ -6,18 +6,18 @@ import StudioCarousel from '@/components/landing/StudioCarousel';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Home() {
-  // Studio Designs query (unpublished - the available designs for both hero and carousel)
+  // Studio Designs query (ONLY published/public designs for carousel)
   const { data: studioDesigns = [], isLoading: studioLoading } = useQuery({
     queryKey: ['studio-designs'],
     queryFn: async () => {
       try {
-        // Fetch unpublished designs (studio collection)
+        // Fetch PUBLISHED designs (public studio collection)
         const allDesigns = await base44.entities.Design.filter(
-          { is_published: false },
+          { is_published: true }, // Changed: Only show published designs on home page
           '-created_date',
           null
         );
-        console.log('Studio designs fetched:', allDesigns);
+        console.log('Public studio designs fetched:', allDesigns);
         return allDesigns; // Return all designs for both carousels
       } catch (error) {
         console.error('Error fetching studio designs:', error);
