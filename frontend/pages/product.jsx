@@ -37,8 +37,20 @@ export default function Product() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedColor, setSelectedColor] = useState(null); // Dynamic color selection
+  const [selectedProductType, setSelectedProductType] = useState(null); // Dynamic product type selection
   const [isFetchingMockups, setIsFetchingMockups] = useState(false);
-  const [mockupsByColor, setMockupsByColor] = useState({}); // Cache mockups by color
+  const [mockupsByProductTypeAndColor, setMockupsByProductTypeAndColor] = useState({}); // Cache: {productType: {color: mockups}}
+
+  // Reset state when designId changes (when navigating between different products)
+  React.useEffect(() => {
+    setSelectedSize('M');
+    setCurrentImageIndex(0);
+    setQuantity(1);
+    setSelectedColor(null);
+    setSelectedProductType(null);
+    setIsFetchingMockups(false);
+    setMockupsByProductTypeAndColor({});
+  }, [designId]);
 
   // Fetch design - first try database, then try Printify directly
   const { data: design, isLoading } = useQuery({
@@ -75,20 +87,31 @@ export default function Product() {
     enabled: !!designId,
   });
 
-  // Set default color from design when it loads
+  // Set default color and product type from design when it loads
   React.useEffect(() => {
-    if (design && !selectedColor) {
-      setSelectedColor(design.color || 'black');
-      // Cache the initial mockups (filter by original color)
-      if (design.mockup_urls && design.mockup_urls.length > 0) {
-        const filteredMockups = filterMockupsByColor(design.mockup_urls, design.color || 'black');
-        setMockupsByColor(prev => ({
+    if (design && !selectedColor && !selectedProductType) {
+      const defaultColor = design.color || 'black';
+      const defaultProductType = design.product_type || 'tshirt';
+      
+      setSelectedColor(defaultColor);
+      setSelectedProductType(defaultProductType);
+      
+      // Cache the initial mockups (from the appropriate product type field)
+      const mockupField = defaultProductType === 'tshirt' ? 'tshirt_mockups' : 'hoodie_mockups';
+      const mockups = design[mockupField] || design.mockup_urls || [];
+      
+      if (mockups.length > 0) {
+        const filteredMockups = filterMockupsByColor(mockups, defaultColor);
+        setMockupsByProductTypeAndColor(prev => ({
           ...prev,
-          [design.color || 'black']: filteredMockups
+          [defaultProductType]: {
+            ...(prev[defaultProductType] || {}),
+            [defaultColor]: filteredMockups
+          }
         }));
       }
     }
-  }, [design, selectedColor]);
+  }, [design, selectedColor, selectedProductType]);
 
   // Filter mockups by color AND select specific indices
   // Printify mockup URLs contain color information in the filename/URL
@@ -122,14 +145,19 @@ export default function Product() {
     let colorFiltered;
     if (filtered.length === 0) {
       console.warn(`   ⚠️ Could not filter mockups by color ${color} using keywords`);
-      console.warn(`   ⚠️ Using fallback: split array in half`);
-      // Split mockups in half - first half for first color, second half for second
+      console.warn(`   ⚠️ Using fallback: split array by color consistently`);
+      
+      // Split mockups in half - Printify likely returns them in consistent order
+      // Based on testing: WHITE mockups come FIRST, BLACK mockups come SECOND
       const midpoint = Math.ceil(mockups.length / 2);
-      // If design was originally WHITE and we're selecting WHITE, use second half
-      // If design was originally BLACK and we're selecting BLACK, use first half
-      const isOriginalColor = color === (design?.color || 'black');
-      colorFiltered = isOriginalColor ? mockups.slice(0, midpoint) : mockups.slice(midpoint);
-      console.log(`   Using ${isOriginalColor ? 'first' : 'second'} half: ${colorFiltered.length} mockups`);
+      
+      // WHITE = first half, BLACK = second half (based on Printify's ordering)
+      const isWhite = color.toLowerCase() === 'white';
+      colorFiltered = isWhite ? mockups.slice(0, midpoint) : mockups.slice(midpoint);
+      
+      console.log(`   📋 Requested color: ${color}`);
+      console.log(`   📋 Using ${isWhite ? 'FIRST' : 'SECOND'} half (${isWhite ? 'WHITE' : 'BLACK'}): ${colorFiltered.length} mockups`);
+      console.log(`   📋 Sample URL: ${colorFiltered[0]?.substring(0, 100)}...`);
     } else {
       colorFiltered = filtered;
     }
@@ -145,16 +173,20 @@ export default function Product() {
     return selectedMockups;
   };
 
-  // Product type is still locked from design
-  const selectedProductType = design?.product_type || 'tshirt';
+  // Fetch mockups for a specific product type and color
+  const fetchMockupsForProductTypeAndColor = async (productType, color) => {
+    // Check if we already have mockups for this combination cached
+    if (mockupsByProductTypeAndColor[productType]?.[color]) {
+      return mockupsByProductTypeAndColor[productType][color];
+    }
 
-  // Fetch mockups for a specific color
-  const fetchMockupsForColor = async (color) => {
-    if (!design?.printify_product_id) return;
+    // Get the appropriate product ID
+    const productIdField = productType === 'tshirt' ? 'printify_tshirt_id' : 'printify_hoodie_id';
+    const productId = design?.[productIdField];
     
-    // Check if we already have mockups for this color cached
-    if (mockupsByColor[color]) {
-      return mockupsByColor[color];
+    if (!productId) {
+      console.warn(`No product ID found for ${productType}`);
+      return [];
     }
 
     setIsFetchingMockups(true);
@@ -165,19 +197,22 @@ export default function Product() {
       // Filter mockups by the requested color
       const colorMockups = filterMockupsByColor(allMockups, color);
       
-      console.log(`Fetched ${allMockups.length} total mockups, filtered to ${colorMockups.length} for ${color}`);
+      console.log(`Fetched ${allMockups.length} total ${productType} mockups, filtered to ${colorMockups.length} for ${color}`);
       
-      // Cache the mockups for this color
-      setMockupsByColor(prev => ({
+      // Cache the mockups
+      setMockupsByProductTypeAndColor(prev => ({
         ...prev,
-        [color]: colorMockups
+        [productType]: {
+          ...(prev[productType] || {}),
+          [color]: colorMockups
+        }
       }));
       
       return colorMockups;
     } catch (error) {
       console.error('Error fetching mockups:', error);
-      toast.error('Failed to load mockups for this color');
-      return design.mockup_urls || [];
+      toast.error(`Failed to load ${productType} mockups`);
+      return [];
     } finally {
       setIsFetchingMockups(false);
     }
@@ -188,12 +223,21 @@ export default function Product() {
     setSelectedColor(newColor);
     setCurrentImageIndex(0); // Reset to first image
     
-    // Fetch mockups for the new color
-    await fetchMockupsForColor(newColor);
+    // Fetch mockups for the new color (current product type)
+    await fetchMockupsForProductTypeAndColor(selectedProductType, newColor);
   };
 
-  // Get current mockups for selected color
-  const currentMockups = mockupsByColor[selectedColor] || design?.mockup_urls || [];
+  // Handle product type change
+  const handleProductTypeChange = async (newProductType) => {
+    setSelectedProductType(newProductType);
+    setCurrentImageIndex(0); // Reset to first image
+    
+    // Fetch mockups for the new product type (current color)
+    await fetchMockupsForProductTypeAndColor(newProductType, selectedColor);
+  };
+
+  // Get current mockups for selected product type and color
+  const currentMockups = mockupsByProductTypeAndColor[selectedProductType]?.[selectedColor] || [];
   
   // Create image gallery (ONLY mockups, no design image)
   const images = currentMockups;
@@ -368,6 +412,41 @@ export default function Product() {
 
             <Separator className="bg-gray-800" />
 
+            {/* Product Type Selection - Now Interactive! */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-white font-semibold">
+                  Product Type
+                </label>
+              </div>
+              <div className="flex gap-3">
+                {PRODUCT_TYPES.map((type) => (
+                  <button
+                    key={type.value}
+                    onClick={() => handleProductTypeChange(type.value)}
+                    disabled={isFetchingMockups}
+                    className={cn(
+                      "flex-1 py-4 px-4 rounded-xl border-2 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed",
+                      selectedProductType === type.value
+                        ? "border-pink-500 bg-gradient-to-r from-pink-600/10 to-red-600/10 text-white shadow-lg shadow-pink-600/20"
+                        : "border-gray-800 hover:border-gray-700 text-gray-400 bg-gray-900 hover:bg-gray-800"
+                    )}
+                  >
+                    <div className="flex flex-col items-center gap-1">
+                      <Shirt className="w-5 h-5" />
+                      <span>{type.name}</span>
+                      <span className="text-xs text-gray-500">${type.price}</span>
+                      {selectedProductType === type.value && (
+                        <Check className="w-4 h-4 mt-1" />
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Separator className="bg-gray-800" />
+
             {/* Color Selection - Now Interactive! */}
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -410,9 +489,6 @@ export default function Product() {
                   </button>
                 ))}
               </div>
-              <p className="text-gray-400 text-xs mt-2">
-                Product type ({selectedProductType === 'tshirt' ? 'T-Shirt' : 'Hoodie'}) is locked based on your design
-              </p>
             </div>
 
             {/* Size Selection */}

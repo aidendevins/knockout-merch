@@ -11,6 +11,9 @@ import BackgroundRemovalModal from '@/components/design/BackgroundRemovalModal';
 import MockupPreviewModal from '@/components/design/MockupPreviewModal';
 import apiClient from '@/api/apiClient';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 // Helper to get image URL (use proxy if needed for CORS)
 const getImageUrl = (url) => {
@@ -81,11 +84,27 @@ export default function DesignStudio() {
   const [pendingProductData, setPendingProductData] = useState(null);
   // Cache the original Gemini-generated image (before background removal)
   const [cachedGeminiImage, setCachedGeminiImage] = useState(null);
-
+  
   // Mockup preview state
   const [showMockupPreview, setShowMockupPreview] = useState(false);
   const [createdProductData, setCreatedProductData] = useState(null);
   const [isDeletingProduct, setIsDeletingProduct] = useState(false);
+
+  // Design naming state
+  const [showNameDialog, setShowNameDialog] = useState(false);
+  const [designName, setDesignName] = useState('');
+
+  // Past generations history (session-only, not persisted)
+  const [pastGenerations, setPastGenerations] = useState([]);
+
+  // Reuse a past generation
+  const handleReusePastGeneration = (generation) => {
+    setGeneratedImage(getImageUrl(generation.imageUrl) || generation.imageUrl);
+    setCachedGeminiImage(generation.imageUrl);
+    setProductType(generation.productType);
+    setSelectedColor(generation.color);
+    toast.success('Design loaded!');
+  };
 
   // Create design mutation
   const createDesignMutation = useMutation({
@@ -121,6 +140,17 @@ export default function DesignStudio() {
 
     // Cache the original Gemini-generated image for retry functionality
     setCachedGeminiImage(imageUrl);
+
+    // Save to past generations history
+    const newGeneration = {
+      id: Date.now(),
+      imageUrl: imageUrl,
+      timestamp: new Date(),
+      template: selectedTemplate?.name || 'Custom',
+      productType: productType,
+      color: selectedColor,
+    };
+    setPastGenerations(prev => [newGeneration, ...prev]); // Add to beginning (newest first)
 
     // Check if template requires background removal - do it immediately after generation
     // Support both string ("remove-simple") and boolean (for backwards compatibility)
@@ -343,7 +373,7 @@ export default function DesignStudio() {
     try {
       // Step 2: Save the design to the database
       const user = await base44.auth.me();
-      const designTitle = `Valentine's Design ${Date.now()}`;
+      const designTitle = designName || `Valentine's Design ${Date.now()}`; // Use user-provided name or fallback
       
       const design = await createDesignMutation.mutateAsync({
         title: designTitle,
@@ -356,6 +386,14 @@ export default function DesignStudio() {
         is_published: false,
         creator_name: user?.full_name || 'Anonymous',
       });
+
+      // Store design ID in localStorage for "My Designs"
+      const userDesigns = JSON.parse(localStorage.getItem('userDesigns') || '[]');
+      if (!userDesigns.includes(design.id)) {
+        userDesigns.push(design.id);
+        localStorage.setItem('userDesigns', JSON.stringify(userDesigns));
+        console.log('✅ Design saved to localStorage:', design.id);
+      }
 
       // Step 3: Create the product on Printify
       toast.info('Creating your product...');
@@ -426,19 +464,30 @@ export default function DesignStudio() {
     }
   };
 
-  const handleCreateProduct = async () => {
+  const handleCreateProduct = () => {
     if (!generatedImage) {
       toast.error('Please generate a design first');
       return;
     }
 
+    // Show name dialog first
+    setShowNameDialog(true);
+  };
+
+  const handleNameSubmit = async () => {
+    if (!designName.trim()) {
+      toast.error('Please enter a name for your design');
+      return;
+    }
+
+    setShowNameDialog(false);
     setIsCreatingProduct(true);
 
     try {
       // Step 1: Export the canvas design if canvas ref is available
       let designImageUrl = generatedImage;
       let designImageBase64 = null;
-
+      
       if (canvasRef.current?.exportDesign) {
         try {
           const exportData = await canvasRef.current.exportDesign();
@@ -539,7 +588,7 @@ export default function DesignStudio() {
       />
 
       {/* AI Panel */}
-      <div className="w-72 flex-shrink-0 hidden md:block">
+      <div className="w-72 flex-shrink-0 hidden md:block overflow-y-auto">
         <AIPanel 
           uploadedPhotos={uploadedPhotos}
           selectedTemplate={selectedTemplate}
@@ -552,6 +601,58 @@ export default function DesignStudio() {
           onRetryBackgroundRemoval={handleRetryBackgroundRemoval}
           selectedColor={selectedColor}
         />
+
+        {/* Past Generations - Always show, even when empty */}
+        <div className="mt-6 px-6 pb-6 border-t border-pink-900/20 pt-6">
+          <div className="flex items-center gap-2 mb-4">
+            <svg className="w-4 h-4 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 className="text-sm font-semibold text-pink-300">
+              Past Generations
+            </h3>
+            {pastGenerations.length > 0 && (
+              <span className="text-xs text-gray-500">({pastGenerations.length})</span>
+            )}
+          </div>
+          
+          {pastGenerations.length === 0 ? (
+            <div className="text-center py-6 text-gray-500 text-xs">
+              <p>Your design history will</p>
+              <p>appear here as you generate</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {pastGenerations.map((gen) => (
+                <button
+                  key={gen.id}
+                  onClick={() => handleReusePastGeneration(gen)}
+                  className="w-full flex items-center gap-3 p-2 rounded-lg border border-pink-900/30 bg-gradient-to-br from-red-950/20 to-black hover:border-pink-600/50 hover:from-red-950/40 hover:to-black/80 transition-all group"
+                >
+                  <img
+                    src={getImageUrl(gen.imageUrl) || gen.imageUrl}
+                    alt={`Generation ${gen.id}`}
+                    className="w-12 h-12 object-cover rounded border border-pink-900/30"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="text-xs text-white truncate font-medium">
+                      {gen.template}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(gen.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <svg className="w-4 h-4 text-pink-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Main canvas area */}
@@ -618,6 +719,54 @@ export default function DesignStudio() {
         onDecline={handleDeclineProduct}
         isDeleting={isDeletingProduct}
       />
+
+      {/* Design Name Dialog */}
+      <Dialog open={showNameDialog} onOpenChange={setShowNameDialog}>
+        <DialogContent className="bg-gradient-to-br from-gray-900 to-black border border-pink-900/30 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-red-400">
+              Name Your Design
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Give your design a memorable name so you can easily find it later in "My Designs"
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <Input
+              type="text"
+              placeholder="e.g., Anniversary Gift, Mom's Birthday..."
+              value={designName}
+              onChange={(e) => setDesignName(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && designName.trim()) {
+                  handleNameSubmit();
+                }
+              }}
+              className="bg-black/50 border-pink-900/30 text-white placeholder:text-gray-500 focus:border-pink-500"
+              autoFocus
+            />
+            <div className="flex gap-3">
+              <Button
+                onClick={() => {
+                  setShowNameDialog(false);
+                  setDesignName('');
+                }}
+                variant="outline"
+                className="flex-1 border-gray-700 hover:bg-gray-800 text-white"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleNameSubmit}
+                disabled={!designName.trim()}
+                className="flex-1 bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white shadow-lg shadow-pink-600/30 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Create Design
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
