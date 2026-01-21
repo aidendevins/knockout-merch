@@ -69,29 +69,41 @@ export default function Product() {
   const filterMockupsByColor = (mockups, color) => {
     if (!mockups || mockups.length === 0) return [];
     
+    console.log(`🔍 Filtering mockups for color: ${color}`);
+    console.log(`   Total mockups received: ${mockups.length}`);
+    
     // Printify often includes color in the mockup URL or filename
     // For example: "...Black..." or "...White..." or variant IDs that differ by color
     const colorKeywords = {
-      black: ['black', 'Black', 'BLACK', '3001_Solid_Black', '_black_', 'solid-black'],
-      white: ['white', 'White', 'WHITE', '3001_Solid_White', '_white_', 'solid-white']
+      black: ['black', 'Black', 'BLACK', '3001_Solid_Black', '_black_', 'solid-black', 'Heather_Black'],
+      white: ['white', 'White', 'WHITE', '3001_Solid_White', '_white_', 'solid-white', 'Heather_White']
     };
     
     const keywords = colorKeywords[color.toLowerCase()] || [];
     
     // Filter mockups that contain any of the color keywords
     const filtered = mockups.filter(url => {
-      return keywords.some(keyword => url.includes(keyword));
+      const matches = keywords.some(keyword => url.includes(keyword));
+      if (matches) {
+        console.log(`   ✅ Matched ${color}: ${url.substring(url.lastIndexOf('/') + 1, url.lastIndexOf('/') + 40)}...`);
+      }
+      return matches;
     });
     
-    // If filtering resulted in empty array, return all mockups (fallback)
-    // This can happen if Printify's URL structure doesn't contain color info
+    console.log(`   Filtered by keyword: ${filtered.length} mockups`);
+    
+    // If filtering resulted in empty array, use fallback
     let colorFiltered;
     if (filtered.length === 0) {
-      console.warn(`Could not filter mockups by color ${color}, returning all mockups`);
-      // For now, if we can't filter, split the mockups evenly
-      // Assuming first half is one color, second half is the other
+      console.warn(`   ⚠️ Could not filter mockups by color ${color} using keywords`);
+      console.warn(`   ⚠️ Using fallback: split array in half`);
+      // Split mockups in half - first half for first color, second half for second
       const midpoint = Math.ceil(mockups.length / 2);
-      colorFiltered = color === (design?.color || 'black') ? mockups.slice(0, midpoint) : mockups.slice(midpoint);
+      // If design was originally WHITE and we're selecting WHITE, use second half
+      // If design was originally BLACK and we're selecting BLACK, use first half
+      const isOriginalColor = color === (design?.color || 'black');
+      colorFiltered = isOriginalColor ? mockups.slice(0, midpoint) : mockups.slice(midpoint);
+      console.log(`   Using ${isOriginalColor ? 'first' : 'second'} half: ${colorFiltered.length} mockups`);
     } else {
       colorFiltered = filtered;
     }
@@ -102,7 +114,7 @@ export default function Product() {
       .map(index => colorFiltered[index])
       .filter(Boolean); // Remove undefined if array is shorter than expected
     
-    console.log(`Filtered mockups: ${colorFiltered.length} total -> ${selectedMockups.length} selected (indices: 1,3,5,9,10)`);
+    console.log(`   ✅ Final result: ${selectedMockups.length} mockups (from indices: 1,3,5,9,10)`);
     
     return selectedMockups;
   };
@@ -165,11 +177,8 @@ export default function Product() {
   // Get current mockups for selected color
   const currentMockups = mockupsByColor[selectedColor] || design?.mockup_urls || [];
   
-  // Create image gallery (mockups + design image)
-  const images = design ? [
-    ...currentMockups,
-    design.design_image_url,
-  ].filter(Boolean) : [];
+  // Create image gallery (ONLY mockups, no design image)
+  const images = currentMockups;
 
   const currentPrice = PRODUCT_TYPES.find(pt => pt.value === selectedProductType)?.price || 29.99;
 
