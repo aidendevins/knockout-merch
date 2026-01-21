@@ -128,6 +128,25 @@ async function init() {
       END $$;
     `);
 
+    // Add separate product IDs for T-shirt and Hoodie variants
+    await query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'designs' AND column_name = 'printify_tshirt_id') THEN
+          ALTER TABLE designs ADD COLUMN printify_tshirt_id VARCHAR(255);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'designs' AND column_name = 'printify_hoodie_id') THEN
+          ALTER TABLE designs ADD COLUMN printify_hoodie_id VARCHAR(255);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'designs' AND column_name = 'tshirt_mockups') THEN
+          ALTER TABLE designs ADD COLUMN tshirt_mockups JSONB DEFAULT '[]'::jsonb;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'designs' AND column_name = 'hoodie_mockups') THEN
+          ALTER TABLE designs ADD COLUMN hoodie_mockups JSONB DEFAULT '[]'::jsonb;
+        END IF;
+      END $$;
+    `);
+
     // Create orders table
     await query(`
       CREATE TABLE IF NOT EXISTS orders (
