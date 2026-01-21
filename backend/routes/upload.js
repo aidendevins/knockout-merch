@@ -172,7 +172,8 @@ router.post('/generate-image', async (req, res) => {
       prompt: prompt,
       model: result.model,
       is_placeholder: false,
-      useProxy: true // Signal to frontend to use proxy endpoint
+      useProxy: true, // Signal to frontend to use proxy endpoint
+      fallbackUsed: result.fallbackUsed || false // Indicate if fallback model was used
     });
   } catch (error) {
     console.error('Error generating image:', error);

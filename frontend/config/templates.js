@@ -524,7 +524,6 @@ CRITICAL RULE - BACKGROUND:
 LAYOUT & FORMAT:
 - Rectangular landscape orientation polaroid format
 - White polaroid border frame around the entire image
-- Slightly tilted/angled placement of the polaroid (not perfectly straight)
 - The polaroid fills the entire canvas edge-to-edge
 
 IMAGE TREATMENT:
@@ -647,45 +646,78 @@ OUTPUT:
     remove_background: 'remove-simple', // Enable background removal for the solid background
     prompt: `You are creating a romantic save-the-date design following this EXACT specification:
 
-REFERENCE IMAGE ANALYSIS:
-- The first image provided shows the target design style and layout
-- Study the heart frame shape, bow placement, text positioning, and overall composition
+REFERENCE IMAGE ANALYSIS (STYLE ONLY):
+- The first image provided shows the TARGET DESIGN STYLE AND LAYOUT ONLY
+- Study ONLY these elements: heart frame shape, bow placement, line art style, text positioning, and overall composition
+- DO NOT copy, recreate, or reference the people/subjects shown in the first image
+- The first image is purely a visual template for the design aesthetic
 
-INPUT IMAGE PROCESSING:
-- The second image contains the couple's photo
-- Extract ONLY the two subjects (people) from this image
-- Convert the subjects to black and white with cinematic contrast (deep blacks, bright highlights, film-like grain)
-- Remove any original background from the subjects
+INPUT IMAGE PROCESSING (CONTENT SOURCE):
+- The second image contains the ACTUAL subjects to be used in the final design
+- This is the ONLY source for people/subjects in your output
+- Extract ALL subjects (people) visible in the second image
+- CRITICAL: Do not add, remove, or substitute any people - use EXACTLY who appears in the second image
+- DO NOT invent, generate, or hallucinate additional people
+- DO NOT use people from the reference image
+
+SUBJECT TREATMENT:
+- Take the subjects from the second image AS-IS
+- Apply ONLY a cinematic black and white filter to these subjects
+- Maintain their original pose, positioning, facial features, and characteristics
+- DO NOT alter their appearance beyond the black and white conversion
+- Cinematic black and white style: deep blacks, bright highlights, film-like grain, high contrast
+- Preserve all facial details and emotional expressions from the original photo
+- Keep the subjects' relative positioning to each other as shown in the second image
+
+CONSISTENCY RULE:
+- If the second image shows 1 person, output 1 person
+- If the second image shows 2 people, output 2 people  
+- If the second image shows 3+ people, output all of them
+- NEVER add people not present in the second image
+- NEVER substitute people from the reference image
 
 LAYOUT & COMPOSITION:
-- Create a heart-shaped frame with a decorative ribbon bow at the top-left
+- Create a heart-shaped frame with a decorative ribbon bow at the top-left (STYLE from reference)
 - The heart should be drawn with clean, elegant linework matching the reference style
 - The bow should have flowing ribbon tails extending downward on the left side
-- Position the couple inside the heart frame, showing them from chest/shoulders up
-- The subjects should be intimately posed, filling approximately 70% of the heart's interior
+- Position the subjects from the SECOND IMAGE inside the heart frame
+- Crop/frame the subjects appropriately to fit the heart (typically chest/shoulders up)
+- The subjects should fill approximately 70% of the heart's interior
 
-COLOR SCHEME:
-- Primary color: [PRIMARY_COLOR] - use for heart outline, bow outline, ribbon lines, and date text
-- Background color: [INVERSE_COLOR] - use for everything EXCEPT the subjects and line art
+COLOR SCHEME - CRITICAL:
+- Primary color: [PRIMARY_COLOR]
+- MANDATORY: Use [PRIMARY_COLOR] for ALL of the following:
+  * Heart frame outline
+  * Bow outline
+  * All ribbon lines
+  * Date text
+- Background color: [INVERSE_COLOR]
+- MANDATORY: Use [INVERSE_COLOR] for ALL of the following:
+  * Entire background outside the subjects
+  * Background fill inside the heart frame (around subjects)
+  * All negative space
 - The background inside the heart (around the subjects) must be filled with [INVERSE_COLOR]
 - This creates clean separation: subjects + line art vs. solid background for easy removal
+- DO NOT use any colors other than [PRIMARY_COLOR], [INVERSE_COLOR], and black/white/grayscale for subjects
 
-SUBJECTS TREATMENT:
-- Convert subjects to black and white with cinematic grading
-- Maintain natural skin tones in grayscale with good contrast
-- Preserve facial details and emotional expression
-- Ensure subjects blend seamlessly into the heart frame composition
-
-DATE FORMATTING:
+DATE FORMATTING - CRITICAL - DO NOT MODIFY THE USER'S DATE:
+- The user has provided this exact date value: [DATE_VALUE]
+- This date is already pre-formatted in the correct format specified by [DATE_FORMAT]
 - Position date text centered below the heart
-- Use elegant serif font (similar to Times New Roman or Garamond)
-- Format: [DATE_FORMAT]
-  * If "roman": Use Roman numerals (e.g., I.XII.MMXXV for 1.12.2025)
-  * If "standard": Use YYYY.MM.DD format (e.g., 2025.12.01)
-- The date to display is: [DATE_VALUE]
-- Date text color: [PRIMARY_COLOR] (same as primary color)
+- Use elegant, bold sans-serif or serif font
+- Display the date EXACTLY as provided in [DATE_VALUE]
+- CRITICAL: Date text color MUST be [PRIMARY_COLOR] (the primary color)
+- DO NOT change, modify, reformat, or reinterpret [DATE_VALUE]
+- DO NOT use any date other than [DATE_VALUE]
 - Text should be large, bold, and clearly legible
 - Add generous spacing between date and heart (similar to reference)
+
+USER-PROVIDED VALUES:
+- Date to display: [DATE_VALUE]
+- Date format: [DATE_FORMAT]
+- Primary color: [PRIMARY_COLOR]
+- Background color: [INVERSE_COLOR]
+- RENDER THESE EXACT VALUES - DO NOT SUBSTITUTE OR MODIFY
 
 TECHNICAL REQUIREMENTS:
 - Output resolution: minimum 2000x2000 pixels
@@ -694,14 +726,24 @@ TECHNICAL REQUIREMENTS:
 - No gradients, shadows, or anti-aliasing artifacts that would interfere with background removal
 - The entire background field must be solid [INVERSE_COLOR] with no variation
 
-STYLE MATCHING:
-- Match the whimsical, hand-drawn quality of the reference heart and bow
+STYLE MATCHING (from reference image):
+- Match the whimsical, hand-drawn quality of the reference heart and bow design
 - Keep line weights consistent (medium thickness, not too thin or heavy)
 - Bow should look dimensional with overlapping ribbon loops
 - Heart should have slight asymmetry for organic, romantic feel
 - Overall aesthetic: elegant, romantic, save-the-date card design
 
-CRITICAL: The output must have only two colors - [PRIMARY_COLOR] for all line art and text, and [INVERSE_COLOR] for the entire background. The subjects remain in black and white grayscale. This ensures a background remover will perfectly isolate the design (subjects + line art) from the solid background.`,
+CRITICAL REMINDERS:
+1. The first image = design template for STYLE ONLY (frame, bow, layout, text placement)
+2. The second image = the ONLY SOURCE for people/subjects to include
+3. DO NOT mix people from both images
+4. DO NOT generate new people not shown in the second image
+5. ONLY apply black and white filter to second image subjects - do not alter their identity, count, or appearance
+6. PRIMARY COLOR [PRIMARY_COLOR] MUST be used for: heart frame, bow, ribbons, AND date text - NO EXCEPTIONS
+7. BACKGROUND COLOR [INVERSE_COLOR] MUST be used for: all background areas including inside the heart around subjects
+8. USE THE EXACT DATE VALUE [DATE_VALUE] AS-IS - DO NOT MODIFY, REFORMAT, OR SUBSTITUTE
+9. The output must have only two colors - [PRIMARY_COLOR] for all line art and text, and [INVERSE_COLOR] for the entire background
+10. Subjects remain in black and white grayscale on top of the [INVERSE_COLOR] background`,
     panel_schema: {
       showStyleTweaks: false,
       fields: [

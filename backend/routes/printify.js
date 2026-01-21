@@ -72,9 +72,9 @@ router.post('/products', async (req, res) => {
     }
 
     // Validate color
-    const validColors = ['black', 'white'];
-    if (!validColors.includes(color)) {
-      return res.status(400).json({ error: `Invalid color: ${color}. Must be 'black' or 'white'.` });
+    const validColors = ['black', 'white', 'light-pink', 'lightPink', 'light_pink'];
+    if (!validColors.includes(color.toLowerCase())) {
+      return res.status(400).json({ error: `Invalid color: ${color}. Must be 'black', 'white', or 'light-pink'.` });
     }
 
     if (!printify.isConfigured()) {

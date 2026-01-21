@@ -416,27 +416,9 @@ router.post('/sync', async (req, res) => {
         };
 
         if (existing) {
-          // Update existing template (but preserve reference_image if it exists)
-          await db.query(
-            `UPDATE templates 
-             SET name = $1, description = $2, example_image = $3, 
-                 prompt = $4, panel_schema = $5, upload_tips = $6, 
-                 max_photos = $7, gradient = $8, remove_background = $9, updated_at = CURRENT_TIMESTAMP
-             WHERE id = $10`,
-            [
-              templateData.name,
-              templateData.description,
-              templateData.example_image,
-              templateData.prompt,
-              templateData.panel_schema,
-              templateData.upload_tips,
-              templateData.max_photos,
-              templateData.gradient,
-              templateData.remove_background,
-              templateData.id,
-            ]
-          );
-          results.updated.push(template.id);
+          // Skip existing templates - only sync new ones
+          // Admin panel is the source of truth for existing templates
+          results.skipped.push(template.id);
         } else {
           // Create new template
           await db.query(
@@ -469,7 +451,7 @@ router.post('/sync', async (req, res) => {
     }
 
     res.json({
-      message: `Sync completed: ${results.created.length} created, ${results.updated.length} updated, ${results.errors.length} errors`,
+      message: `Sync completed: ${results.created.length} created, ${results.skipped.length} skipped (existing), ${results.errors.length} errors`,
       results,
     });
   } catch (error) {
