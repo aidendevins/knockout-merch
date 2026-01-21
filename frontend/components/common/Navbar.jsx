@@ -16,6 +16,35 @@ import {
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 
+// Helper to proxy S3 URLs to avoid CORS issues
+const getImageUrl = (url) => {
+  if (!url) return null;
+  
+  // Always use proxy for S3 URLs to avoid CORS issues
+  if (url.includes('s3.amazonaws.com') || url.includes('s3://') || url.includes('.s3.')) {
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const apiBase = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
+    
+    // Try to extract S3 key from URL for more reliable proxying
+    let proxyUrl;
+    try {
+      const urlObj = new URL(url);
+      const s3Key = urlObj.pathname.substring(1); // Remove leading slash
+      if (s3Key) {
+        proxyUrl = `${apiBase}/upload/proxy-s3/${encodeURIComponent(s3Key)}`;
+      } else {
+        proxyUrl = `${apiBase}/upload/proxy-image?url=${encodeURIComponent(url)}`;
+      }
+    } catch {
+      proxyUrl = `${apiBase}/upload/proxy-image?url=${encodeURIComponent(url)}`;
+    }
+    
+    return proxyUrl;
+  }
+  
+  return url;
+};
+
 export default function Navbar({ user }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -149,10 +178,18 @@ export default function Navbar({ user }) {
                         className="cursor-pointer hover:bg-pink-900/20 focus:bg-pink-900/20 p-3 flex gap-3 items-center"
                       >
                         <img
-                          src={design.design_image_url}
+                          src={getImageUrl(design.design_image_url)}
                           alt={design.title}
                           className="w-12 h-12 object-cover rounded border border-pink-900/30"
+                          onError={(e) => {
+                            // Fallback to a heart icon if image fails
+                            e.target.style.display = 'none';
+                            e.target.nextElementSibling?.classList.remove('hidden');
+                          }}
                         />
+                        <div className="w-12 h-12 rounded border border-pink-900/30 bg-gradient-to-br from-pink-900/30 to-red-900/30 flex items-center justify-center hidden">
+                          <Heart className="w-6 h-6 text-pink-500" />
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-white text-sm font-medium truncate">
                             {design.title}
