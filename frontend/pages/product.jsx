@@ -35,6 +35,9 @@ export default function Product() {
   const [selectedSize, setSelectedSize] = useState('M');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [selectedColor, setSelectedColor] = useState(null); // Dynamic color selection
+  const [isFetchingMockups, setIsFetchingMockups] = useState(false);
+  const [mockupsByColor, setMockupsByColor] = useState({}); // Cache mockups by color
 
   // Fetch design
   const { data: design, isLoading } = useQuery({
@@ -46,15 +49,136 @@ export default function Product() {
     enabled: !!designId,
   });
 
-  // Lock color and product type from design (cannot be changed)
-  const selectedColor = design?.color || 'black';
+  // Set default color from design when it loads
+  React.useEffect(() => {
+    if (design && !selectedColor) {
+      setSelectedColor(design.color || 'black');
+      // Cache the initial mockups (filter by original color)
+      if (design.mockup_urls && design.mockup_urls.length > 0) {
+        const filteredMockups = filterMockupsByColor(design.mockup_urls, design.color || 'black');
+        setMockupsByColor(prev => ({
+          ...prev,
+          [design.color || 'black']: filteredMockups
+        }));
+      }
+    }
+  }, [design, selectedColor]);
+
+  // Filter mockups by color AND select specific indices
+  // Printify mockup URLs contain color information in the filename/URL
+  const filterMockupsByColor = (mockups, color) => {
+    if (!mockups || mockups.length === 0) return [];
+    
+    console.log(`🔍 Filtering mockups for color: ${color}`);
+    console.log(`   Total mockups received: ${mockups.length}`);
+    
+    // Printify often includes color in the mockup URL or filename
+    // For example: "...Black..." or "...White..." or variant IDs that differ by color
+    const colorKeywords = {
+      black: ['black', 'Black', 'BLACK', '3001_Solid_Black', '_black_', 'solid-black', 'Heather_Black'],
+      white: ['white', 'White', 'WHITE', '3001_Solid_White', '_white_', 'solid-white', 'Heather_White']
+    };
+    
+    const keywords = colorKeywords[color.toLowerCase()] || [];
+    
+    // Filter mockups that contain any of the color keywords
+    const filtered = mockups.filter(url => {
+      const matches = keywords.some(keyword => url.includes(keyword));
+      if (matches) {
+        console.log(`   ✅ Matched ${color}: ${url.substring(url.lastIndexOf('/') + 1, url.lastIndexOf('/') + 40)}...`);
+      }
+      return matches;
+    });
+    
+    console.log(`   Filtered by keyword: ${filtered.length} mockups`);
+    
+    // If filtering resulted in empty array, use fallback
+    let colorFiltered;
+    if (filtered.length === 0) {
+      console.warn(`   ⚠️ Could not filter mockups by color ${color} using keywords`);
+      console.warn(`   ⚠️ Using fallback: split array in half`);
+      // Split mockups in half - first half for first color, second half for second
+      const midpoint = Math.ceil(mockups.length / 2);
+      // If design was originally WHITE and we're selecting WHITE, use second half
+      // If design was originally BLACK and we're selecting BLACK, use first half
+      const isOriginalColor = color === (design?.color || 'black');
+      colorFiltered = isOriginalColor ? mockups.slice(0, midpoint) : mockups.slice(midpoint);
+      console.log(`   Using ${isOriginalColor ? 'first' : 'second'} half: ${colorFiltered.length} mockups`);
+    } else {
+      colorFiltered = filtered;
+    }
+    
+    // Now select only specific indices: 1, 3, 5, 9, 10 (which are array indices 0, 2, 4, 8, 9)
+    const selectedIndices = [0, 2, 4, 8, 9];
+    const selectedMockups = selectedIndices
+      .map(index => colorFiltered[index])
+      .filter(Boolean); // Remove undefined if array is shorter than expected
+    
+    console.log(`   ✅ Final result: ${selectedMockups.length} mockups (from indices: 1,3,5,9,10)`);
+    
+    return selectedMockups;
+  };
+
+  // Product type is still locked from design
   const selectedProductType = design?.product_type || 'tshirt';
 
-  // Create image gallery (mockups + design image)
-  const images = design ? [
-    ...(design.mockup_urls || []),
-    design.design_image_url,
-  ].filter(Boolean) : [];
+  // Fetch mockups for a specific color
+  const fetchMockupsForColor = async (color) => {
+    if (!design?.printify_product_id) return;
+    
+    // Check if we already have mockups for this color cached
+    if (mockupsByColor[color]) {
+      return mockupsByColor[color];
+    }
+
+    setIsFetchingMockups(true);
+    try {
+      // Fetch ALL mockups from Printify
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/printify/products/${design.printify_product_id}/mockups`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch mockups');
+      }
+      
+      const allMockups = await response.json();
+      
+      // Filter mockups by the requested color
+      const colorMockups = filterMockupsByColor(allMockups, color);
+      
+      console.log(`Fetched ${allMockups.length} total mockups, filtered to ${colorMockups.length} for ${color}`);
+      
+      // Cache the mockups for this color
+      setMockupsByColor(prev => ({
+        ...prev,
+        [color]: colorMockups
+      }));
+      
+      return colorMockups;
+    } catch (error) {
+      console.error('Error fetching mockups:', error);
+      toast.error('Failed to load mockups for this color');
+      return design.mockup_urls || [];
+    } finally {
+      setIsFetchingMockups(false);
+    }
+  };
+
+  // Handle color change
+  const handleColorChange = async (newColor) => {
+    setSelectedColor(newColor);
+    setCurrentImageIndex(0); // Reset to first image
+    
+    // Fetch mockups for the new color
+    await fetchMockupsForColor(newColor);
+  };
+
+  // Get current mockups for selected color
+  const currentMockups = mockupsByColor[selectedColor] || design?.mockup_urls || [];
+  
+  // Create image gallery (ONLY mockups, no design image)
+  const images = currentMockups;
 
   const currentPrice = PRODUCT_TYPES.find(pt => pt.value === selectedProductType)?.price || 29.99;
 
@@ -226,25 +350,50 @@ export default function Product() {
 
             <Separator className="bg-gray-800" />
 
-            {/* Product Details - Locked (Read Only) */}
-            <div className="p-4 bg-gray-900/50 border border-gray-800 rounded-xl">
-              <h3 className="text-white font-semibold mb-3">Your Selection</h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-500">Product Type:</span>
-                  <span className="text-white ml-2 font-medium">
-                    {selectedProductType === 'tshirt' ? 'T-Shirt' : 'Hoodie'}
+            {/* Color Selection - Now Interactive! */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-white font-semibold">
+                  Color
+                </label>
+                {isFetchingMockups && (
+                  <span className="text-xs text-gray-400 flex items-center gap-1">
+                    <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Loading mockups...
                   </span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Color:</span>
-                  <span className="text-white ml-2 font-medium">
-                    {selectedColor === 'black' ? 'Black' : 'White'}
-                  </span>
-                </div>
+                )}
               </div>
-              <p className="text-gray-400 text-xs mt-3">
-                These options are locked based on your design creation
+              <div className="flex gap-3">
+                {COLORS.map((color) => (
+                  <button
+                    key={color.value}
+                    onClick={() => handleColorChange(color.value)}
+                    disabled={isFetchingMockups}
+                    className={cn(
+                      "flex-1 py-4 px-4 rounded-xl border-2 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed",
+                      selectedColor === color.value
+                        ? "border-pink-500 bg-gradient-to-r from-pink-600/10 to-red-600/10 text-white shadow-lg shadow-pink-600/20"
+                        : "border-gray-800 hover:border-gray-700 text-gray-400 bg-gray-900 hover:bg-gray-800"
+                    )}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <div
+                        className="w-5 h-5 rounded-full border-2 border-gray-600"
+                        style={{ backgroundColor: color.hex }}
+                      />
+                      <span>{color.name}</span>
+                      {selectedColor === color.value && (
+                        <Check className="w-4 h-4 ml-1" />
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <p className="text-gray-400 text-xs mt-2">
+                Product type ({selectedProductType === 'tshirt' ? 'T-Shirt' : 'Hoodie'}) is locked based on your design
               </p>
             </div>
 

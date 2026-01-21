@@ -525,28 +525,26 @@ async function createProduct({ title, description, imageUrl, productType = 'tshi
     };
   }
   
-  // Filter variants by color and size
+  // Filter variants by BOTH colors and size (to allow user to choose either color later)
   const availableSizes = ['S', 'M', 'L', 'XL', '2XL'];
+  const availableColors = ['black', 'white']; // Always create both color variants
   
   // Use Printify color name for filtering (e.g., "Soft Pink" instead of "light-pink")
   const filteredVariants = printifyVariants.variants?.filter(variant => {
-    // Check if variant matches our color and size requirements
-    // Printify API returns color names like "Soft Pink", "Black", "White"
-    const variantColor = variant.options?.color;
+    // Check if variant matches our size requirements and is black or white
+    const variantColor = variant.options?.color?.toLowerCase();
     const variantSize = variant.options?.size;
     
-    // Compare using the Printify color name (case-insensitive)
-    const colorMatches = variantColor && 
-      variantColor.toLowerCase() === printifyColor.toLowerCase();
-    
-    return colorMatches && availableSizes.includes(variantSize);
+    return availableColors.includes(variantColor) && 
+           availableSizes.includes(variantSize);
   }) || [];
   
   if (filteredVariants.length === 0) {
-    throw new Error(`No variants found for ${printifyColor} color (mapped from "${color}") in blueprint ${blueprint.id}`);
+    throw new Error(`No variants found for black/white colors in blueprint ${blueprint.id}`);
   }
   
-  console.log(`✅ Found ${filteredVariants.length} matching variants for ${printifyColor} color`);
+  console.log(`✅ Found ${filteredVariants.length} matching variants for both black and white colors`);
+  console.log(`   Originally selected color: ${color}`);
   
   // Create variants array with pricing
   const variants = filteredVariants.map(variant => ({
@@ -566,7 +564,7 @@ async function createProduct({ title, description, imageUrl, productType = 'tshi
     variants,
     print_areas: [
       {
-        variant_ids: variantIds,
+        variant_ids: variantIds, // All variants (both colors) use the same design
         placeholders: [
           {
             position: 'front',
@@ -589,8 +587,9 @@ async function createProduct({ title, description, imageUrl, productType = 'tshi
     blueprint_id: blueprint.id,
     print_provider_id: blueprint.printProviderId,
     variants_count: variants.length,
-    variant_ids: variantIds,
-    color: color,
+    variant_ids: variantIds.length,
+    colors: 'black and white',
+    originally_selected_color: color,
     product_type: productType
   });
 
@@ -603,10 +602,10 @@ async function createProduct({ title, description, imageUrl, productType = 'tshi
     id: product.id,
     printify_product_id: product.id,
     title: product.title,
-      blueprint_id: blueprint.id,
-      color: printifyColor,
-      original_color: color,
-      images: product.images || [],
+    blueprint_id: blueprint.id,
+    color: printifyColor,
+    original_color: color,
+    images: product.images || [],
     };
   }
 
