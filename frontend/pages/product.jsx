@@ -53,15 +53,48 @@ export default function Product() {
   React.useEffect(() => {
     if (design && !selectedColor) {
       setSelectedColor(design.color || 'black');
-      // Cache the initial mockups
+      // Cache the initial mockups (filter by original color)
       if (design.mockup_urls && design.mockup_urls.length > 0) {
+        const filteredMockups = filterMockupsByColor(design.mockup_urls, design.color || 'black');
         setMockupsByColor(prev => ({
           ...prev,
-          [design.color || 'black']: design.mockup_urls
+          [design.color || 'black']: filteredMockups
         }));
       }
     }
   }, [design, selectedColor]);
+
+  // Filter mockups by color
+  // Printify mockup URLs contain color information in the filename/URL
+  const filterMockupsByColor = (mockups, color) => {
+    if (!mockups || mockups.length === 0) return [];
+    
+    // Printify often includes color in the mockup URL or filename
+    // For example: "...Black..." or "...White..." or variant IDs that differ by color
+    const colorKeywords = {
+      black: ['black', 'Black', 'BLACK', '3001_Solid_Black', '_black_', 'solid-black'],
+      white: ['white', 'White', 'WHITE', '3001_Solid_White', '_white_', 'solid-white']
+    };
+    
+    const keywords = colorKeywords[color.toLowerCase()] || [];
+    
+    // Filter mockups that contain any of the color keywords
+    const filtered = mockups.filter(url => {
+      return keywords.some(keyword => url.includes(keyword));
+    });
+    
+    // If filtering resulted in empty array, return all mockups (fallback)
+    // This can happen if Printify's URL structure doesn't contain color info
+    if (filtered.length === 0) {
+      console.warn(`Could not filter mockups by color ${color}, returning all mockups`);
+      // For now, if we can't filter, split the mockups evenly
+      // Assuming first half is one color, second half is the other
+      const midpoint = Math.ceil(mockups.length / 2);
+      return color === (design?.color || 'black') ? mockups.slice(0, midpoint) : mockups.slice(midpoint);
+    }
+    
+    return filtered;
+  };
 
   // Product type is still locked from design
   const selectedProductType = design?.product_type || 'tshirt';
@@ -77,7 +110,7 @@ export default function Product() {
 
     setIsFetchingMockups(true);
     try {
-      // Fetch mockups from Printify for this specific color
+      // Fetch ALL mockups from Printify
       const response = await fetch(
         `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/printify/products/${design.printify_product_id}/mockups`
       );
@@ -88,11 +121,12 @@ export default function Product() {
       
       const allMockups = await response.json();
       
-      // Filter mockups by color (Printify mockup URLs often contain color info)
-      // For now, we'll use all mockups since Printify generates them for all variants
-      const colorMockups = allMockups;
+      // Filter mockups by the requested color
+      const colorMockups = filterMockupsByColor(allMockups, color);
       
-      // Cache the mockups
+      console.log(`Fetched ${allMockups.length} total mockups, filtered to ${colorMockups.length} for ${color}`);
+      
+      // Cache the mockups for this color
       setMockupsByColor(prev => ({
         ...prev,
         [color]: colorMockups
