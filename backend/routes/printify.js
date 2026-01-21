@@ -109,36 +109,73 @@ router.post('/products', async (req, res) => {
       return res.json(mockProduct);
     }
 
-    // Create product on Printify
+    // Create BOTH T-shirt AND Hoodie products on Printify
     // Prefer base64 if provided, otherwise use URL
     const imageData = design_image_base64 || design_image_url;
-    const product = await printify.createProduct({
-      title: title || 'KO Merch Design',
-      description,
-      imageUrl: imageData, // This now accepts both URL and base64
-      productType: product_type,
+    
+    console.log('🎨 Creating T-shirt product...');
+    const tshirtProduct = await printify.createProduct({
+      title: `${title || 'KO Merch Design'} - T-Shirt`,
+      description: description || 'Custom design T-shirt',
+      imageUrl: imageData,
+      productType: 'tshirt',
       color: color,
       canvasData: canvas_data,
     });
 
-    // Get mockups
-    const mockupUrls = await printify.getProductMockups(product.id);
+    console.log('🎨 Creating Hoodie product...');
+    const hoodieProduct = await printify.createProduct({
+      title: `${title || 'KO Merch Design'} - Hoodie`,
+      description: description || 'Custom design hoodie',
+      imageUrl: imageData,
+      productType: 'hoodie',
+      color: color,
+      canvasData: canvas_data,
+    });
 
-    // Update design with Printify product ID and mockups
+    // Get mockups for both
+    console.log('📸 Fetching T-shirt mockups...');
+    const tshirtMockups = await printify.getProductMockups(tshirtProduct.id);
+    console.log('📸 Fetching Hoodie mockups...');
+    const hoodieMockups = await printify.getProductMockups(hoodieProduct.id);
+
+    // Update design with BOTH product IDs and mockups
     if (design_id) {
       await db.query(
         `UPDATE designs SET 
-          mockup_urls = $1, 
-          printify_product_id = $2,
-          color = $3
-        WHERE id = $4`,
-        [JSON.stringify(mockupUrls), product.id, color, design_id]
+          printify_tshirt_id = $1,
+          printify_hoodie_id = $2,
+          tshirt_mockups = $3,
+          hoodie_mockups = $4,
+          printify_product_id = $5,
+          mockup_urls = $6,
+          color = $7
+        WHERE id = $8`,
+        [
+          tshirtProduct.id,
+          hoodieProduct.id,
+          JSON.stringify(tshirtMockups),
+          JSON.stringify(hoodieMockups),
+          product_type === 'tshirt' ? tshirtProduct.id : hoodieProduct.id, // Set primary based on user choice
+          JSON.stringify(product_type === 'tshirt' ? tshirtMockups : hoodieMockups), // Set primary mockups
+          color,
+          design_id
+        ]
       );
     }
 
     res.json({
-      ...product,
-      mockup_urls: mockupUrls,
+      tshirt: {
+        ...tshirtProduct,
+        mockup_urls: tshirtMockups,
+      },
+      hoodie: {
+        ...hoodieProduct,
+        mockup_urls: hoodieMockups,
+      },
+      printify_tshirt_id: tshirtProduct.id,
+      printify_hoodie_id: hoodieProduct.id,
+      selected_product_type: product_type,
       color,
       is_mock: false,
     });
