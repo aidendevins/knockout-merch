@@ -338,7 +338,7 @@ const ProductCanvas = forwardRef(({
         h * (area.y + area.height / 2)
       );
     }
-  }, [ctx, product, productType, designLayers, selectedLayerId, showGrid, selectedColor, tshirtImage, tshirtMockupLoaded]);
+  }, [ctx, product, productType, designLayers, selectedLayerId, showGrid, selectedColor, tshirtImages, tshirtMockupsLoaded]);
 
   // Draw selection box with handles
   const drawSelectionBox = (ctx, element) => {
