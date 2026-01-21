@@ -84,7 +84,7 @@ export default function StudioCarousel({ designs }) {
   };
 
   return (
-    <section className="py-24 overflow-hidden relative w-full">
+    <section id="templates-section" className="py-24 overflow-hidden relative w-full">
       <div className="max-w-[2400px] mx-auto px-4 md:px-8 lg:px-16 xl:px-24 2xl:px-32 relative z-10">
         {/* Section header */}
         <div className="text-center mb-12">

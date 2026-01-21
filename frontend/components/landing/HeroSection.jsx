@@ -13,12 +13,19 @@ export default function HeroSection({ products = [], isLoading = false }) {
   };
 
   const handleProductClick = () => {
-    // Scroll down to the templates section instead of navigating
-    window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+    // Scroll down to the templates section
+    const templatesSection = document.getElementById('templates-section');
+    if (templatesSection) {
+      templatesSection.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   const handleBrowseDesigns = () => {
-    window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+    // Scroll down to the templates section
+    const templatesSection = document.getElementById('templates-section');
+    if (templatesSection) {
+      templatesSection.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   return (

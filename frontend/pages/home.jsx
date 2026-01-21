@@ -54,7 +54,7 @@ export default function Home() {
 
         {/* Studio Collection Carousel */}
         {productsLoading ? (
-          <section className="py-24 relative overflow-hidden">
+          <section id="templates-section" className="py-24 relative overflow-hidden">
             <div className="max-w-[2400px] mx-auto px-4 md:px-8 lg:px-16 xl:px-24 2xl:px-32 text-center mb-12 relative z-10">
               <div className="inline-block bg-gradient-to-r from-pink-600 to-red-600 text-white border-0 rounded-full px-4 py-1.5 text-sm mb-4 shadow-lg shadow-pink-600/30">
                 Studio Collection
@@ -78,7 +78,7 @@ export default function Home() {
             </div>
           </section>
         ) : templateProducts.length === 0 ? (
-          <section className="py-24 relative overflow-hidden">
+          <section id="templates-section" className="py-24 relative overflow-hidden">
             <div className="max-w-3xl mx-auto px-4 text-center relative z-10">
               <div className="w-20 h-20 bg-gradient-to-br from-pink-900/30 to-red-900/30 rounded-full mx-auto mb-6 flex items-center justify-center border border-pink-600/30">
                 <span className="text-4xl">💕</span>
