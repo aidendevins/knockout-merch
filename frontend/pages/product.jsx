@@ -106,14 +106,19 @@ export default function Product() {
     let colorFiltered;
     if (filtered.length === 0) {
       console.warn(`   ⚠️ Could not filter mockups by color ${color} using keywords`);
-      console.warn(`   ⚠️ Using fallback: split array in half`);
-      // Split mockups in half - first half for first color, second half for second
+      console.warn(`   ⚠️ Using fallback: split array by color consistently`);
+      
+      // Split mockups in half - Printify likely returns them in consistent order
+      // Based on testing: WHITE mockups come FIRST, BLACK mockups come SECOND
       const midpoint = Math.ceil(mockups.length / 2);
-      // If design was originally WHITE and we're selecting WHITE, use second half
-      // If design was originally BLACK and we're selecting BLACK, use first half
-      const isOriginalColor = color === (design?.color || 'black');
-      colorFiltered = isOriginalColor ? mockups.slice(0, midpoint) : mockups.slice(midpoint);
-      console.log(`   Using ${isOriginalColor ? 'first' : 'second'} half: ${colorFiltered.length} mockups`);
+      
+      // WHITE = first half, BLACK = second half (based on Printify's ordering)
+      const isWhite = color.toLowerCase() === 'white';
+      colorFiltered = isWhite ? mockups.slice(0, midpoint) : mockups.slice(midpoint);
+      
+      console.log(`   📋 Requested color: ${color}`);
+      console.log(`   📋 Using ${isWhite ? 'FIRST' : 'SECOND'} half (${isWhite ? 'WHITE' : 'BLACK'}): ${colorFiltered.length} mockups`);
+      console.log(`   📋 Sample URL: ${colorFiltered[0]?.substring(0, 100)}...`);
     } else {
       colorFiltered = filtered;
     }
