@@ -107,8 +107,8 @@ const ProductCanvas = forwardRef(({
   const [designImage, setDesignImage] = useState(null);
 
   // Product mockup images
-  const [tshirtImage, setTshirtImage] = useState(null);
-  const [tshirtMockupLoaded, setTshirtMockupLoaded] = useState(false);
+  const [tshirtImages, setTshirtImages] = useState({ black: null, white: null });
+  const [tshirtMockupsLoaded, setTshirtMockupsLoaded] = useState({ black: false, white: false });
 
   // Get product config and override baseColor with selectedColor
   const product = useMemo(() => {
@@ -133,18 +133,31 @@ const ProductCanvas = forwardRef(({
     }
   }, []);
 
-  // Load t-shirt mockup image
+  // Load t-shirt mockup images (black and white)
   useEffect(() => {
-    const img = new Image();
-    img.onload = () => {
-      setTshirtImage(img);
-      setTshirtMockupLoaded(true);
+    // Load black t-shirt
+    const blackImg = new Image();
+    blackImg.onload = () => {
+      setTshirtImages(prev => ({ ...prev, black: blackImg }));
+      setTshirtMockupsLoaded(prev => ({ ...prev, black: true }));
     };
-    img.onerror = () => {
-      console.error('Failed to load t-shirt mockup image');
-      setTshirtMockupLoaded(false);
+    blackImg.onerror = () => {
+      console.error('Failed to load black t-shirt mockup image');
+      setTshirtMockupsLoaded(prev => ({ ...prev, black: false }));
     };
-    img.src = '/tshirt-black.png';
+    blackImg.src = '/tshirt-black.png';
+
+    // Load white t-shirt
+    const whiteImg = new Image();
+    whiteImg.onload = () => {
+      setTshirtImages(prev => ({ ...prev, white: whiteImg }));
+      setTshirtMockupsLoaded(prev => ({ ...prev, white: true }));
+    };
+    whiteImg.onerror = () => {
+      console.error('Failed to load white t-shirt mockup image');
+      setTshirtMockupsLoaded(prev => ({ ...prev, white: false }));
+    };
+    whiteImg.src = '/tshirt-white.png';
   }, []);
 
   // Load the generated image when it changes
@@ -247,10 +260,14 @@ const ProductCanvas = forwardRef(({
     ctx.fillStyle = '#2a2a2a';
     ctx.fillRect(0, 0, w, h);
 
-    // Draw t-shirt mockup image if loaded
-    if (tshirtImage && tshirtMockupLoaded) {
+    // Draw t-shirt mockup image if loaded (select based on color)
+    const currentColor = selectedColor === 'white' ? 'white' : 'black';
+    const currentTshirtImage = tshirtImages[currentColor];
+    const isMockupLoaded = tshirtMockupsLoaded[currentColor];
+    
+    if (currentTshirtImage && isMockupLoaded) {
       // Draw the t-shirt image to fill the canvas
-      ctx.drawImage(tshirtImage, 0, 0, w, h);
+      ctx.drawImage(currentTshirtImage, 0, 0, w, h);
     }
 
     // Draw print area guide
