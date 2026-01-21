@@ -64,7 +64,7 @@ export default function Product() {
     }
   }, [design, selectedColor]);
 
-  // Filter mockups by color
+  // Filter mockups by color AND select specific indices
   // Printify mockup URLs contain color information in the filename/URL
   const filterMockupsByColor = (mockups, color) => {
     if (!mockups || mockups.length === 0) return [];
@@ -85,15 +85,26 @@ export default function Product() {
     
     // If filtering resulted in empty array, return all mockups (fallback)
     // This can happen if Printify's URL structure doesn't contain color info
+    let colorFiltered;
     if (filtered.length === 0) {
       console.warn(`Could not filter mockups by color ${color}, returning all mockups`);
       // For now, if we can't filter, split the mockups evenly
       // Assuming first half is one color, second half is the other
       const midpoint = Math.ceil(mockups.length / 2);
-      return color === (design?.color || 'black') ? mockups.slice(0, midpoint) : mockups.slice(midpoint);
+      colorFiltered = color === (design?.color || 'black') ? mockups.slice(0, midpoint) : mockups.slice(midpoint);
+    } else {
+      colorFiltered = filtered;
     }
     
-    return filtered;
+    // Now select only specific indices: 1, 3, 5, 9, 10 (which are array indices 0, 2, 4, 8, 9)
+    const selectedIndices = [0, 2, 4, 8, 9];
+    const selectedMockups = selectedIndices
+      .map(index => colorFiltered[index])
+      .filter(Boolean); // Remove undefined if array is shorter than expected
+    
+    console.log(`Filtered mockups: ${colorFiltered.length} total -> ${selectedMockups.length} selected (indices: 1,3,5,9,10)`);
+    
+    return selectedMockups;
   };
 
   // Product type is still locked from design
