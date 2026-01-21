@@ -90,6 +90,18 @@ export default function DesignStudio() {
   const [showNameDialog, setShowNameDialog] = useState(false);
   const [designName, setDesignName] = useState('');
 
+  // Past generations history (session-only, not persisted)
+  const [pastGenerations, setPastGenerations] = useState([]);
+
+  // Reuse a past generation
+  const handleReusePastGeneration = (generation) => {
+    setGeneratedImage(getImageUrl(generation.imageUrl) || generation.imageUrl);
+    setCachedGeminiImage(generation.imageUrl);
+    setProductType(generation.productType);
+    setSelectedColor(generation.color);
+    toast.success('Design loaded!');
+  };
+
   // Create design mutation
   const createDesignMutation = useMutation({
     mutationFn: async (designData) => {
@@ -124,6 +136,17 @@ export default function DesignStudio() {
 
     // Cache the original Gemini-generated image for retry functionality
     setCachedGeminiImage(imageUrl);
+
+    // Save to past generations history
+    const newGeneration = {
+      id: Date.now(),
+      imageUrl: imageUrl,
+      timestamp: new Date(),
+      template: selectedTemplate?.name || 'Custom',
+      productType: productType,
+      color: selectedColor,
+    };
+    setPastGenerations(prev => [newGeneration, ...prev]); // Add to beginning (newest first)
 
     // Check if template requires background removal - do it immediately after generation
     // Support both string ("remove-simple") and boolean (for backwards compatibility)
@@ -560,7 +583,7 @@ export default function DesignStudio() {
       />
 
       {/* AI Panel */}
-      <div className="w-72 flex-shrink-0 hidden md:block">
+      <div className="w-72 flex-shrink-0 hidden md:block overflow-y-auto">
         <AIPanel 
           uploadedPhotos={uploadedPhotos}
           selectedTemplate={selectedTemplate}
@@ -573,6 +596,50 @@ export default function DesignStudio() {
           onRetryBackgroundRemoval={handleRetryBackgroundRemoval}
           selectedColor={selectedColor}
         />
+
+        {/* Past Generations */}
+        {pastGenerations.length > 0 && (
+          <div className="mt-6 px-6 pb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <svg className="w-4 h-4 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h3 className="text-sm font-semibold text-pink-300">
+                Past Generations
+              </h3>
+              <span className="text-xs text-gray-500">({pastGenerations.length})</span>
+            </div>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {pastGenerations.map((gen) => (
+                <button
+                  key={gen.id}
+                  onClick={() => handleReusePastGeneration(gen)}
+                  className="w-full flex items-center gap-3 p-2 rounded-lg border border-pink-900/30 bg-gradient-to-br from-red-950/20 to-black hover:border-pink-600/50 hover:from-red-950/40 hover:to-black/80 transition-all group"
+                >
+                  <img
+                    src={getImageUrl(gen.imageUrl) || gen.imageUrl}
+                    alt={`Generation ${gen.id}`}
+                    className="w-12 h-12 object-cover rounded border border-pink-900/30"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="text-xs text-white truncate font-medium">
+                      {gen.template}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(gen.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <svg className="w-4 h-4 text-pink-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main canvas area */}
