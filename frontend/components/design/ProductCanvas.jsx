@@ -228,13 +228,12 @@ const ProductCanvas = forwardRef(({
     // Clear canvas
     ctx.clearRect(0, 0, w, h);
 
-    // Fill background with black (always) so shirt outline is visible
-    // The selectedColor only affects the actual product, not the canvas background
-    ctx.fillStyle = '#1a1a1a';
+    // Fill background with light neutral color so colored shirts are visible
+    ctx.fillStyle = '#2a2a2a';
     ctx.fillRect(0, 0, w, h);
 
-    // Draw product outline (t-shirt or hoodie shape)
-    drawProductOutline(ctx, productType, w, h);
+    // Draw product mockup (filled t-shirt or hoodie in selected color)
+    drawProductMockup(ctx, productType, selectedColor, w, h);
 
     // Draw print area guide
     if (showGrid) {
@@ -282,17 +281,27 @@ const ProductCanvas = forwardRef(({
         h * (area.y + area.height / 2)
       );
     }
-  }, [ctx, product, productType, designLayers, selectedLayerId, showGrid]);
+  }, [ctx, product, productType, designLayers, selectedLayerId, showGrid, selectedColor]);
 
-  // Draw product outline
-  const drawProductOutline = (ctx, type, w, h) => {
+  // Draw product mockup (filled t-shirt/hoodie in selected color)
+  const drawProductMockup = (ctx, type, color, w, h) => {
     ctx.save();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-    ctx.lineWidth = 1;
+
+    // Map color names to hex values
+    const colorMap = {
+      'black': '#1a1a1a',
+      'white': '#f5f5f5',
+      'light-pink': '#ffc0cb',
+      'lightPink': '#ffc0cb',
+      'light_pink': '#ffc0cb',
+      'pink': '#ffc0cb',
+    };
+
+    const fillColor = colorMap[color?.toLowerCase()] || '#1a1a1a';
 
     if (type === 'tshirt') {
+      // Draw filled t-shirt
       ctx.beginPath();
-      // T-shirt shape (normalized to canvas size)
       ctx.moveTo(w * 0.30, h * 0.15);
       ctx.lineTo(w * 0.25, h * 0.20);
       ctx.lineTo(w * 0.15, h * 0.18);
@@ -306,10 +315,20 @@ const ProductCanvas = forwardRef(({
       ctx.lineTo(w * 0.75, h * 0.20);
       ctx.lineTo(w * 0.70, h * 0.15);
       ctx.quadraticCurveTo(w * 0.50, h * 0.20, w * 0.30, h * 0.15);
+      ctx.closePath();
+
+      // Fill with selected color
+      ctx.fillStyle = fillColor;
+      ctx.fill();
+
+      // Add subtle border for depth
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+      ctx.lineWidth = 2;
       ctx.stroke();
+
     } else if (type === 'hoodie') {
+      // Draw filled hoodie
       ctx.beginPath();
-      // Hoodie shape
       ctx.moveTo(w * 0.30, h * 0.18);
       ctx.lineTo(w * 0.25, h * 0.23);
       ctx.lineTo(w * 0.12, h * 0.20);
@@ -323,12 +342,23 @@ const ProductCanvas = forwardRef(({
       ctx.lineTo(w * 0.75, h * 0.23);
       ctx.lineTo(w * 0.70, h * 0.18);
       ctx.quadraticCurveTo(w * 0.50, h * 0.25, w * 0.30, h * 0.18);
+      ctx.closePath();
+
+      // Fill with selected color
+      ctx.fillStyle = fillColor;
+      ctx.fill();
+
+      // Add subtle border for depth
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+      ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Hood
+      // Hood outline
       ctx.beginPath();
       ctx.moveTo(w * 0.40, h * 0.18);
       ctx.quadraticCurveTo(w * 0.50, h * 0.05, w * 0.60, h * 0.18);
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+      ctx.lineWidth = 2;
       ctx.stroke();
     }
 
