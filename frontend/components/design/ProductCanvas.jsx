@@ -107,12 +107,18 @@ const ProductCanvas = forwardRef(({
   const [designImage, setDesignImage] = useState(null);
 
   // Product mockup images
-  const [tshirtImage, setTshirtImage] = useState(null);
+  const [tshirtImages, setTshirtImages] = useState({ black: null, white: null, pink: null });
+  const [tshirtMockupsLoaded, setTshirtMockupsLoaded] = useState({ black: false, white: false, pink: false });
 
   // Get product config and override baseColor with selectedColor
   const product = useMemo(() => {
     const baseProduct = PRODUCT_TYPES[productType];
-    const effectiveColor = selectedColor === 'white' ? '#f5f5f5' : '#1a1a1a';
+    let effectiveColor = '#1a1a1a'; // default black
+    if (selectedColor === 'white') {
+      effectiveColor = '#f5f5f5';
+    } else if (selectedColor === 'light-pink') {
+      effectiveColor = '#fce7f3'; // light pink
+    }
     return {
       ...baseProduct,
       baseColor: effectiveColor,
@@ -130,6 +136,45 @@ const ProductCanvas = forwardRef(({
       setCtx(context);
       setPreviewCtx(previewContext);
     }
+  }, []);
+
+  // Load t-shirt mockup images (black, white, and pink)
+  useEffect(() => {
+    // Load black t-shirt
+    const blackImg = new Image();
+    blackImg.onload = () => {
+      setTshirtImages(prev => ({ ...prev, black: blackImg }));
+      setTshirtMockupsLoaded(prev => ({ ...prev, black: true }));
+    };
+    blackImg.onerror = () => {
+      console.error('Failed to load black t-shirt mockup image');
+      setTshirtMockupsLoaded(prev => ({ ...prev, black: false }));
+    };
+    blackImg.src = '/tshirt-black.png';
+
+    // Load white t-shirt
+    const whiteImg = new Image();
+    whiteImg.onload = () => {
+      setTshirtImages(prev => ({ ...prev, white: whiteImg }));
+      setTshirtMockupsLoaded(prev => ({ ...prev, white: true }));
+    };
+    whiteImg.onerror = () => {
+      console.error('Failed to load white t-shirt mockup image');
+      setTshirtMockupsLoaded(prev => ({ ...prev, white: false }));
+    };
+    whiteImg.src = '/tshirt-white.png';
+
+    // Load pink t-shirt
+    const pinkImg = new Image();
+    pinkImg.onload = () => {
+      setTshirtImages(prev => ({ ...prev, pink: pinkImg }));
+      setTshirtMockupsLoaded(prev => ({ ...prev, pink: true }));
+    };
+    pinkImg.onerror = () => {
+      console.error('Failed to load pink t-shirt mockup image');
+      setTshirtMockupsLoaded(prev => ({ ...prev, pink: false }));
+    };
+    pinkImg.src = '/tshirt-pink.png';
   }, []);
 
   // Load the generated image when it changes
@@ -228,13 +273,24 @@ const ProductCanvas = forwardRef(({
     // Clear canvas
     ctx.clearRect(0, 0, w, h);
 
-    // Fill background with black (always) so shirt outline is visible
-    // The selectedColor only affects the actual product, not the canvas background
-    ctx.fillStyle = '#1a1a1a';
+    // Fill background with light neutral color
+    ctx.fillStyle = '#2a2a2a';
     ctx.fillRect(0, 0, w, h);
 
-    // Draw product outline (t-shirt or hoodie shape)
-    drawProductOutline(ctx, productType, w, h);
+    // Draw t-shirt mockup image if loaded (select based on color)
+    let currentColor = 'black'; // default
+    if (selectedColor === 'white') {
+      currentColor = 'white';
+    } else if (selectedColor === 'light-pink') {
+      currentColor = 'pink';
+    }
+    const currentTshirtImage = tshirtImages[currentColor];
+    const isMockupLoaded = tshirtMockupsLoaded[currentColor];
+    
+    if (currentTshirtImage && isMockupLoaded) {
+      // Draw the t-shirt image to fill the canvas
+      ctx.drawImage(currentTshirtImage, 0, 0, w, h);
+    }
 
     // Draw print area guide
     if (showGrid) {
@@ -282,58 +338,7 @@ const ProductCanvas = forwardRef(({
         h * (area.y + area.height / 2)
       );
     }
-  }, [ctx, product, productType, designLayers, selectedLayerId, showGrid]);
-
-  // Draw product outline
-  const drawProductOutline = (ctx, type, w, h) => {
-    ctx.save();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-    ctx.lineWidth = 1;
-
-    if (type === 'tshirt') {
-      ctx.beginPath();
-      // T-shirt shape (normalized to canvas size)
-      ctx.moveTo(w * 0.30, h * 0.15);
-      ctx.lineTo(w * 0.25, h * 0.20);
-      ctx.lineTo(w * 0.15, h * 0.18);
-      ctx.lineTo(w * 0.12, h * 0.25);
-      ctx.lineTo(w * 0.20, h * 0.30);
-      ctx.lineTo(w * 0.20, h * 0.90);
-      ctx.lineTo(w * 0.80, h * 0.90);
-      ctx.lineTo(w * 0.80, h * 0.30);
-      ctx.lineTo(w * 0.88, h * 0.25);
-      ctx.lineTo(w * 0.85, h * 0.18);
-      ctx.lineTo(w * 0.75, h * 0.20);
-      ctx.lineTo(w * 0.70, h * 0.15);
-      ctx.quadraticCurveTo(w * 0.50, h * 0.20, w * 0.30, h * 0.15);
-      ctx.stroke();
-    } else if (type === 'hoodie') {
-      ctx.beginPath();
-      // Hoodie shape
-      ctx.moveTo(w * 0.30, h * 0.18);
-      ctx.lineTo(w * 0.25, h * 0.23);
-      ctx.lineTo(w * 0.12, h * 0.20);
-      ctx.lineTo(w * 0.08, h * 0.30);
-      ctx.lineTo(w * 0.18, h * 0.35);
-      ctx.lineTo(w * 0.18, h * 0.92);
-      ctx.lineTo(w * 0.82, h * 0.92);
-      ctx.lineTo(w * 0.82, h * 0.35);
-      ctx.lineTo(w * 0.92, h * 0.30);
-      ctx.lineTo(w * 0.88, h * 0.20);
-      ctx.lineTo(w * 0.75, h * 0.23);
-      ctx.lineTo(w * 0.70, h * 0.18);
-      ctx.quadraticCurveTo(w * 0.50, h * 0.25, w * 0.30, h * 0.18);
-      ctx.stroke();
-
-      // Hood
-      ctx.beginPath();
-      ctx.moveTo(w * 0.40, h * 0.18);
-      ctx.quadraticCurveTo(w * 0.50, h * 0.05, w * 0.60, h * 0.18);
-      ctx.stroke();
-    }
-
-    ctx.restore();
-  };
+  }, [ctx, product, productType, designLayers, selectedLayerId, showGrid, selectedColor, tshirtImages, tshirtMockupsLoaded]);
 
   // Draw selection box with handles
   const drawSelectionBox = (ctx, element) => {
