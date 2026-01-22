@@ -116,8 +116,8 @@ const ProductCanvas = forwardRef(({
     let effectiveColor = '#1a1a1a'; // default black
     if (selectedColor === 'white') {
       effectiveColor = '#f5f5f5';
-    } else if (selectedColor === 'pink') {
-      effectiveColor = '#FFB6C1'; // light pink
+    } else if (selectedColor === 'light-pink') {
+      effectiveColor = '#fce7f3'; // light pink
     }
     return {
       ...baseProduct,
@@ -281,7 +281,7 @@ const ProductCanvas = forwardRef(({
     let currentColor = 'black'; // default
     if (selectedColor === 'white') {
       currentColor = 'white';
-    } else if (selectedColor === 'pink') {
+    } else if (selectedColor === 'light-pink') {
       currentColor = 'pink';
     }
     const currentTshirtImage = tshirtImages[currentColor];
