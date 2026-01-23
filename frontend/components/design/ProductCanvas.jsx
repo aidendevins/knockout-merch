@@ -209,32 +209,19 @@ const ProductCanvas = forwardRef(({
 
       if (useTemplatePositioning) {
         // Use template-specific positioning (matches Printify reference)
-        const aspectRatio = img.naturalWidth / img.naturalHeight;
+        // Printify dimensions are ABSOLUTE sizes set manually, not based on aspect ratio
         
-        // Printify gives us separate width and height scales (design dimensions / print area dimensions)
+        // Get width and height scales (design dimensions / print area dimensions)
+        // e.g., 12.16" / 13.17" = 0.9233 for width, 13.93" / 16" = 0.8706 for height
         const widthScale = canvasConfig.width_scale || canvasConfig.scale || 0.6;
         const heightScale = canvasConfig.height_scale || canvasConfig.scale || 0.6;
         
-        // Calculate maximum dimensions based on Printify measurements
-        const maxWidth = printAreaWidth * widthScale;
-        const maxHeight = printAreaHeight * heightScale;
-        
-        // Fit design within the Printify bounding box while maintaining aspect ratio
-        // Calculate both possible sizes and pick the one that fits
-        let widthIfHeightConstrained = maxHeight * aspectRatio;
-        let heightIfWidthConstrained = maxWidth / aspectRatio;
-        
-        if (heightIfWidthConstrained <= maxHeight) {
-          // Width is the limiting factor
-          designWidth = maxWidth;
-          designHeight = heightIfWidthConstrained;
-        } else {
-          // Height is the limiting factor
-          designWidth = widthIfHeightConstrained;
-          designHeight = maxHeight;
-        }
+        // Force exact dimensions as set in Printify (ignore generated image's aspect ratio)
+        designWidth = printAreaWidth * widthScale;
+        designHeight = printAreaHeight * heightScale;
 
         // Apply template-defined offsets (percentages of print area)
+        // e.g., 3.84% of 13.17" = 0.506" from left edge
         const xOffset = canvasConfig.x_offset || 0;
         const yOffset = canvasConfig.y_offset || 0;
         
@@ -243,12 +230,11 @@ const ProductCanvas = forwardRef(({
         x = CANVAS_WIDTH * printArea.x + (printAreaWidth * xOffset);
         y = CANVAS_HEIGHT * printArea.y + (printAreaHeight * yOffset);
         
-        console.log('  ✅ Using template positioning:');
-        console.log('     Width scale:', widthScale, 'Height scale:', heightScale);
-        console.log('     Max dimensions:', maxWidth, 'x', maxHeight);
+        console.log('  ✅ Using template positioning (FORCED dimensions):');
+        console.log('     Width scale:', widthScale, '→', designWidth, 'px');
+        console.log('     Height scale:', heightScale, '→', designHeight, 'px');
         console.log('     Offsets:', xOffset, yOffset);
-        console.log('     Final position:', x, y);
-        console.log('     Final size:', designWidth, 'x', designHeight);
+        console.log('     Final position (x, y):', x, y);
       } else {
         // Default positioning: scale to 60% and center
         const aspectRatio = img.naturalWidth / img.naturalHeight;
