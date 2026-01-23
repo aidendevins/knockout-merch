@@ -258,6 +258,15 @@ async function init() {
       END $$;
     `);
 
+    // Update Polaroid Ransom Note template cover image to local file
+    // This runs automatically on deployment to set the cover image
+    await query(`
+      UPDATE templates 
+      SET example_image = '/templates/polaroid_cover.webp'
+      WHERE id = 'polaroid-ransom-note' 
+      AND (example_image IS NULL OR example_image != '/templates/polaroid_cover.webp')
+    `);
+
     // Add template_id to designs table if it doesn't exist
     await query(`
       DO $$ 
