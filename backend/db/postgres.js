@@ -277,6 +277,15 @@ async function init() {
       AND (example_image IS NULL OR example_image != '/templates/polaroid_cover.webp')
     `);
 
+    // Update Retro Name Portrait template cover image to local file
+    // This runs automatically on deployment to set the cover image
+    await query(`
+      UPDATE templates 
+      SET example_image = '/templates/retro_cover.webp'
+      WHERE id = 'retro-name-portrait' 
+      AND (example_image IS NULL OR example_image != '/templates/retro_cover.webp')
+    `);
+
     // Set Polaroid Ransom Note positioning from Printify reference
     // Based on Printify measurements:
     //   Print area: 13.17" wide × 16" tall
