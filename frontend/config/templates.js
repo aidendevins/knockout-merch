@@ -278,6 +278,8 @@ export async function fetchTemplates(includeHidden = false) {
       panelSchema: t.panel_schema,
       removeBackground: t.remove_background, // Background removal flag
       remove_background: t.remove_background, // Keep snake_case for compatibility
+      canvas_config: t.canvas_config, // Template-specific positioning for canvas (Printify reference)
+      canvasConfig: t.canvas_config, // Also provide camelCase version for consistency
       buildPrompt: getBuildPromptFunction(t.id), // Fallback build function if no DB prompt
     }));
   } catch (error) {
