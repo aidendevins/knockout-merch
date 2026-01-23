@@ -12,7 +12,9 @@ const PRODUCT_TYPES = {
     name: 'T-Shirt',
     baseColor: '#1a1a1a',
     // Print area as percentage of canvas (centered on chest)
-    printArea: { x: 0.25, y: 0.28, width: 0.50, height: 0.45 },
+    // Bella Canvas 3001: 13.17" wide × 16" tall (aspect ratio 0.823:1)
+    // Adjusted to match Printify's actual print area proportions
+    printArea: { x: 0.26, y: 0.20, width: 0.48, height: 0.58 },
     // Print dimensions for Printify (in pixels) - standard DTG print
     printDimensions: { width: 4000, height: 4500 }
   },
