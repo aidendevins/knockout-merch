@@ -23,7 +23,7 @@ export default function Home() {
           title: template.display_title || template.name,
           description: template.description,
           mockup_urls: template.mockup_urls || [],
-          reference_image: template.reference_image, // Template reference image
+          reference_image: template.example_image || template.reference_image, // Use cover image (example_image) for display, fallback to reference
           price: template.price || 29.99,
           product_type: 'tshirt', // Default
           color: 'black', // Default
