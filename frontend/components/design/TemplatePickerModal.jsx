@@ -93,6 +93,14 @@ export default function TemplatePickerModal({
       setCurrentStep(prev => prev + 1);
     } else {
       // Complete the flow
+      console.log('🎯 TemplatePickerModal onComplete - Template data:', {
+        id: selectedTemplate?.id,
+        name: selectedTemplate?.name,
+        has_canvas_config: !!selectedTemplate?.canvas_config,
+        canvas_config: selectedTemplate?.canvas_config,
+        all_template_keys: Object.keys(selectedTemplate || {})
+      });
+      
       onComplete({
         template: selectedTemplate,
         product: selectedProduct,
