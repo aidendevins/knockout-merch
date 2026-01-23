@@ -198,7 +198,7 @@ const ProductCanvas = forwardRef(({
 
       // Check if template has specific positioning config (from Printify reference)
       const canvasConfig = selectedTemplate?.canvas_config || selectedTemplate?.canvasConfig;
-      const useTemplatePositioning = canvasConfig && canvasConfig.scale;
+      const useTemplatePositioning = canvasConfig && (canvasConfig.width_scale || canvasConfig.scale);
 
       console.log('🎯 Template Positioning Debug:');
       console.log('  selectedTemplate:', selectedTemplate?.id, selectedTemplate?.name);
@@ -210,15 +210,28 @@ const ProductCanvas = forwardRef(({
       if (useTemplatePositioning) {
         // Use template-specific positioning (matches Printify reference)
         const aspectRatio = img.naturalWidth / img.naturalHeight;
-        const scale = canvasConfig.scale || 0.6;
         
-        // Calculate design dimensions
-        designWidth = printAreaWidth * scale;
-        designHeight = designWidth / aspectRatio;
-
-        if (designHeight > printAreaHeight * scale) {
-          designHeight = printAreaHeight * scale;
-          designWidth = designHeight * aspectRatio;
+        // Printify gives us separate width and height scales (design dimensions / print area dimensions)
+        const widthScale = canvasConfig.width_scale || canvasConfig.scale || 0.6;
+        const heightScale = canvasConfig.height_scale || canvasConfig.scale || 0.6;
+        
+        // Calculate maximum dimensions based on Printify measurements
+        const maxWidth = printAreaWidth * widthScale;
+        const maxHeight = printAreaHeight * heightScale;
+        
+        // Fit design within the Printify bounding box while maintaining aspect ratio
+        // Calculate both possible sizes and pick the one that fits
+        let widthIfHeightConstrained = maxHeight * aspectRatio;
+        let heightIfWidthConstrained = maxWidth / aspectRatio;
+        
+        if (heightIfWidthConstrained <= maxHeight) {
+          // Width is the limiting factor
+          designWidth = maxWidth;
+          designHeight = heightIfWidthConstrained;
+        } else {
+          // Height is the limiting factor
+          designWidth = widthIfHeightConstrained;
+          designHeight = maxHeight;
         }
 
         // Apply template-defined offsets (percentages of print area)
@@ -231,10 +244,11 @@ const ProductCanvas = forwardRef(({
         y = CANVAS_HEIGHT * printArea.y + (printAreaHeight * yOffset);
         
         console.log('  ✅ Using template positioning:');
-        console.log('     Scale:', scale);
+        console.log('     Width scale:', widthScale, 'Height scale:', heightScale);
+        console.log('     Max dimensions:', maxWidth, 'x', maxHeight);
         console.log('     Offsets:', xOffset, yOffset);
         console.log('     Final position:', x, y);
-        console.log('     Final size:', designWidth, designHeight);
+        console.log('     Final size:', designWidth, 'x', designHeight);
       } else {
         // Default positioning: scale to 60% and center
         const aspectRatio = img.naturalWidth / img.naturalHeight;
@@ -388,7 +402,7 @@ const ProductCanvas = forwardRef(({
 
     // Check if design is locked due to template positioning
     const canvasConfig = selectedTemplate?.canvas_config || selectedTemplate?.canvasConfig;
-    const isLocked = canvasConfig && canvasConfig.scale;
+    const isLocked = canvasConfig && (canvasConfig.width_scale || canvasConfig.scale);
 
     ctx.save();
 
@@ -613,7 +627,7 @@ const ProductCanvas = forwardRef(({
 
     // 🔒 Check if design is locked due to template positioning
     const canvasConfig = selectedTemplate?.canvas_config || selectedTemplate?.canvasConfig;
-    const isLocked = canvasConfig && canvasConfig.scale;
+    const isLocked = canvasConfig && (canvasConfig.width_scale || canvasConfig.scale);
     
     if (isLocked) {
       console.log('🔒 Design is locked - template positioning active');
