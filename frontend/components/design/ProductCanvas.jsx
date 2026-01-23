@@ -386,6 +386,10 @@ const ProductCanvas = forwardRef(({
   const drawSelectionBox = (ctx, element) => {
     if (!element) return;
 
+    // Check if design is locked due to template positioning
+    const canvasConfig = selectedTemplate?.canvas_config || selectedTemplate?.canvasConfig;
+    const isLocked = canvasConfig && canvasConfig.scale;
+
     ctx.save();
 
     const { x, y, width, height, rotation = 0 } = element;
@@ -397,12 +401,22 @@ const ProductCanvas = forwardRef(({
     ctx.rotate((rotation * Math.PI) / 180);
     ctx.translate(-cx, -cy);
 
-    // Selection box
-    ctx.strokeStyle = '#ec4899'; // Pink color for Valentine's theme
+    // Selection box - use different color if locked
+    ctx.strokeStyle = isLocked ? '#10b981' : '#ec4899'; // Green if locked, pink if movable
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, width, height);
 
-    // Rotation handle
+    // If locked, show a lock icon or label instead of handles
+    if (isLocked) {
+      ctx.font = '14px sans-serif';
+      ctx.fillStyle = '#10b981';
+      ctx.textAlign = 'center';
+      ctx.fillText('🔒 Locked Position', cx, y - 10);
+      ctx.restore();
+      return;
+    }
+
+    // Rotation handle (only if not locked)
     const knobDist = 25;
     ctx.beginPath();
     ctx.moveTo(cx, y);
@@ -415,7 +429,7 @@ const ProductCanvas = forwardRef(({
     ctx.fill();
     ctx.stroke();
 
-    // Corner handles
+    // Corner handles (only if not locked)
     const handleSize = 10;
     const handles = [
       { x: x, y: y }, // TL
@@ -597,6 +611,21 @@ const ProductCanvas = forwardRef(({
     const design = designLayers.design;
     if (!design) return;
 
+    // 🔒 Check if design is locked due to template positioning
+    const canvasConfig = selectedTemplate?.canvas_config || selectedTemplate?.canvasConfig;
+    const isLocked = canvasConfig && canvasConfig.scale;
+    
+    if (isLocked) {
+      console.log('🔒 Design is locked - template positioning active');
+      // Still allow selection for visual feedback, but no dragging/resizing/rotating
+      if (isInsideElement(canvasX, canvasY, design)) {
+        setSelectedLayerId('design');
+      } else {
+        setSelectedLayerId(null);
+      }
+      return;
+    }
+
     // Check rotation handle first
     if (selectedLayerId === 'design' && isOnRotationHandle(canvasX, canvasY, design)) {
       setIsRotating(true);
@@ -645,7 +674,7 @@ const ProductCanvas = forwardRef(({
 
     // Click outside - deselect
     setSelectedLayerId(null);
-  }, [getCanvasCoords, isSpacePressed, activeTool, designLayers, selectedLayerId]);
+  }, [getCanvasCoords, isSpacePressed, activeTool, designLayers, selectedLayerId, selectedTemplate]);
 
   // Mouse move handler
   const handleMouseMove = useCallback((e) => {
