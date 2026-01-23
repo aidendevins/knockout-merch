@@ -673,6 +673,7 @@ export default function DesignStudio() {
           onColorChange={setSelectedColor}
           selectedMask={selectedMask}
           setSelectedMask={setSelectedMask}
+          selectedTemplate={selectedTemplate}
         />
       </div>
 

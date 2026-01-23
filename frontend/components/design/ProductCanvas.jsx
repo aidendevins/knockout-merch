@@ -63,6 +63,7 @@ const ProductCanvas = forwardRef(({
   onColorChange, // Callback when t-shirt color changes
   selectedMask,
   setSelectedMask,
+  selectedTemplate = null, // Template with positioning config
 }, ref) => {
   // Canvas refs
   const containerRef = useRef(null);
