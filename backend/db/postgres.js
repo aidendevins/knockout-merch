@@ -279,12 +279,18 @@ async function init() {
 
     // Set Polaroid Ransom Note positioning from Printify reference
     // Based on Printify values: Width 11.87in, Height 13.59in, Scale 809.18%, Position left 4.94%, Position top 7.52%
-    await query(`
+    // Scale of 0.85 = 85% of print area (matches Printify's 809.18% relative to design size)
+    const polaroidConfigResult = await query(`
       UPDATE templates 
       SET canvas_config = '{"scale": 0.85, "x_offset": 0.0494, "y_offset": 0.0752, "rotation": 0}'::jsonb
-      WHERE id = 'polaroid-ransom-note' 
-      AND (canvas_config IS NULL OR canvas_config->>'scale' IS NULL)
+      WHERE id = 'polaroid-ransom-note'
+      RETURNING id, canvas_config
     `);
+    if (polaroidConfigResult.rows && polaroidConfigResult.rows.length > 0) {
+      console.log('✅ Polaroid template canvas_config set:', polaroidConfigResult.rows[0].canvas_config);
+    } else {
+      console.warn('⚠️  Polaroid template not found - canvas_config not set');
+    }
 
     // Add template_id to designs table if it doesn't exist
     await query(`
