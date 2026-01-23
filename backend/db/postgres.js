@@ -278,11 +278,18 @@ async function init() {
     `);
 
     // Set Polaroid Ransom Note positioning from Printify reference
-    // Based on Printify values: Width 11.87in, Height 13.59in, Scale 809.18%, Position left 4.94%, Position top 7.52%
-    // Scale of 0.85 = 85% of print area (matches Printify's 809.18% relative to design size)
+    // Based on Printify measurements:
+    //   Print area: 13.17" wide × 16" tall
+    //   Design size: 11.87" wide × 13.59" tall
+    //   Position: left 4.94%, top 7.52%
+    // 
+    // COORDINATE SYSTEM MAPPING (1:1 with Printify):
+    // - scale = design_width / print_area_width = 11.87 / 13.17 = 0.9013
+    // - x_offset = position_left = 0.0494 (4.94% from left edge of print area)
+    // - y_offset = position_top = 0.0752 (7.52% from top edge of print area)
     const polaroidConfigResult = await query(`
       UPDATE templates 
-      SET canvas_config = '{"scale": 0.85, "x_offset": 0.0494, "y_offset": 0.0752, "rotation": 0}'::jsonb
+      SET canvas_config = '{"scale": 0.9013, "x_offset": 0.0494, "y_offset": 0.0752, "rotation": 0}'::jsonb
       WHERE id = 'polaroid-ransom-note'
       RETURNING id, canvas_config
     `);
