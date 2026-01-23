@@ -258,6 +258,47 @@ async function init() {
       END $$;
     `);
 
+    // Add canvas_config column for template-specific positioning rules
+    await query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'templates' AND column_name = 'canvas_config') THEN
+          ALTER TABLE templates ADD COLUMN canvas_config JSONB DEFAULT NULL;
+        END IF;
+      END $$;
+    `);
+
+    // Update Polaroid Ransom Note template cover image to local file
+    // This runs automatically on deployment to set the cover image
+    await query(`
+      UPDATE templates 
+      SET example_image = '/templates/polaroid_cover.webp'
+      WHERE id = 'polaroid-ransom-note' 
+      AND (example_image IS NULL OR example_image != '/templates/polaroid_cover.webp')
+    `);
+
+    // Set Polaroid Ransom Note positioning from Printify reference
+    // Based on Printify measurements:
+    //   Print area: 13.17" wide × 16" tall
+    //   Design size: 12.16" wide × 13.93" tall
+    //   Position: left 3.84%, top 6.48%
+    // 
+    // COORDINATE SYSTEM MAPPING (1:1 with Printify):
+    // - scale = design_width / print_area_width = 12.16 / 13.17 = 0.9233
+    // - x_offset = position_left = 0.0384 (3.84% from left edge of print area, moving right)
+    // - y_offset = position_top = 0.0648 (6.48% from top edge of print area, moving down)
+    const polaroidConfigResult = await query(`
+      UPDATE templates 
+      SET canvas_config = '{"scale": 0.9233, "x_offset": 0.0384, "y_offset": 0.0648, "rotation": 0}'::jsonb
+      WHERE id = 'polaroid-ransom-note'
+      RETURNING id, canvas_config
+    `);
+    if (polaroidConfigResult.rows && polaroidConfigResult.rows.length > 0) {
+      console.log('✅ Polaroid template canvas_config set:', polaroidConfigResult.rows[0].canvas_config);
+    } else {
+      console.warn('⚠️  Polaroid template not found - canvas_config not set');
+    }
+
     // Add template_id to designs table if it doesn't exist
     await query(`
       DO $$ 

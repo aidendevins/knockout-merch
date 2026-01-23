@@ -234,6 +234,17 @@ export async function fetchTemplates(includeHidden = false) {
   try {
     const templates = await apiClient.entities.Template.list();
     
+    // Debug: Check if canvas_config is present in fetched templates
+    const polaroid = templates.find(t => t.id === 'polaroid-ransom-note');
+    if (polaroid) {
+      console.log('🔍 Frontend fetchTemplates - Polaroid data:', {
+        id: polaroid.id,
+        has_canvas_config: !!polaroid.canvas_config,
+        canvas_config: polaroid.canvas_config,
+        all_keys: Object.keys(polaroid)
+      });
+    }
+    
     // Filter out hidden templates unless explicitly requested (for admin)
     // Handle boolean, string, null, or undefined values
     const filteredTemplates = includeHidden 
@@ -267,6 +278,8 @@ export async function fetchTemplates(includeHidden = false) {
       panelSchema: t.panel_schema,
       removeBackground: t.remove_background, // Background removal flag
       remove_background: t.remove_background, // Keep snake_case for compatibility
+      canvas_config: t.canvas_config, // Template-specific positioning for canvas (Printify reference)
+      canvasConfig: t.canvas_config, // Also provide camelCase version for consistency
       buildPrompt: getBuildPromptFunction(t.id), // Fallback build function if no DB prompt
     }));
   } catch (error) {

@@ -93,6 +93,14 @@ export default function TemplatePickerModal({
       setCurrentStep(prev => prev + 1);
     } else {
       // Complete the flow
+      console.log('🎯 TemplatePickerModal onComplete - Template data:', {
+        id: selectedTemplate?.id,
+        name: selectedTemplate?.name,
+        has_canvas_config: !!selectedTemplate?.canvas_config,
+        canvas_config: selectedTemplate?.canvas_config,
+        all_template_keys: Object.keys(selectedTemplate || {})
+      });
+      
       onComplete({
         template: selectedTemplate,
         product: selectedProduct,
@@ -176,11 +184,11 @@ export default function TemplatePickerModal({
                 
                 {/* Content */}
                 <div className="relative z-10">
-                  {/* Reference image or placeholder */}
-                  {template.referenceImage || template.reference_image ? (
+                  {/* Cover image (example_image) or fallback to reference image */}
+                  {template.example_image || template.exampleImage || template.referenceImage || template.reference_image ? (
                     <div className="w-full aspect-video rounded-lg mb-3 bg-black overflow-hidden border border-pink-900/30">
                       <img 
-                        src={getImageUrl(template.referenceImage || template.reference_image) || (template.referenceImage || template.reference_image)}
+                        src={getImageUrl(template.example_image || template.exampleImage || template.referenceImage || template.reference_image) || (template.example_image || template.exampleImage || template.referenceImage || template.reference_image)}
                         alt={template.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
