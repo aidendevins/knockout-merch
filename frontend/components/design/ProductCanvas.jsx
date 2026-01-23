@@ -195,19 +195,47 @@ const ProductCanvas = forwardRef(({
       const printAreaWidth = CANVAS_WIDTH * printArea.width;
       const printAreaHeight = CANVAS_HEIGHT * printArea.height;
 
-      // Scale image to fit nicely in print area (60% of area)
-      const aspectRatio = img.naturalWidth / img.naturalHeight;
-      let designWidth = printAreaWidth * 0.6;
-      let designHeight = designWidth / aspectRatio;
+      // Check if template has specific positioning config (from Printify reference)
+      const canvasConfig = selectedTemplate?.canvas_config || selectedTemplate?.canvasConfig;
+      const useTemplatePositioning = canvasConfig && canvasConfig.scale;
 
-      if (designHeight > printAreaHeight * 0.6) {
-        designHeight = printAreaHeight * 0.6;
-        designWidth = designHeight * aspectRatio;
+      let designWidth, designHeight, x, y;
+
+      if (useTemplatePositioning) {
+        // Use template-specific positioning (matches Printify reference)
+        const aspectRatio = img.naturalWidth / img.naturalHeight;
+        const scale = canvasConfig.scale || 0.6;
+        
+        designWidth = printAreaWidth * scale;
+        designHeight = designWidth / aspectRatio;
+
+        if (designHeight > printAreaHeight * scale) {
+          designHeight = printAreaHeight * scale;
+          designWidth = designHeight * aspectRatio;
+        }
+
+        // Apply template-defined offsets
+        const xOffset = canvasConfig.x_offset || 0;
+        const yOffset = canvasConfig.y_offset || 0;
+        
+        // Position based on template config (offsets are relative to print area)
+        x = CANVAS_WIDTH * (printArea.x + xOffset);
+        y = CANVAS_HEIGHT * (printArea.y + yOffset);
+      } else {
+        // Default positioning: scale to 60% and center
+        const aspectRatio = img.naturalWidth / img.naturalHeight;
+        designWidth = printAreaWidth * 0.6;
+        designHeight = designWidth / aspectRatio;
+
+        if (designHeight > printAreaHeight * 0.6) {
+          designHeight = printAreaHeight * 0.6;
+          designWidth = designHeight * aspectRatio;
+        }
+
+        // Center in print area
+        x = CANVAS_WIDTH * (printArea.x + printArea.width / 2) - designWidth / 2;
+        y = CANVAS_HEIGHT * (printArea.y + printArea.height / 2) - designHeight / 2;
       }
-
-      // Center in print area
-      const x = CANVAS_WIDTH * (printArea.x + printArea.width / 2) - designWidth / 2;
-      const y = CANVAS_HEIGHT * (printArea.y + printArea.height / 2) - designHeight / 2;
 
       setDesignLayers(prev => ({
         ...prev,
@@ -218,7 +246,7 @@ const ProductCanvas = forwardRef(({
           y,
           width: designWidth,
           height: designHeight,
-          rotation: canvasData.rotation || 0,
+          rotation: canvasConfig?.rotation || canvasData.rotation || 0,
           opacity: 1,
         }
       }));

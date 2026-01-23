@@ -258,6 +258,16 @@ async function init() {
       END $$;
     `);
 
+    // Add canvas_config column for template-specific positioning rules
+    await query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'templates' AND column_name = 'canvas_config') THEN
+          ALTER TABLE templates ADD COLUMN canvas_config JSONB DEFAULT NULL;
+        END IF;
+      END $$;
+    `);
+
     // Update Polaroid Ransom Note template cover image to local file
     // This runs automatically on deployment to set the cover image
     await query(`
@@ -265,6 +275,15 @@ async function init() {
       SET example_image = '/templates/polaroid_cover.webp'
       WHERE id = 'polaroid-ransom-note' 
       AND (example_image IS NULL OR example_image != '/templates/polaroid_cover.webp')
+    `);
+
+    // Set Polaroid Ransom Note positioning from Printify reference
+    // Based on Printify values: Width 11.87in, Height 13.59in, Scale 809.18%, Position left 4.94%, Position top 7.52%
+    await query(`
+      UPDATE templates 
+      SET canvas_config = '{"scale": 0.85, "x_offset": 0.0494, "y_offset": 0.0752, "rotation": 0}'::jsonb
+      WHERE id = 'polaroid-ransom-note' 
+      AND (canvas_config IS NULL OR canvas_config->>'scale' IS NULL)
     `);
 
     // Add template_id to designs table if it doesn't exist
