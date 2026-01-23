@@ -299,6 +299,57 @@ router.delete('/:id', async (req, res) => {
 });
 
 /**
+ * Upload cover/example image for a template (shown in template picker)
+ * POST /api/templates/:id/cover-image
+ */
+router.post('/:id/cover-image', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { imageBase64 } = req.body;
+
+    if (!imageBase64) {
+      return res.status(400).json({ error: 'imageBase64 is required' });
+    }
+
+    // Check if template exists
+    const existing = await db.get('SELECT * FROM templates WHERE id = $1', [id]);
+    if (!existing) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+
+    // Convert base64 to buffer
+    const matches = imageBase64.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) {
+      return res.status(400).json({ error: 'Invalid base64 image format' });
+    }
+
+    const mimeType = matches[1];
+    const base64Data = matches[2];
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    // Upload to S3
+    const filename = `template-${id}-cover-${Date.now()}.webp`;
+    const uploaded = await s3.uploadBuffer(buffer, filename, 'templates', mimeType);
+
+    // Update template with new COVER image (example_image), keep reference_image unchanged
+    const result = await db.query(
+      'UPDATE templates SET example_image = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
+      [uploaded.url, id]
+    );
+
+    res.json({
+      message: 'Cover image uploaded successfully (reference image unchanged)',
+      example_image: uploaded.url,
+      reference_image: result.rows[0].reference_image, // Show that this didn't change
+      template: result.rows[0],
+    });
+  } catch (error) {
+    console.error('Error uploading cover image:', error);
+    res.status(500).json({ error: 'Failed to upload cover image' });
+  }
+});
+
+/**
  * Upload reference image for a template
  * POST /api/templates/:id/reference-image
  */
