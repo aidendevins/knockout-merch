@@ -200,6 +200,11 @@ const ProductCanvas = forwardRef(({
       const canvasConfig = selectedTemplate?.canvas_config || selectedTemplate?.canvasConfig;
       const useTemplatePositioning = canvasConfig && canvasConfig.scale;
 
+      console.log('🎯 Template Positioning Debug:');
+      console.log('  selectedTemplate:', selectedTemplate?.id, selectedTemplate?.name);
+      console.log('  canvas_config:', canvasConfig);
+      console.log('  useTemplatePositioning:', useTemplatePositioning);
+
       let designWidth, designHeight, x, y;
 
       if (useTemplatePositioning) {
@@ -207,6 +212,7 @@ const ProductCanvas = forwardRef(({
         const aspectRatio = img.naturalWidth / img.naturalHeight;
         const scale = canvasConfig.scale || 0.6;
         
+        // Calculate design dimensions
         designWidth = printAreaWidth * scale;
         designHeight = designWidth / aspectRatio;
 
@@ -215,13 +221,20 @@ const ProductCanvas = forwardRef(({
           designWidth = designHeight * aspectRatio;
         }
 
-        // Apply template-defined offsets
+        // Apply template-defined offsets (percentages of print area)
         const xOffset = canvasConfig.x_offset || 0;
         const yOffset = canvasConfig.y_offset || 0;
         
-        // Position based on template config (offsets are relative to print area)
-        x = CANVAS_WIDTH * (printArea.x + xOffset);
-        y = CANVAS_HEIGHT * (printArea.y + yOffset);
+        // Position: print area start + offset as percentage of print area
+        // These are ABSOLUTE positions for the LEFT/TOP edge of the image
+        x = CANVAS_WIDTH * printArea.x + (printAreaWidth * xOffset);
+        y = CANVAS_HEIGHT * printArea.y + (printAreaHeight * yOffset);
+        
+        console.log('  ✅ Using template positioning:');
+        console.log('     Scale:', scale);
+        console.log('     Offsets:', xOffset, yOffset);
+        console.log('     Final position:', x, y);
+        console.log('     Final size:', designWidth, designHeight);
       } else {
         // Default positioning: scale to 60% and center
         const aspectRatio = img.naturalWidth / img.naturalHeight;
