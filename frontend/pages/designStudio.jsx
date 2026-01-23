@@ -124,6 +124,13 @@ export default function DesignStudio() {
 
   // Handle template picker completion
   const handleTemplatePickerComplete = ({ template, product, color }) => {
+    console.log('🎯 Template Selected:', {
+      id: template?.id,
+      name: template?.name,
+      has_canvas_config: !!template?.canvas_config,
+      canvas_config: template?.canvas_config,
+      template_object: template
+    });
     setSelectedTemplate(template);
     setProductType(product.id);
     setSelectedColor(color.id);

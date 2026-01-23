@@ -11,6 +11,18 @@ const replicate = require('../services/replicate');
 router.get('/', async (req, res) => {
   try {
     const templates = await db.all('SELECT * FROM templates ORDER BY created_at ASC');
+    
+    // Debug log to verify canvas_config is being fetched
+    const polaroid = templates.find(t => t.id === 'polaroid-ransom-note');
+    if (polaroid) {
+      console.log('🎯 Polaroid template data:', {
+        id: polaroid.id,
+        has_canvas_config: !!polaroid.canvas_config,
+        canvas_config: polaroid.canvas_config,
+        example_image: polaroid.example_image
+      });
+    }
+    
     res.json(templates);
   } catch (error) {
     console.error('Error fetching templates:', error);
