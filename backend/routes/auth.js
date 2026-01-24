@@ -58,12 +58,10 @@ router.post('/register', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     // Create user
-    const result = await db.query(
+    const user = await db.get(
       'INSERT INTO users (email, password_hash, name) VALUES ($1, $2, $3) RETURNING id, email, name, created_at',
       [email, passwordHash, name || null]
     );
-
-    const user = result.rows[0];
 
     // Generate JWT token
     const token = generateToken(user);
