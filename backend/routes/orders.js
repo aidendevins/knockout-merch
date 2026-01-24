@@ -257,7 +257,7 @@ router.post('/free', async (req, res) => {
       if (!design || !design.printify_product_id) {
         orderStatus = 'needs_fulfillment'; // Missing Printify product
       }
-      
+
       const result = await db.get(
         `INSERT INTO orders (
           design_id, customer_email, customer_name, shipping_address,
