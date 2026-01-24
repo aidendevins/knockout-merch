@@ -327,6 +327,73 @@ async function init() {
       console.warn('⚠️  Photo Collage template not found - canvas_config not set');
     }
 
+    // Update Romantic Save-the-Date template cover image to local file
+    // This runs automatically on deployment to set the cover image
+    await query(`
+      UPDATE templates 
+      SET example_image = '/templates/romantic_cover.webp'
+      WHERE id = 'romantic-save-the-date' 
+      AND (example_image IS NULL OR example_image != '/templates/romantic_cover.webp')
+    `);
+
+    // Set Romantic Save-the-Date positioning from Printify reference
+    // SMALL DESIGN positioned in TOP RIGHT corner
+    // Based on Printify measurements:
+    //   Print area: 13.17" wide × 16" tall
+    //   Design size: 4.19" wide × 4.77" tall (small - about 31% of print area)
+    //   Position: left 66.94%, top 3.02% (TOP RIGHT CORNER placement)
+    // 
+    // COORDINATE SYSTEM MAPPING (1:1 with Printify):
+    // - width_scale = design_width / print_area_width = 4.19 / 13.17 = 0.3181
+    // - height_scale = design_height / print_area_height = 4.77 / 16 = 0.2981
+    // - x_offset = position_left = 0.6694 (66.94% from left edge - positioned to the right!)
+    // - y_offset = position_top = 0.0302 (3.02% from top edge - very close to top)
+    const romanticConfigResult = await query(`
+      UPDATE templates 
+      SET canvas_config = '{"width_scale": 0.3181, "height_scale": 0.2981, "x_offset": 0.6694, "y_offset": 0.0302, "rotation": 0}'::jsonb
+      WHERE id = 'romantic-save-the-date'
+      RETURNING id, canvas_config
+    `);
+    if (romanticConfigResult.rows && romanticConfigResult.rows.length > 0) {
+      console.log('✅ Romantic Save-the-Date template canvas_config set:', romanticConfigResult.rows[0].canvas_config);
+    } else {
+      console.warn('⚠️  Romantic Save-the-Date template not found - canvas_config not set');
+    }
+
+    // Update Minimalist Line Art template cover image to local file
+    // This runs automatically on deployment to set the cover image
+    await query(`
+      UPDATE templates 
+      SET example_image = '/templates/minimalist_cover.webp'
+      WHERE id = 'minimalist-line-art' 
+      AND (example_image IS NULL OR example_image != '/templates/minimalist_cover.webp')
+    `);
+
+    // Set Minimalist Line Art positioning from Printify reference
+    // Using SAME dimensions and position as Romantic Save-the-Date
+    // SMALL DESIGN positioned in TOP RIGHT corner
+    // Based on Printify measurements:
+    //   Print area: 13.17" wide × 16" tall
+    //   Design size: 4.19" wide × 4.77" tall (small - about 31% of print area)
+    //   Position: left 66.94%, top 3.02% (TOP RIGHT CORNER placement)
+    // 
+    // COORDINATE SYSTEM MAPPING (1:1 with Printify):
+    // - width_scale = design_width / print_area_width = 4.19 / 13.17 = 0.3181
+    // - height_scale = design_height / print_area_height = 4.77 / 16 = 0.2981
+    // - x_offset = position_left = 0.6694 (66.94% from left edge - positioned to the right!)
+    // - y_offset = position_top = 0.0302 (3.02% from top edge - very close to top)
+    const minimalistConfigResult = await query(`
+      UPDATE templates 
+      SET canvas_config = '{"width_scale": 0.3181, "height_scale": 0.2981, "x_offset": 0.6694, "y_offset": 0.0302, "rotation": 0}'::jsonb
+      WHERE id = 'minimalist-line-art'
+      RETURNING id, canvas_config
+    `);
+    if (minimalistConfigResult.rows && minimalistConfigResult.rows.length > 0) {
+      console.log('✅ Minimalist Line Art template canvas_config set:', minimalistConfigResult.rows[0].canvas_config);
+    } else {
+      console.warn('⚠️  Minimalist Line Art template not found - canvas_config not set');
+    }
+
     // Set Polaroid Ransom Note positioning from Printify reference
     // Based on Printify measurements:
     //   Print area: 13.17" wide × 16" tall
@@ -350,20 +417,29 @@ async function init() {
       console.warn('⚠️  Polaroid template not found - canvas_config not set');
     }
 
+    // Update Couple Portrait template cover image to local file
+    // This runs automatically on deployment to set the cover image
+    await query(`
+      UPDATE templates 
+      SET example_image = '/templates/couple_portrait_cover.png'
+      WHERE id = 'couple-portrait' 
+      AND (example_image IS NULL OR example_image != '/templates/couple_portrait_cover.png')
+    `);
+
     // Set Couple Portrait positioning
     // Based on hand-drawn couple portrait design requirements:
     //   Print area: 13.17" wide × 16" tall
-    //   Design size: 12.1" wide × 13.92" tall (similar to polaroid proportions for portrait style)
-    //   Position: left 4%, top 6.5% (centered horizontally, slight offset from top)
+    //   Design size: 12.1" wide × 13.92" tall (large portrait - similar to polaroid)
+    //   Position: left 4%, top 2% (centered horizontally with minimal top margin)
     // 
     // COORDINATE SYSTEM MAPPING:
     // - width_scale = design_width / print_area_width = 12.1 / 13.17 = 0.92
     // - height_scale = design_height / print_area_height = 13.92 / 16 = 0.87
     // - x_offset = position_left = 0.04 (4% from left edge of print area, moving right)
-    // - y_offset = position_top = 0.065 (6.5% from top edge of print area, moving down)
+    // - y_offset = position_top = 0.02 (2% from top edge of print area, moving down)
     const couplePortraitConfigResult = await query(`
       UPDATE templates 
-      SET canvas_config = '{"width_scale": 0.92, "height_scale": 0.87, "x_offset": 0.04, "y_offset": 0.065, "rotation": 0}'::jsonb
+      SET canvas_config = '{"width_scale": 0.92, "height_scale": 0.87, "x_offset": 0.04, "y_offset": 0.02, "rotation": 0}'::jsonb
       WHERE id = 'couple-portrait'
       RETURNING id, canvas_config
     `);

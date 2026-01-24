@@ -332,8 +332,10 @@ const ProductCanvas = forwardRef(({
     const isMockupLoaded = tshirtMockupsLoaded[currentColor];
     
     if (currentTshirtImage && isMockupLoaded) {
-      // Draw the t-shirt image to fill the canvas
-      ctx.drawImage(currentTshirtImage, 0, 0, w, h);
+      // Draw the t-shirt image moved UP by 10% to make designs appear lower on shirt
+      // This matches Printify's actual placement better
+      const tshirtYOffset = -h * 0.10; // Move up by 10% of canvas height
+      ctx.drawImage(currentTshirtImage, 0, tshirtYOffset, w, h);
     }
 
     // Draw print area guide

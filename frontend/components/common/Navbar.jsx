@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Heart, Palette, ShieldCheck, Info, ShoppingCart, FolderHeart } from 'lucide-react';
+import { Heart, Palette, ShieldCheck, Info, ShoppingCart, FolderHeart, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/context/CartContext';
@@ -57,6 +57,16 @@ export default function Navbar({ user }) {
     const designIds = JSON.parse(localStorage.getItem('userDesigns') || '[]');
     setUserDesignIds(designIds);
   }, [location.pathname]); // Refresh when page changes
+
+  // Delete a design from user's list
+  const handleDeleteDesign = (e, designId) => {
+    e.stopPropagation(); // Prevent navigation when clicking delete
+    
+    // Remove from localStorage
+    const updatedIds = userDesignIds.filter(id => id !== designId);
+    localStorage.setItem('userDesigns', JSON.stringify(updatedIds));
+    setUserDesignIds(updatedIds);
+  };
 
   // Fetch user's designs
   const { data: userDesigns = [], isLoading: designsLoading } = useQuery({
@@ -180,7 +190,7 @@ export default function Navbar({ user }) {
                       <DropdownMenuItem
                         key={design.id}
                         onClick={() => navigate(`/product/${design.id}`)}
-                        className="cursor-pointer hover:bg-pink-900/20 focus:bg-pink-900/20 p-3 flex gap-3 items-center"
+                        className="cursor-pointer hover:bg-pink-900/20 focus:bg-pink-900/20 p-3 flex gap-3 items-center group"
                       >
                         <img
                           src={getImageUrl(design.design_image_url)}
@@ -203,6 +213,13 @@ export default function Navbar({ user }) {
                             {new Date(design.created_at).toLocaleDateString()}
                           </p>
                         </div>
+                        <button
+                          onClick={(e) => handleDeleteDesign(e, design.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-red-500/20 rounded text-red-400 hover:text-red-300"
+                          title="Delete design"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </DropdownMenuItem>
                     ))}
                   </div>
