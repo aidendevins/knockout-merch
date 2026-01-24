@@ -309,6 +309,15 @@ async function init() {
       console.warn('⚠️  Retro Name Portrait template not found - canvas_config not set');
     }
 
+    // Update Photo Collage template cover image to local file
+    // This runs automatically on deployment to set the cover image
+    await query(`
+      UPDATE templates 
+      SET example_image = '/templates/photo_collage_cover.png'
+      WHERE id = 'photo-collage' 
+      AND (example_image IS NULL OR example_image != '/templates/photo_collage_cover.png')
+    `);
+
     // Set Polaroid Ransom Note positioning from Printify reference
     // Based on Printify measurements:
     //   Print area: 13.17" wide × 16" tall
