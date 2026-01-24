@@ -336,6 +336,30 @@ async function init() {
       AND (example_image IS NULL OR example_image != '/templates/romantic_cover.webp')
     `);
 
+    // Set Romantic Save-the-Date positioning from Printify reference
+    // SMALL DESIGN positioned in TOP RIGHT corner
+    // Based on Printify measurements:
+    //   Print area: 13.17" wide × 16" tall
+    //   Design size: 3.72" wide × 4.24" tall (MUCH SMALLER - about 28% of print area)
+    //   Position: left 65.92%, top 6.89% (TOP RIGHT CORNER placement)
+    // 
+    // COORDINATE SYSTEM MAPPING (1:1 with Printify):
+    // - width_scale = design_width / print_area_width = 3.72 / 13.17 = 0.2824
+    // - height_scale = design_height / print_area_height = 4.24 / 16 = 0.2650
+    // - x_offset = position_left = 0.6592 (65.92% from left edge - positioned to the right!)
+    // - y_offset = position_top = 0.0689 (6.89% from top edge - near top)
+    const romanticConfigResult = await query(`
+      UPDATE templates 
+      SET canvas_config = '{"width_scale": 0.2824, "height_scale": 0.2650, "x_offset": 0.6592, "y_offset": 0.0689, "rotation": 0}'::jsonb
+      WHERE id = 'romantic-save-the-date'
+      RETURNING id, canvas_config
+    `);
+    if (romanticConfigResult.rows && romanticConfigResult.rows.length > 0) {
+      console.log('✅ Romantic Save-the-Date template canvas_config set:', romanticConfigResult.rows[0].canvas_config);
+    } else {
+      console.warn('⚠️  Romantic Save-the-Date template not found - canvas_config not set');
+    }
+
     // Set Polaroid Ransom Note positioning from Printify reference
     // Based on Printify measurements:
     //   Print area: 13.17" wide × 16" tall
