@@ -56,6 +56,7 @@ export default function Admin() {
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [editedPrompt, setEditedPrompt] = useState('');
   const [uploadingRefImage, setUploadingRefImage] = useState(false);
+  const [uploadingExampleImage, setUploadingExampleImage] = useState(false);
   const [editingSchema, setEditingSchema] = useState(null);
   const [editedSchema, setEditedSchema] = useState(null);
   const [editingMaxPhotos, setEditingMaxPhotos] = useState({});
@@ -126,6 +127,23 @@ export default function Admin() {
       toast.error('Failed to upload reference image');
       console.error(err);
       setUploadingRefImage(false);
+    },
+  });
+
+  const uploadExampleImageMutation = useMutation({
+    mutationFn: async ({ templateId, imageBase64 }) => {
+      return await apiClient.entities.Template.uploadExampleImage(templateId, imageBase64);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['admin-templates']);
+      queryClient.invalidateQueries(['templates']);
+      toast.success('Example image uploaded!');
+      setUploadingExampleImage(false);
+    },
+    onError: (err) => {
+      toast.error('Failed to upload example image');
+      console.error(err);
+      setUploadingExampleImage(false);
     },
   });
 
@@ -321,6 +339,23 @@ export default function Admin() {
     reader.onloadend = () => {
       const base64String = reader.result;
       uploadReferenceImageMutation.mutate({
+        templateId,
+        imageBase64: base64String,
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleExampleImageUpload = async (templateId, file) => {
+    if (!file) return;
+    
+    setUploadingExampleImage(true);
+    
+    // Convert file to base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result;
+      uploadExampleImageMutation.mutate({
         templateId,
         imageBase64: base64String,
       });
@@ -633,6 +668,179 @@ export default function Admin() {
                         </div>
                       </div>
 
+                      {/* Canvas Config Section */}
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <Label className="text-white font-medium flex items-center gap-2">
+                            <Settings className="w-4 h-4 text-pink-400" />
+                            Canvas Positioning Config
+                          </Label>
+                          {template.canvas_config && (
+                            <Badge className="bg-green-500/20 text-green-400 text-xs flex items-center gap-1">
+                              🔒 Locked Position
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="p-4 bg-black/40 border border-pink-900/30 rounded-lg space-y-3">
+                          {template.canvas_config ? (
+                            <>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <div>
+                                  <Label className="text-gray-400 text-xs mb-1 block">Width Scale</Label>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    max="1"
+                                    value={template.canvas_config.width_scale || template.canvas_config.scale || ''}
+                                    onChange={(e) => {
+                                      const value = parseFloat(e.target.value);
+                                      updateTemplateMutation.mutate({
+                                        id: template.id,
+                                        data: {
+                                          canvas_config: {
+                                            ...template.canvas_config,
+                                            width_scale: value,
+                                          },
+                                        },
+                                      });
+                                    }}
+                                    className="bg-gray-800 border-pink-900/30 text-white text-sm"
+                                    placeholder="0.92"
+                                  />
+                                  <p className="text-gray-500 text-[10px] mt-0.5">% of print area</p>
+                                </div>
+                                <div>
+                                  <Label className="text-gray-400 text-xs mb-1 block">Height Scale</Label>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    max="1"
+                                    value={template.canvas_config.height_scale || template.canvas_config.scale || ''}
+                                    onChange={(e) => {
+                                      const value = parseFloat(e.target.value);
+                                      updateTemplateMutation.mutate({
+                                        id: template.id,
+                                        data: {
+                                          canvas_config: {
+                                            ...template.canvas_config,
+                                            height_scale: value,
+                                          },
+                                        },
+                                      });
+                                    }}
+                                    className="bg-gray-800 border-pink-900/30 text-white text-sm"
+                                    placeholder="0.87"
+                                  />
+                                  <p className="text-gray-500 text-[10px] mt-0.5">% of print area</p>
+                                </div>
+                                <div>
+                                  <Label className="text-gray-400 text-xs mb-1 block">X Offset</Label>
+                                  <Input
+                                    type="number"
+                                    step="0.001"
+                                    min="0"
+                                    max="1"
+                                    value={template.canvas_config.x_offset || ''}
+                                    onChange={(e) => {
+                                      const value = parseFloat(e.target.value);
+                                      updateTemplateMutation.mutate({
+                                        id: template.id,
+                                        data: {
+                                          canvas_config: {
+                                            ...template.canvas_config,
+                                            x_offset: value,
+                                          },
+                                        },
+                                      });
+                                    }}
+                                    className="bg-gray-800 border-pink-900/30 text-white text-sm"
+                                    placeholder="0.04"
+                                  />
+                                  <p className="text-gray-500 text-[10px] mt-0.5">from left edge</p>
+                                </div>
+                                <div>
+                                  <Label className="text-gray-400 text-xs mb-1 block">Y Offset</Label>
+                                  <Input
+                                    type="number"
+                                    step="0.001"
+                                    min="0"
+                                    max="1"
+                                    value={template.canvas_config.y_offset || ''}
+                                    onChange={(e) => {
+                                      const value = parseFloat(e.target.value);
+                                      updateTemplateMutation.mutate({
+                                        id: template.id,
+                                        data: {
+                                          canvas_config: {
+                                            ...template.canvas_config,
+                                            y_offset: value,
+                                          },
+                                        },
+                                      });
+                                    }}
+                                    className="bg-gray-800 border-pink-900/30 text-white text-sm"
+                                    placeholder="0.065"
+                                  />
+                                  <p className="text-gray-500 text-[10px] mt-0.5">from top edge</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between pt-2 border-t border-pink-900/20">
+                                <p className="text-gray-400 text-xs">
+                                  Design will be locked in place at these coordinates. User cannot move/resize.
+                                </p>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    if (confirm('Remove canvas config? Design will become freely movable.')) {
+                                      updateTemplateMutation.mutate({
+                                        id: template.id,
+                                        data: { canvas_config: null },
+                                      });
+                                    }
+                                  }}
+                                  className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                >
+                                  <X className="w-3 h-3 mr-1" />
+                                  Remove Lock
+                                </Button>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="text-center py-6">
+                              <Settings className="w-8 h-8 text-gray-600 mx-auto mb-2" />
+                              <p className="text-gray-400 text-sm mb-3">No canvas positioning configured</p>
+                              <p className="text-gray-500 text-xs mb-4">
+                                Without this config, users can freely move/resize the design on the canvas.
+                              </p>
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  updateTemplateMutation.mutate({
+                                    id: template.id,
+                                    data: {
+                                      canvas_config: {
+                                        width_scale: 0.92,
+                                        height_scale: 0.87,
+                                        x_offset: 0.04,
+                                        y_offset: 0.065,
+                                        rotation: 0,
+                                      },
+                                    },
+                                  });
+                                }}
+                                className="bg-pink-600 hover:bg-pink-700 text-white"
+                              >
+                                <Plus className="w-3 h-3 mr-1" />
+                                Add Canvas Config
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
                       {/* Visibility Section */}
                       <div>
                         <div className="flex items-center justify-between mb-3">
@@ -684,6 +892,94 @@ export default function Admin() {
                             )}
                           </Button>
                         </div>
+                      </div>
+
+                      {/* Example/Cover Image Section */}
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <Label className="text-white font-medium flex items-center gap-2">
+                            <Image className="w-4 h-4 text-pink-400" />
+                            Example/Cover Image
+                            {process.env.NODE_ENV === 'development' && (
+                              <Badge className="ml-2 bg-gray-700 text-gray-300 text-[10px]">
+                                {template.example_image ? 'Has URL' : 'No URL'}
+                              </Badge>
+                            )}
+                          </Label>
+                          <Label htmlFor={`example-upload-${template.id}`}>
+                            <div className="cursor-pointer flex items-center gap-2 text-pink-400 hover:text-pink-300 text-sm">
+                              <Upload className="w-4 h-4" />
+                              Upload New
+                            </div>
+                          </Label>
+                          <input
+                            id={`example-upload-${template.id}`}
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleExampleImageUpload(template.id, file);
+                            }}
+                            className="hidden"
+                          />
+                        </div>
+                        {/* Debug info in development */}
+                        {process.env.NODE_ENV === 'development' && template.example_image && (
+                          <div className="mb-2 p-2 bg-gray-800/50 rounded text-xs text-gray-400 space-y-1">
+                            <div className="break-all">Original: {template.example_image}</div>
+                            <div className="break-all text-pink-400">Proxy: {getImageUrl(template.example_image) || 'N/A'}</div>
+                          </div>
+                        )}
+                        {template.example_image && template.example_image.trim() !== '' ? (
+                          <div className="relative aspect-video bg-black rounded-lg overflow-hidden border border-pink-900/30">
+                            <img 
+                              src={getImageUrl(template.example_image) || template.example_image}
+                              alt="Example"
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                const originalUrl = template.example_image;
+                                const proxyUrl = getImageUrl(originalUrl);
+                                console.error('❌ Failed to load example image');
+                                console.error('Original URL:', originalUrl);
+                                console.error('Proxy URL:', proxyUrl);
+                                console.error('Image src:', e.target.src);
+                                console.error('Template data:', template);
+                                // Show error state
+                                const errorDiv = document.createElement('div');
+                                errorDiv.className = 'flex flex-col items-center justify-center h-full text-red-400 p-4';
+                                errorDiv.innerHTML = `
+                                  <svg class="w-12 h-12 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                  </svg>
+                                  <p class="text-sm font-medium">Failed to load image</p>
+                                  <p class="text-xs mt-1 text-gray-500 break-all">${proxyUrl || originalUrl}</p>
+                                `;
+                                e.target.parentElement.replaceChild(errorDiv, e.target);
+                              }}
+                              onLoad={() => {
+                                console.log('✅ Example image loaded successfully');
+                                console.log('URL:', template.example_image);
+                                console.log('Proxy URL:', getImageUrl(template.example_image));
+                              }}
+                            />
+                            <Badge className="absolute top-2 right-2 bg-green-500/80 text-white text-xs">
+                              <Check className="w-3 h-3 mr-1" />
+                              Uploaded
+                            </Badge>
+                          </div>
+                        ) : (
+                          <div className="aspect-video bg-gray-800/50 border-2 border-dashed border-pink-900/30 rounded-lg flex flex-col items-center justify-center text-gray-500">
+                            <Image className="w-12 h-12 mb-2 opacity-50" />
+                            <p className="text-sm">No example image</p>
+                            <p className="text-xs mt-1">This image will be shown to users in the template picker</p>
+                          </div>
+                        )}
+                        {uploadingExampleImage && (
+                          <div className="mt-2 flex items-center gap-2 text-pink-400 text-sm">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Uploading to S3 examples folder...
+                          </div>
+                        )}
                       </div>
 
                       {/* Reference Image Section */}
