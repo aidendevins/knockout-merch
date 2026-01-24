@@ -289,17 +289,17 @@ async function init() {
     // Set Retro Name Portrait positioning from Printify reference
     // Based on Printify measurements:
     //   Print area: 13.17" wide × 16" tall
-    //   Design size: 13.17" wide × 16" tall (FULL SIZE - fills entire print area)
-    //   Position: left 0%, top 0%
+    //   Design size: 12.16" wide × 13.93" tall (SAME AS POLAROID)
+    //   Position: left 3.84%, top 6.48%
     // 
     // COORDINATE SYSTEM MAPPING (1:1 with Printify):
-    // - width_scale = design_width / print_area_width = 13.17 / 13.17 = 1.0
-    // - height_scale = design_height / print_area_height = 16 / 16 = 1.0
-    // - x_offset = position_left = 0.0 (0% from left edge - flush left)
-    // - y_offset = position_top = 0.0 (0% from top edge - flush top)
+    // - width_scale = design_width / print_area_width = 12.16 / 13.17 = 0.9233
+    // - height_scale = design_height / print_area_height = 13.93 / 16 = 0.8706
+    // - x_offset = position_left = 0.0384 (3.84% from left edge of print area, moving right)
+    // - y_offset = position_top = 0.0648 (6.48% from top edge of print area, moving down)
     const retroConfigResult = await query(`
       UPDATE templates 
-      SET canvas_config = '{"width_scale": 1.0, "height_scale": 1.0, "x_offset": 0.0, "y_offset": 0.0, "rotation": 0}'::jsonb
+      SET canvas_config = '{"width_scale": 0.9233, "height_scale": 0.8706, "x_offset": 0.0384, "y_offset": 0.0648, "rotation": 0}'::jsonb
       WHERE id = 'retro-name-portrait'
       RETURNING id, canvas_config
     `);
