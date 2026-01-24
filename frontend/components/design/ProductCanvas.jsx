@@ -369,8 +369,11 @@ const ProductCanvas = forwardRef(({
       ctx.drawImage(design.img, design.x, design.y, design.width, design.height);
       ctx.restore();
 
-      // Draw selection box if selected
-      if (selectedLayerId === 'design') {
+      // Draw selection box if selected (but NOT if locked)
+      const canvasConfig = selectedTemplate?.canvas_config || selectedTemplate?.canvasConfig;
+      const isLocked = canvasConfig && (canvasConfig.width_scale || canvasConfig.scale);
+      
+      if (selectedLayerId === 'design' && !isLocked) {
         drawSelectionBox(ctx, design);
       }
     }
