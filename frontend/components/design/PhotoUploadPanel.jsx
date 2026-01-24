@@ -77,25 +77,62 @@ export default function PhotoUploadPanel({
 
     if (validFiles.length === 0) return;
 
-    // Create preview URLs and add to photos
-    const newPhotos = await Promise.all(
-      validFiles.map(async (file) => {
-        return new Promise((resolve) => {
+    // Create preview URLs and validate images can be loaded
+    const newPhotos = [];
+    const failedFiles = [];
+    
+    for (const file of validFiles) {
+      try {
+        const photoData = await new Promise((resolve, reject) => {
           const reader = new FileReader();
+          
           reader.onload = (e) => {
-            resolve({
-              id: `photo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-              file,
-              preview: e.target.result,
-              name: file.name,
-            });
+            const dataUrl = e.target.result;
+            
+            // Validate that the image can be loaded
+            const img = new Image();
+            img.onload = () => {
+              // Image is valid
+              resolve({
+                id: `photo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                file,
+                preview: dataUrl,
+                name: file.name,
+              });
+            };
+            img.onerror = () => {
+              // Image is corrupted or invalid
+              reject(new Error('Invalid image'));
+            };
+            img.src = dataUrl;
           };
+          
+          reader.onerror = () => {
+            reject(new Error('Failed to read file'));
+          };
+          
           reader.readAsDataURL(file);
         });
-      })
-    );
-
-    onPhotosChange([...photos, ...newPhotos]);
+        
+        newPhotos.push(photoData);
+      } catch (error) {
+        console.error(`Failed to load image: ${file.name}`, error);
+        failedFiles.push(file.name);
+      }
+    }
+    
+    // Show error for failed files
+    if (failedFiles.length > 0) {
+      const fileList = failedFiles.length === 1 
+        ? failedFiles[0] 
+        : failedFiles.slice(0, 2).join(', ') + (failedFiles.length > 2 ? `, and ${failedFiles.length - 2} more` : '');
+      setUploadError(`Invalid or corrupted image file${failedFiles.length > 1 ? 's' : ''}: ${fileList}`);
+    }
+    
+    // Add valid photos
+    if (newPhotos.length > 0) {
+      onPhotosChange([...photos, ...newPhotos]);
+    }
   }, [photos, maxPhotos, onPhotosChange]);
 
 

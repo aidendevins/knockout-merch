@@ -250,6 +250,38 @@ router.get('/ai-status', (req, res) => {
   });
 });
 
+// Get Gemini API key status
+router.get('/gemini-keys', (req, res) => {
+  res.json(gemini.getKeysInfo());
+});
+
+// Switch active Gemini API key
+router.post('/gemini-keys/switch', (req, res) => {
+  try {
+    const { keyIndex } = req.body;
+    
+    if (keyIndex !== 1 && keyIndex !== 2) {
+      return res.status(400).json({ error: 'Invalid key index. Must be 1 or 2.' });
+    }
+    
+    // Check if the requested key is configured
+    if (!gemini.isKeyConfigured(keyIndex)) {
+      return res.status(400).json({ 
+        error: `GEMINI_API_KEY${keyIndex === 2 ? '_2' : ''} is not configured` 
+      });
+    }
+    
+    const newActiveKey = gemini.setActiveKeyIndex(keyIndex);
+    res.json({ 
+      success: true, 
+      activeKey: newActiveKey,
+      message: `Switched to API Key ${newActiveKey}`
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Proxy S3 images to avoid CORS issues
 router.get('/proxy-image', async (req, res) => {
   try {

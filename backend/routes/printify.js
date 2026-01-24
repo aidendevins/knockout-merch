@@ -110,11 +110,39 @@ router.post('/products', async (req, res) => {
       return res.json(mockProduct);
     }
 
+    // Determine which colors to create based on template text_behavior
+    let colorsToCreate = ['black', 'white', 'pink']; // Default: all three colors
+    
+    if (template_id) {
+      try {
+        const template = await db.get('SELECT text_behavior FROM templates WHERE id = $1', [template_id]);
+        if (template) {
+          console.log(`📋 Template ${template_id} has text_behavior: ${template.text_behavior}`);
+          
+          if (template.text_behavior === 'static-dark') {
+            // Dark text - blocks BLACK fabric, allow white + pink
+            colorsToCreate = ['white', 'pink'];
+            console.log('🎨 Static dark text: excluding black, creating white + pink variants');
+          } else if (template.text_behavior === 'static-light') {
+            // Light text - blocks WHITE fabric, allow black + pink
+            colorsToCreate = ['black', 'pink'];
+            console.log('🎨 Static light text: excluding white, creating black + pink variants');
+          } else {
+            // 'none' or 'user-controlled' - create all three
+            colorsToCreate = ['black', 'white', 'pink'];
+            console.log('🎨 No restrictions: creating black + white + pink variants');
+          }
+        }
+      } catch (err) {
+        console.warn('⚠️ Could not fetch template text_behavior, using all colors:', err.message);
+      }
+    }
+
     // Create BOTH T-shirt AND Hoodie products on Printify
     // Prefer base64 if provided, otherwise use URL
     const imageData = design_image_base64 || design_image_url;
     
-    console.log('🎨 Creating T-shirt product...');
+    console.log('🎨 Creating T-shirt product with colors:', colorsToCreate.join(', '));
     const tshirtProduct = await printify.createProduct({
       title: `${title || 'KO Merch Design'} - T-Shirt`,
       description: description || 'Custom design T-shirt',
@@ -122,10 +150,11 @@ router.post('/products', async (req, res) => {
       productType: 'tshirt',
       color: color,
       canvasData: canvas_data,
-      templateId: template_id, // Pass template_id for positioning
+      templateId: template_id,
+      colorsToCreate: colorsToCreate,
     });
 
-    console.log('🎨 Creating Hoodie product...');
+    console.log('🎨 Creating Hoodie product with colors:', colorsToCreate.join(', '));
     const hoodieProduct = await printify.createProduct({
       title: `${title || 'KO Merch Design'} - Hoodie`,
       description: description || 'Custom design hoodie',
@@ -133,16 +162,23 @@ router.post('/products', async (req, res) => {
       productType: 'hoodie',
       color: color,
       canvasData: canvas_data,
-      templateId: template_id, // Pass template_id for positioning
+      templateId: template_id,
+      colorsToCreate: colorsToCreate,
     });
 
-    // Get mockups for both
+    // Get mockups for both products
     console.log('📸 Fetching T-shirt mockups...');
     const tshirtMockups = await printify.getProductMockups(tshirtProduct.id);
     console.log('📸 Fetching Hoodie mockups...');
     const hoodieMockups = await printify.getProductMockups(hoodieProduct.id);
 
     // Update design with BOTH product IDs and mockups
+    // Store all mockups - frontend will filter by color
+    // Map 'pink' to 'light-pink' for frontend consistency
+    const availableColorsForFrontend = colorsToCreate.map(c => 
+      c.toLowerCase() === 'pink' ? 'light-pink' : c.toLowerCase()
+    );
+    
     if (design_id) {
       await db.query(
         `UPDATE designs SET 
@@ -152,16 +188,18 @@ router.post('/products', async (req, res) => {
           hoodie_mockups = $4,
           printify_product_id = $5,
           mockup_urls = $6,
-          color = $7
-        WHERE id = $8`,
+          color = $7,
+          available_colors = $8
+        WHERE id = $9`,
         [
           tshirtProduct.id,
           hoodieProduct.id,
           JSON.stringify(tshirtMockups),
           JSON.stringify(hoodieMockups),
-          product_type === 'tshirt' ? tshirtProduct.id : hoodieProduct.id, // Set primary based on user choice
-          JSON.stringify(product_type === 'tshirt' ? tshirtMockups : hoodieMockups), // Set primary mockups
+          product_type === 'tshirt' ? tshirtProduct.id : hoodieProduct.id,
+          JSON.stringify(product_type === 'tshirt' ? tshirtMockups : hoodieMockups),
           color,
+          JSON.stringify(availableColorsForFrontend),
           design_id
         ]
       );
@@ -180,6 +218,7 @@ router.post('/products', async (req, res) => {
       printify_hoodie_id: hoodieProduct.id,
       selected_product_type: product_type,
       color,
+      colors_created: colorsToCreate,
       is_mock: false,
     });
   } catch (error) {

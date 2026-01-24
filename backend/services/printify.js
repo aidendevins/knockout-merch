@@ -417,7 +417,7 @@ function mapColorToPrintify(color) {
  * @param {Object} options.canvasData - Position data from the canvas editor
  * @returns {Promise<{id: string, mockup_urls: string[], ...}>}
  */
-async function createProduct({ title, description, imageUrl, productType = 'tshirt', color = 'black', canvasData = {}, templateId = null }) {
+async function createProduct({ title, description, imageUrl, productType = 'tshirt', color = 'black', canvasData = {}, templateId = null, colorsToCreate = ['black', 'white', 'pink'] }) {
   const shopId = process.env.PRINTIFY_SHOP_ID;
   const blueprint = BLUEPRINTS[productType];
   
@@ -566,25 +566,32 @@ async function createProduct({ title, description, imageUrl, productType = 'tshi
     };
   }
   
-  // Filter variants by BOTH colors and size (to allow user to choose either color later)
+  // Filter variants by colors and size
+  // Colors to create are passed in via function parameter, default to black + white + pink
   const availableSizes = ['S', 'M', 'L', 'XL', '2XL'];
-  const availableColors = ['black', 'white']; // Always create both color variants
   
-  // Use Printify color name for filtering (e.g., "Soft Pink" instead of "light-pink")
+  console.log(`🎨 Creating variants for colors: ${colorsToCreate.join(', ')}`);
+  
+  // Filter variants from Printify API by our desired colors and sizes
   const filteredVariants = printifyVariants.variants?.filter(variant => {
-    // Check if variant matches our size requirements and is black or white
     const variantColor = variant.options?.color?.toLowerCase();
     const variantSize = variant.options?.size;
     
-    return availableColors.includes(variantColor) && 
-           availableSizes.includes(variantSize);
+    // Check if this variant's color is in our list (case-insensitive)
+    const colorMatches = colorsToCreate.some(c => 
+      variantColor === c.toLowerCase() || 
+      (c.toLowerCase() === 'pink' && variantColor === 'pink') ||
+      (c.toLowerCase() === 'light-pink' && variantColor === 'pink')
+    );
+    
+    return colorMatches && availableSizes.includes(variantSize);
   }) || [];
   
   if (filteredVariants.length === 0) {
-    throw new Error(`No variants found for black/white colors in blueprint ${blueprint.id}`);
+    throw new Error(`No variants found for colors [${colorsToCreate.join(', ')}] in blueprint ${blueprint.id}`);
   }
   
-  console.log(`✅ Found ${filteredVariants.length} matching variants for both black and white colors`);
+  console.log(`✅ Found ${filteredVariants.length} matching variants for colors: ${colorsToCreate.join(', ')}`);
   console.log(`   Originally selected color: ${color}`);
   
   // Create variants array with pricing

@@ -63,6 +63,7 @@ export default function DesignStudio() {
   
   // Template picker state
   const [showTemplatePicker, setShowTemplatePicker] = useState(true);
+  const [resetTemplatePickerToStep1, setResetTemplatePickerToStep1] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   
   // Design limit modal state
@@ -627,9 +628,14 @@ export default function DesignStudio() {
           } else {
             setShowTemplatePicker(false);
           }
+          setResetTemplatePickerToStep1(false); // Reset flag when closing
         }}
-        onComplete={handleTemplatePickerComplete}
-        initialTemplateId={urlTemplateId}
+        onComplete={(template, product, color) => {
+          setResetTemplatePickerToStep1(false); // Reset flag when completing
+          handleTemplatePickerComplete(template, product, color);
+        }}
+        initialTemplateId={resetTemplatePickerToStep1 ? null : urlTemplateId}
+        resetToFirstStep={resetTemplatePickerToStep1}
       />
 
       {/* AI Panel */}
@@ -676,6 +682,10 @@ export default function DesignStudio() {
           cachedGeminiImage={cachedGeminiImage}
           onRetryBackgroundRemoval={handleRetryBackgroundRemoval}
           selectedColor={selectedColor}
+          onChangeTemplate={() => {
+            setResetTemplatePickerToStep1(true);
+            setShowTemplatePicker(true);
+          }}
         />
 
         {/* Past Generations - Always show, even when empty */}

@@ -118,7 +118,8 @@ db.init().then(() => {
     console.log(`🚀 Backend server running on http://localhost:${PORT}`);
     console.log(`📦 Database: ${process.env.DATABASE_URL ? 'PostgreSQL (Railway)' : 'Not configured'}`);
     console.log(`☁️  S3: ${process.env.AWS_S3_BUCKET ? 'Configured' : 'Local fallback'}`);
-    console.log(`🤖 Gemini: ${process.env.GEMINI_API_KEY ? 'Configured' : 'Not configured'}`);
+    console.log(`🤖 Gemini Key 1: ${process.env.GEMINI_API_KEY ? 'Configured' : 'Not configured'}`);
+    console.log(`🤖 Gemini Key 2: ${process.env.GEMINI_API_KEY_2 ? 'Configured' : 'Not configured'}`);
     console.log(`🖨️  Printify: ${process.env.PRINTIFY_API_KEY ? 'Configured' : 'Not configured'}`);
   });
 }).catch((error) => {

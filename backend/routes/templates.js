@@ -140,6 +140,7 @@ router.post('/', async (req, res) => {
       max_photos,
       gradient,
       is_hidden,
+      text_behavior,
     } = req.body;
 
     if (!id || !name) {
@@ -148,8 +149,8 @@ router.post('/', async (req, res) => {
 
     const result = await db.query(
       `INSERT INTO templates 
-       (id, name, description, example_image, reference_image, prompt, panel_schema, upload_tips, max_photos, gradient, is_hidden) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       (id, name, description, example_image, reference_image, prompt, panel_schema, upload_tips, max_photos, gradient, is_hidden, text_behavior) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING *`,
       [
         id,
@@ -163,6 +164,7 @@ router.post('/', async (req, res) => {
         max_photos || 6,
         gradient || null,
         is_hidden || false,
+        text_behavior || 'none',
       ]
     );
 
@@ -197,6 +199,7 @@ router.put('/:id', async (req, res) => {
       is_hidden,
       remove_background,
       printify_product_id,
+      text_behavior,
     } = req.body;
 
     // Check if template exists
@@ -257,6 +260,10 @@ router.put('/:id', async (req, res) => {
     if (printify_product_id !== undefined) {
       updates.push(`printify_product_id = $${paramCount++}`);
       values.push(printify_product_id);
+    }
+    if (text_behavior !== undefined) {
+      updates.push(`text_behavior = $${paramCount++}`);
+      values.push(text_behavior);
     }
 
     // Always update updated_at
@@ -603,6 +610,7 @@ router.post('/sync', async (req, res) => {
           max_photos: template.max_photos || 6,
           gradient: template.gradient || null,
           remove_background: template.remove_background || false,
+          text_behavior: template.text_behavior || 'none',
         };
 
         if (existing) {
@@ -613,8 +621,8 @@ router.post('/sync', async (req, res) => {
           // Create new template
           await db.query(
             `INSERT INTO templates 
-             (id, name, description, example_image, reference_image, prompt, panel_schema, upload_tips, max_photos, gradient, remove_background) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+             (id, name, description, example_image, reference_image, prompt, panel_schema, upload_tips, max_photos, gradient, remove_background, text_behavior) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
             [
               templateData.id,
               templateData.name,
@@ -627,6 +635,7 @@ router.post('/sync', async (req, res) => {
               templateData.max_photos,
               templateData.gradient,
               templateData.remove_background,
+              templateData.text_behavior,
             ]
           );
           results.created.push(template.id);

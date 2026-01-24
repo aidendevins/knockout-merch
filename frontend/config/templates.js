@@ -280,6 +280,8 @@ export async function fetchTemplates(includeHidden = false) {
       remove_background: t.remove_background, // Keep snake_case for compatibility
       canvas_config: t.canvas_config, // Template-specific positioning for canvas (Printify reference)
       canvasConfig: t.canvas_config, // Also provide camelCase version for consistency
+      text_behavior: t.text_behavior, // Text/fabric color compatibility rules
+      textBehavior: t.text_behavior, // Also provide camelCase version for consistency
       buildPrompt: getBuildPromptFunction(t.id), // Fallback build function if no DB prompt
     }));
   } catch (error) {
@@ -354,6 +356,7 @@ export const LOCAL_TEMPLATES = [
     example_image: null,
     reference_image: null, // Set via admin panel
     remove_background: 'remove-simple', // Enable background removal before sending to Printify
+    text_behavior: 'user-controlled', // User picks text colors via color pickers
     prompt: `**Role:** You are a professional T-shirt designer creating a high-energy 90s bootleg "rap tee" collage. You must execute this design as distinct, non-overlapping visual layers.
 
 **REFERENCE STYLE:** Use the composition, bold typography, and electrified background aesthetic of the first image (image_0.png) as your primary stylistic guide for overall impact and layout.
@@ -431,6 +434,7 @@ Produce a single, high-resolution, sharp, and print-ready graphic. Ensure the di
     example_image: null,
     reference_image: null, // Set via admin panel
     remove_background: 'remove-simple', // Enable background removal before sending to Printify
+    text_behavior: 'none', // No text in this design
     prompt: `Create a romantic heart-shaped photo collage design. 
 
 **INPUT DATA:**
@@ -462,6 +466,12 @@ Produce a high-resolution, print-ready graphic suitable for t-shirt printing.`,
           label: 'Custom Text (optional)',
           placeholder: 'e.g., "I ❤️ You" or names',
           required: false,
+          validation: {
+            type: 'contains',
+            value: 'love',
+            caseSensitive: false,
+            errorMessage: 'Text must include the word "love" for this template',
+          },
         },
       ],
     },
@@ -484,6 +494,7 @@ Produce a high-resolution, print-ready graphic suitable for t-shirt printing.`,
     example_image: null,
     reference_image: null, // Set via admin panel - upload the reference image there
     remove_background: 'remove-simple', // Enable background removal before sending to Printify
+    text_behavior: 'user-controlled', // User picks text color via color picker
     prompt: null, // Uses buildRetroNamePortraitPrompt function to generate prompt with proper placeholder replacement
     panel_schema: {
       showStyleTweaks: false,
@@ -524,6 +535,7 @@ Produce a high-resolution, print-ready graphic suitable for t-shirt printing.`,
     example_image: null,
     reference_image: null, // Set via admin panel
     remove_background: false, // Keep the polaroid frame
+    text_behavior: 'static-dark', // Text is black/red ransom letters - avoid light fabrics
     prompt: `Create a nostalgic polaroid-style photo design with the following specifications:
 
 CRITICAL RULE - BACKGROUND:
@@ -593,6 +605,7 @@ REMINDER: The output should be ONLY the polaroid photo itself - the polaroid IS 
     example_image: null,
     reference_image: null, // Set via admin panel
     remove_background: false, // Keep the illustration style
+    text_behavior: 'none', // No text in this design
     prompt: `Transform the second image to look similar to the first image based on the following criteria:
 Convert the provided image into a minimalist line art illustration while preserving the original composition, poses, and colors:
 
@@ -657,6 +670,7 @@ OUTPUT:
     example_image: null,
     reference_image: null, // Set via admin panel - upload the reference style image there
     remove_background: false, // Keep the textured off-white background
+    text_behavior: 'static-dark', // Text is black - avoid light fabrics
     canvas_config: {
       width_scale: 0.92,    // 92% of print area width for portrait-style design
       height_scale: 0.87,   // 87% of print area height (similar to polaroid proportions)
@@ -748,6 +762,7 @@ DO NOT render the design onto a t-shirt, mug, or any other product mockup. Provi
     example_image: null,
     reference_image: null, // Set via admin panel - upload reference image there
     remove_background: 'remove-simple', // Enable background removal for the solid background
+    text_behavior: 'user-controlled', // User picks primary color for heart/text
     prompt: `You are creating a romantic save-the-date design following this EXACT specification:
 
 REFERENCE IMAGE ANALYSIS (STYLE ONLY):
