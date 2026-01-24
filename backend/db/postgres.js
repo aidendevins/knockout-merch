@@ -360,6 +360,15 @@ async function init() {
       console.warn('⚠️  Romantic Save-the-Date template not found - canvas_config not set');
     }
 
+    // Update Minimalist Line Art template cover image to local file
+    // This runs automatically on deployment to set the cover image
+    await query(`
+      UPDATE templates 
+      SET example_image = '/templates/minimalist_cover.webp'
+      WHERE id = 'minimalist-line-art' 
+      AND (example_image IS NULL OR example_image != '/templates/minimalist_cover.webp')
+    `);
+
     // Set Polaroid Ransom Note positioning from Printify reference
     // Based on Printify measurements:
     //   Print area: 13.17" wide × 16" tall
