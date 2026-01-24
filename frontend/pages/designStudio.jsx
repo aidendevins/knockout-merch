@@ -161,6 +161,11 @@ export default function DesignStudio() {
     const imageUrl = typeof result === 'string' ? result : result.url;
     const skipBackgroundRemoval = typeof result === 'object' && result.skipBackgroundRemoval;
 
+    // Increment count for guests (each generation counts, including regenerations)
+    if (!user && imageUrl) {
+      incrementCount();
+    }
+
     // Cache the original Gemini-generated image for retry functionality (unless restoring previous)
     if (!skipBackgroundRemoval) {
       setCachedGeminiImage(imageUrl);
@@ -420,8 +425,7 @@ export default function DesignStudio() {
           localStorage.setItem('userDesigns', JSON.stringify(userDesigns));
           console.log('✅ Design saved to localStorage:', design.id);
         }
-        // Increment guest design count
-        incrementCount();
+        // Note: Design count is incremented when image is generated, not when product is created
       }
 
       // Step 3: Create the product on Printify
