@@ -286,6 +286,29 @@ async function init() {
       AND (example_image IS NULL OR example_image != '/templates/retro_cover.webp')
     `);
 
+    // Set Retro Name Portrait positioning from Printify reference
+    // Based on Printify measurements:
+    //   Print area: 13.17" wide × 16" tall
+    //   Design size: 13.17" wide × 16" tall (FULL SIZE - fills entire print area)
+    //   Position: left 0%, top 0%
+    // 
+    // COORDINATE SYSTEM MAPPING (1:1 with Printify):
+    // - width_scale = design_width / print_area_width = 13.17 / 13.17 = 1.0
+    // - height_scale = design_height / print_area_height = 16 / 16 = 1.0
+    // - x_offset = position_left = 0.0 (0% from left edge - flush left)
+    // - y_offset = position_top = 0.0 (0% from top edge - flush top)
+    const retroConfigResult = await query(`
+      UPDATE templates 
+      SET canvas_config = '{"width_scale": 1.0, "height_scale": 1.0, "x_offset": 0.0, "y_offset": 0.0, "rotation": 0}'::jsonb
+      WHERE id = 'retro-name-portrait'
+      RETURNING id, canvas_config
+    `);
+    if (retroConfigResult.rows && retroConfigResult.rows.length > 0) {
+      console.log('✅ Retro Name Portrait template canvas_config set:', retroConfigResult.rows[0].canvas_config);
+    } else {
+      console.warn('⚠️  Retro Name Portrait template not found - canvas_config not set');
+    }
+
     // Set Polaroid Ransom Note positioning from Printify reference
     // Based on Printify measurements:
     //   Print area: 13.17" wide × 16" tall
