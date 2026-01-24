@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Heart, Palette, ShieldCheck, Info, ShoppingCart, FolderHeart, Trash2 } from 'lucide-react';
+import { Heart, Palette, ShieldCheck, Info, ShoppingCart, FolderHeart, Trash2, LogIn, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
+import AuthModal from '@/components/auth/AuthModal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,12 +47,14 @@ const getImageUrl = (url) => {
   return url;
 };
 
-export default function Navbar({ user }) {
+export default function Navbar({ user: legacyUser }) {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
   const { cartCount, setIsCartOpen } = useCart();
+  const { user, logout } = useAuth();
   const [userDesignIds, setUserDesignIds] = useState([]);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // Load user's design IDs from localStorage
   useEffect(() => {
@@ -68,23 +72,38 @@ export default function Navbar({ user }) {
     setUserDesignIds(updatedIds);
   };
 
-  // Fetch user's designs
+  // Fetch user's designs (from API if logged in, localStorage if guest)
   const { data: userDesigns = [], isLoading: designsLoading } = useQuery({
-    queryKey: ['user-designs', userDesignIds],
+    queryKey: ['user-designs', user?.id, userDesignIds],
     queryFn: async () => {
+      // If logged in: fetch from API
+      if (user) {
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const apiBase = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
+        
+        const response = await fetch(`${apiBase}/designs/my-designs`, {
+          credentials: 'include', // Send auth cookie
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch user designs');
+        }
+        
+        return await response.json();
+      }
+      
+      // If guest: use localStorage (current behavior)
       if (userDesignIds.length === 0) return [];
       
-      // Fetch designs by ID
       const designs = await Promise.all(
         userDesignIds.map(id => 
           base44.entities.Design.get(id).catch(() => null)
         )
       );
       
-      // Filter out null values (deleted designs) and return in reverse order (newest first)
       return designs.filter(d => d !== null).reverse();
     },
-    enabled: userDesignIds.length > 0,
+    enabled: !!user || userDesignIds.length > 0,
   });
 
   const navLinks = [
@@ -240,6 +259,45 @@ export default function Navbar({ user }) {
               )}
             </button>
 
+            {/* Login/User dropdown */}
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-white/70 hover:text-white hover:bg-white/10 rounded-full gap-2 font-normal"
+                  >
+                    <User className="w-4 h-4" />
+                    <span className="hidden sm:inline">{user.name || user.email}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 bg-gradient-to-b from-gray-900 to-black border border-pink-900/30 text-white">
+                  <DropdownMenuLabel className="text-pink-300">
+                    {user.email}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-pink-900/30" />
+                  <DropdownMenuItem 
+                    onClick={logout}
+                    className="cursor-pointer hover:bg-pink-900/20 focus:bg-pink-900/20 text-red-400"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsAuthModalOpen(true)}
+                className="text-white/70 hover:text-white hover:bg-white/10 rounded-full gap-2 font-normal"
+              >
+                <LogIn className="w-4 h-4" />
+                <span className="hidden sm:inline">Login</span>
+              </Button>
+            )}
+
             <Link to={createPageUrl('DesignStudio')}>
               <Button 
                 size="sm" 
@@ -252,6 +310,9 @@ export default function Navbar({ user }) {
           </div>
         </div>
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </nav>
   );
 }
