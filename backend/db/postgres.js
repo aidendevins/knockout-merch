@@ -118,6 +118,23 @@ async function init() {
       )
     `);
 
+    // Create users table for authentication
+    await query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        name VARCHAR(255),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create index on email for fast lookups
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)
+    `);
+
     // Add color column if it doesn't exist (for existing databases)
     await query(`
       DO $$ 
@@ -145,6 +162,21 @@ async function init() {
           ALTER TABLE designs ADD COLUMN hoodie_mockups JSONB DEFAULT '[]'::jsonb;
         END IF;
       END $$;
+    `);
+
+    // Add user_id column to link designs to users (nullable for backward compatibility)
+    await query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'designs' AND column_name = 'user_id') THEN
+          ALTER TABLE designs ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+        END IF;
+      END $$;
+    `);
+
+    // Create index on user_id for fast user design lookups
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_designs_user_id ON designs(user_id)
     `);
 
     // Create orders table
