@@ -63,7 +63,8 @@ router.post('/products', async (req, res) => {
       product_type = 'tshirt',
       color = 'black',
       canvas_data = {},
-      design_id 
+      design_id,
+      template_id // NEW: For canvas_config lookup
     } = req.body;
 
     // Either URL or base64 is required
@@ -121,6 +122,7 @@ router.post('/products', async (req, res) => {
       productType: 'tshirt',
       color: color,
       canvasData: canvas_data,
+      templateId: template_id, // Pass template_id for positioning
     });
 
     console.log('🎨 Creating Hoodie product...');
@@ -131,6 +133,7 @@ router.post('/products', async (req, res) => {
       productType: 'hoodie',
       color: color,
       canvasData: canvas_data,
+      templateId: template_id, // Pass template_id for positioning
     });
 
     // Get mockups for both
