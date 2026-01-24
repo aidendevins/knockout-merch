@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Move, ZoomIn, ZoomOut, RotateCw, Save, Hand, MousePointer2, Grid3X3 } from 'lucide-react';
+import { Move, ZoomIn, ZoomOut, RotateCw, Save, Hand, MousePointer2, Grid3X3, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +29,9 @@ const PRODUCT_TYPES = {
 // Canvas dimensions (working resolution)
 const CANVAS_WIDTH = 660;
 const CANVAS_HEIGHT = 660;
+
+// High-DPI rendering for crisp quality (2x pixel ratio)
+const PIXEL_RATIO = 2;
 
 // Helper: Wrap text for multi-line rendering
 const wrapText = (ctx, text, maxWidth, fontSize) => {
@@ -99,6 +102,9 @@ const ProductCanvas = forwardRef(({
   const [resizeHandle, setResizeHandle] = useState(null);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [startDimensions, setStartDimensions] = useState({ x: 0, y: 0, width: 0, height: 0, rotation: 0 });
+  
+  // Preview modal state
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // Pan state
   const [isPanning, setIsPanning] = useState(false);
@@ -134,8 +140,25 @@ const ProductCanvas = forwardRef(({
     const previewCanvas = previewCanvasRef.current;
 
     if (canvas && previewCanvas) {
+      // Set up high-DPI canvas for crisp rendering
+      canvas.width = CANVAS_WIDTH * PIXEL_RATIO;
+      canvas.height = CANVAS_HEIGHT * PIXEL_RATIO;
+      previewCanvas.width = CANVAS_WIDTH * PIXEL_RATIO;
+      previewCanvas.height = CANVAS_HEIGHT * PIXEL_RATIO;
+
       const context = canvas.getContext('2d');
       const previewContext = previewCanvas.getContext('2d');
+      
+      // Scale context to match pixel ratio
+      context.scale(PIXEL_RATIO, PIXEL_RATIO);
+      previewContext.scale(PIXEL_RATIO, PIXEL_RATIO);
+      
+      // Enable high-quality image smoothing
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = 'high';
+      previewContext.imageSmoothingEnabled = true;
+      previewContext.imageSmoothingQuality = 'high';
+      
       setCtx(context);
       setPreviewCtx(previewContext);
     }
@@ -366,8 +389,11 @@ const ProductCanvas = forwardRef(({
       ctx.drawImage(design.img, design.x, design.y, design.width, design.height);
       ctx.restore();
 
-      // Draw selection box if selected
-      if (selectedLayerId === 'design') {
+      // Draw selection box if selected (but NOT if locked)
+      const canvasConfig = selectedTemplate?.canvas_config || selectedTemplate?.canvasConfig;
+      const isLocked = canvasConfig && (canvasConfig.width_scale || canvasConfig.scale);
+      
+      if (selectedLayerId === 'design' && !isLocked) {
         drawSelectionBox(ctx, design);
       }
     }
@@ -478,6 +504,11 @@ const ProductCanvas = forwardRef(({
       if (e.key === 'h' && !e.target.matches('input, textarea')) {
         setActiveTool('pan');
       }
+      
+      // ESC to close preview modal
+      if (e.key === 'Escape' && isPreviewOpen) {
+        setIsPreviewOpen(false);
+      }
     };
 
     const handleKeyUp = (e) => {
@@ -493,7 +524,7 @@ const ProductCanvas = forwardRef(({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, []);
+  }, [isPreviewOpen]);
 
   // Wheel handler for zoom/pan
   useEffect(() => {
@@ -620,12 +651,9 @@ const ProductCanvas = forwardRef(({
     const isLocked = canvasConfig && (canvasConfig.width_scale || canvasConfig.scale);
     
     if (isLocked) {
-      console.log('🔒 Design is locked - template positioning active');
-      // Still allow selection for visual feedback, but no dragging/resizing/rotating
+      // If locked, open preview modal instead of selecting
       if (isInsideElement(canvasX, canvasY, design)) {
-        setSelectedLayerId('design');
-      } else {
-        setSelectedLayerId(null);
+        setIsPreviewOpen(true);
       }
       return;
     }
@@ -1042,38 +1070,52 @@ const ProductCanvas = forwardRef(({
           {/* Main canvas */}
           <canvas
             ref={canvasRef}
-            width={CANVAS_WIDTH}
-            height={CANVAS_HEIGHT}
+            style={{ width: `${CANVAS_WIDTH}px`, height: `${CANVAS_HEIGHT}px` }}
             className="rounded-2xl"
           />
 
           {/* Preview canvas for overlays */}
           <canvas
             ref={previewCanvasRef}
-            width={CANVAS_WIDTH}
-            height={CANVAS_HEIGHT}
+            style={{ width: `${CANVAS_WIDTH}px`, height: `${CANVAS_HEIGHT}px` }}
             className="absolute inset-0 pointer-events-none"
           />
         </div>
       </div>
 
-      {/* Instructions */}
-      <div className="h-10 border-t border-pink-900/30 bg-gradient-to-r from-red-950/30 to-black flex items-center justify-center">
-        <div className="flex items-center gap-6 text-xs text-white/60">
-          <span className="flex items-center gap-1">
-            <Move className="w-3 h-3" /> Drag to position
-          </span>
-          <span className="flex items-center gap-1">
-            <ZoomIn className="w-3 h-3" /> Corners to resize
-          </span>
-          <span className="flex items-center gap-1">
-            <RotateCw className="w-3 h-3" /> Top handle to rotate
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="text-[10px] bg-pink-600/20 border border-pink-900/30 px-1 rounded">Space</span> Hold to pan
-          </span>
-        </div>
+      {/* Preview Note */}
+      <div className="h-12 border-t border-pink-900/30 bg-gradient-to-r from-red-950/30 to-black flex items-center justify-center px-4">
+        <p className="text-xs text-white/60 text-center">
+          <span className="text-pink-400">💡 Preview Mode:</span> Click your design for a high-quality view. 
+          Create the product to see it on the actual shirt. Make sure you're satisfied before creating!
+        </p>
       </div>
+
+      {/* Preview Modal */}
+      {isPreviewOpen && generatedImage && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setIsPreviewOpen(false)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] p-4">
+            {/* Close button */}
+            <button
+              onClick={() => setIsPreviewOpen(false)}
+              className="absolute -top-2 -right-2 z-10 p-2 bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 rounded-full text-white shadow-lg transition-all hover:scale-110"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            {/* High-quality preview image */}
+            <img
+              src={generatedImage}
+              alt="Design Preview"
+              className="max-w-full max-h-[85vh] rounded-lg shadow-2xl border-2 border-pink-500/30"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 });

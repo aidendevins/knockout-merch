@@ -162,7 +162,7 @@ export default function TemplatePickerModal({
         }
         
         return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {templates.map((template) => (
               <motion.button
                 key={template.id}
@@ -186,7 +186,7 @@ export default function TemplatePickerModal({
                 <div className="relative z-10">
                   {/* Cover image (example_image) or fallback to reference image */}
                   {template.example_image || template.exampleImage || template.referenceImage || template.reference_image ? (
-                    <div className="w-full aspect-video rounded-lg mb-3 bg-black overflow-hidden border border-pink-900/30">
+                    <div className="w-full aspect-[3/4] rounded-lg mb-3 bg-black overflow-hidden border border-pink-900/30">
                       <img 
                         src={getImageUrl(template.example_image || template.exampleImage || template.referenceImage || template.reference_image) || (template.example_image || template.exampleImage || template.referenceImage || template.reference_image)}
                         alt={template.name}
@@ -208,7 +208,7 @@ export default function TemplatePickerModal({
                     </div>
                   ) : (
                     <div className={cn(
-                      "w-full aspect-video rounded-lg mb-3 bg-gradient-to-br flex items-center justify-center",
+                      "w-full aspect-[3/4] rounded-lg mb-3 bg-gradient-to-br flex items-center justify-center",
                       template.gradient
                     )}>
                       <Sparkles className="w-12 h-12 text-white/80" />
@@ -311,7 +311,7 @@ export default function TemplatePickerModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl bg-gradient-to-br from-gray-900 via-red-950/30 to-gray-900 border-pink-900/30 p-0 overflow-hidden">
+      <DialogContent className="max-w-6xl bg-gradient-to-br from-gray-900 via-red-950/30 to-gray-900 border-pink-900/30 p-0 overflow-hidden">
         {/* Header */}
         <div className="p-6 border-b border-pink-900/30">
           <div className="flex items-center gap-2 mb-1">
@@ -353,7 +353,7 @@ export default function TemplatePickerModal({
 
         {/* Content area with slide animation and scroll */}
         <div className="relative">
-          <ScrollArea className="h-[500px]">
+          <ScrollArea className="h-[600px]">
             <AnimatePresence mode="wait" custom={direction}>
               <motion.div
                 key={currentStep}

@@ -191,8 +191,8 @@ export default function Product() {
 
     setIsFetchingMockups(true);
     try {
-      // Fetch ALL mockups from Printify using the apiClient
-      const allMockups = await base44.printify.getMockups(design.printify_product_id);
+      // Fetch ALL mockups from Printify using the correct product ID for the selected type
+      const allMockups = await base44.printify.getMockups(productId);
       
       // Filter mockups by the requested color
       const colorMockups = filterMockupsByColor(allMockups, color);
