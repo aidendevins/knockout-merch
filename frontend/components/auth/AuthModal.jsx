@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Lock, User, Heart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,18 @@ export default function AuthModal({ isOpen, onClose }) {
     confirmPassword: '',
   });
   const [errors, setErrors] = useState({});
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -88,10 +101,10 @@ export default function AuthModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <AnimatePresence>
       <div
-        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto"
+        className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto"
         onClick={onClose}
       >
         <motion.div
@@ -255,4 +268,7 @@ export default function AuthModal({ isOpen, onClose }) {
       </div>
     </AnimatePresence>
   );
+
+  // Render modal in a portal to ensure it's at the root level
+  return ReactDOM.createPortal(modalContent, document.body);
 }
