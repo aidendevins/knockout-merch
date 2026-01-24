@@ -319,20 +319,20 @@ async function init() {
     `);
 
     // Set Photo Collage positioning from Printify reference
-    // Using SAME dimensions and position as Retro Name Portrait
+    // Using SAME dimensions as Retro Name Portrait, but CLOSER to top
     // Based on Printify measurements:
     //   Print area: 13.17" wide × 16" tall
     //   Design size: 12.93" wide × 14.72" tall
-    //   Position: left 0.91%, top 2%
+    //   Position: left 0.91%, top 0.5%
     // 
     // COORDINATE SYSTEM MAPPING (1:1 with Printify):
     // - width_scale = design_width / print_area_width = 12.93 / 13.17 = 0.9818
     // - height_scale = design_height / print_area_height = 14.72 / 16 = 0.9200
     // - x_offset = position_left = 0.0091 (0.91% from left edge of print area, moving right)
-    // - y_offset = position_top = 0.02 (2% from top edge of print area, moving down)
+    // - y_offset = position_top = 0.005 (0.5% from top edge of print area, moving down)
     const photoCollageConfigResult = await query(`
       UPDATE templates 
-      SET canvas_config = '{"width_scale": 0.9818, "height_scale": 0.9200, "x_offset": 0.0091, "y_offset": 0.02, "rotation": 0}'::jsonb
+      SET canvas_config = '{"width_scale": 0.9818, "height_scale": 0.9200, "x_offset": 0.0091, "y_offset": 0.005, "rotation": 0}'::jsonb
       WHERE id = 'photo-collage'
       RETURNING id, canvas_config
     `);
