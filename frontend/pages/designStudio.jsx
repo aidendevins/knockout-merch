@@ -153,6 +153,7 @@ export default function DesignStudio() {
   const handleImageGenerated = async (result) => {
     // Check design limit before generating (for guests)
     if (isAtLimit) {
+      setIsGenerating(false); // Reset button state when limit is reached
       setShowLimitModal(true);
       return;
     }
