@@ -417,7 +417,7 @@ function mapColorToPrintify(color) {
  * @param {Object} options.canvasData - Position data from the canvas editor
  * @returns {Promise<{id: string, mockup_urls: string[], ...}>}
  */
-async function createProduct({ title, description, imageUrl, productType = 'tshirt', color = 'black', canvasData = {} }) {
+async function createProduct({ title, description, imageUrl, productType = 'tshirt', color = 'black', canvasData = {}, templateId = null }) {
   const shopId = process.env.PRINTIFY_SHOP_ID;
   const blueprint = BLUEPRINTS[productType];
   
@@ -438,14 +438,55 @@ async function createProduct({ title, description, imageUrl, productType = 'tshi
   // First, upload the image to Printify
   const uploadedImage = await uploadImage(imageUrl, `${title.replace(/\s+/g, '-')}.png`);
   
-  // Calculate print position from canvas data
-  // Canvas data has x, y (0-100%), scale, rotation
-  // Printify expects normalized coordinates (0-1 range), with 0.5 being center
-  // Convert from percentage (0-100) to normalized (0-1)
-  const x = (canvasData.x || 50) / 100; // Normalize to 0-1 range
-  const y = (canvasData.y || 45) / 100; // Normalize to 0-1 range
-  const scale = canvasData.scale || 1;
-  const angle = canvasData.rotation || 0;
+  // Calculate print position
+  // If template has canvas_config, use it; otherwise use canvasData
+  let x, y, scale, angle;
+  
+  if (templateId) {
+    // Fetch template canvas_config from database
+    const db = require('../db/postgres');
+    const template = await db.get('SELECT canvas_config FROM templates WHERE id = $1', [templateId]);
+    
+    if (template && template.canvas_config) {
+      const config = template.canvas_config;
+      console.log(`🎯 Using template positioning for "${templateId}":`, config);
+      
+      // Printify positioning: 0.5 = center, 0 = top/left, 1 = bottom/right
+      // Our config has x_offset and y_offset as percentages (0.0384 = 3.84% from edge)
+      // Convert to Printify's center-based coordinate system
+      
+      // For Printify:
+      // - x/y represent the CENTER of the image
+      // - 0.5, 0.5 = centered
+      // - We need to convert from "left edge at X%" to "center at X%"
+      
+      // Our config: left edge at x_offset, top edge at y_offset
+      // Image takes up width_scale and height_scale of print area
+      // So center is at: x_offset + (width_scale / 2)
+      x = config.x_offset + (config.width_scale / 2);
+      y = config.y_offset + (config.height_scale / 2);
+      
+      // Scale in Printify is relative to print area
+      // Our width_scale is already the right value (e.g., 0.9818 = 98.18% of print area)
+      scale = config.width_scale;
+      angle = config.rotation || 0;
+      
+      console.log(`📍 Printify positioning: x=${x}, y=${y}, scale=${scale}, angle=${angle}`);
+    } else {
+      console.log(`ℹ️  No canvas_config found for template "${templateId}", using canvasData`);
+      // Fall through to canvasData
+      x = (canvasData.x || 50) / 100;
+      y = (canvasData.y || 45) / 100;
+      scale = canvasData.scale || 1;
+      angle = canvasData.rotation || 0;
+    }
+  } else {
+    // No template, use canvasData
+    x = (canvasData.x || 50) / 100;
+    y = (canvasData.y || 45) / 100;
+    scale = canvasData.scale || 1;
+    angle = canvasData.rotation || 0;
+  }
   
   // Fetch actual variants from Printify API to ensure we have the correct IDs
   console.log(`🔍 Fetching variants for blueprint ${blueprint.id}, print provider ${blueprint.printProviderId}`);

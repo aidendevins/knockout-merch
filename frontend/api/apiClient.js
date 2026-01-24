@@ -316,7 +316,7 @@ const apiClient = {
     },
 
     // Create a product on Printify
-    async createProduct({ title, description, designImageUrl, designImageBase64, productType, color, canvasData, designId }) {
+    async createProduct({ title, description, designImageUrl, designImageBase64, productType, color, canvasData, designId, templateId }) {
       return apiCall('/printify/products', {
         method: 'POST',
         body: JSON.stringify({
@@ -328,6 +328,7 @@ const apiClient = {
           color: color,
           canvas_data: canvasData,
           design_id: designId,
+          template_id: templateId, // For canvas_config lookup
         }),
       });
     },

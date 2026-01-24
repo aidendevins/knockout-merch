@@ -417,6 +417,7 @@ export default function DesignStudio() {
         color: selectedColor,
         canvasData: canvasData,
         designId: design.id,
+        templateId: selectedTemplate?.id, // Pass template ID for positioning
       });
 
       // Step 4: Navigate directly to the product page
