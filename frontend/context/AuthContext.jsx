@@ -49,6 +49,8 @@ export const AuthProvider = ({ children }) => {
 
     const data = await response.json();
     setUser(data.user);
+    // Clear guest design count on successful registration
+    localStorage.removeItem('guest_design_count');
     return data.user;
   };
 
@@ -67,6 +69,8 @@ export const AuthProvider = ({ children }) => {
 
     const data = await response.json();
     setUser(data.user);
+    // Clear guest design count on successful login
+    localStorage.removeItem('guest_design_count');
     return data.user;
   };
 

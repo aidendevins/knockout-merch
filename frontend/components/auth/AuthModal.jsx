@@ -7,9 +7,9 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
-export default function AuthModal({ isOpen, onClose }) {
+export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onSuccess, allowClose = true }) {
   const { login, register } = useAuth();
-  const [mode, setMode] = useState('login'); // 'login' or 'register'
+  const [mode, setMode] = useState(defaultMode); // 'login' or 'register'
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -18,6 +18,11 @@ export default function AuthModal({ isOpen, onClose }) {
     confirmPassword: '',
   });
   const [errors, setErrors] = useState({});
+
+  // Update mode when defaultMode changes
+  useEffect(() => {
+    setMode(defaultMode);
+  }, [defaultMode]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -85,7 +90,8 @@ export default function AuthModal({ isOpen, onClose }) {
         await register(formData.email, formData.password, formData.name);
         toast.success('Account created successfully!');
       }
-      onClose();
+      if (onSuccess) onSuccess();
+      if (onClose) onClose();
     } catch (error) {
       toast.error(error.message || 'Something went wrong');
     } finally {
@@ -105,7 +111,7 @@ export default function AuthModal({ isOpen, onClose }) {
     <AnimatePresence>
       <div
         className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto"
-        onClick={onClose}
+        onClick={allowClose ? onClose : undefined}
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -115,13 +121,15 @@ export default function AuthModal({ isOpen, onClose }) {
           onClick={(e) => e.stopPropagation()}
           className="relative w-full max-w-md bg-gradient-to-br from-gray-900 via-red-950/30 to-gray-900 border border-pink-900/30 rounded-2xl p-8 shadow-2xl my-8"
         >
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {/* Close button - only show if allowed */}
+          {allowClose && (
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
 
           {/* Header */}
           <div className="flex items-center gap-2 mb-6">

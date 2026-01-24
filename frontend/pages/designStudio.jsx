@@ -9,11 +9,15 @@ import ProductCanvas from '@/components/design/ProductCanvas';
 import TemplatePickerModal from '@/components/design/TemplatePickerModal';
 import BackgroundRemovalModal from '@/components/design/BackgroundRemovalModal';
 import MockupPreviewModal from '@/components/design/MockupPreviewModal';
+import DesignLimitModal from '@/components/auth/DesignLimitModal';
+import { useDesignLimit } from '@/hooks/useDesignLimit';
+import { useAuth } from '@/context/AuthContext';
 import apiClient from '@/api/apiClient';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { AlertCircle } from 'lucide-react';
 
 // Helper to get image URL (use proxy if needed for CORS)
 const getImageUrl = (url) => {
@@ -51,6 +55,8 @@ export default function DesignStudio() {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const canvasRef = useRef(null);
+  const { user } = useAuth();
+  const { count, remaining, maxFree, isAtLimit, isWarning, incrementCount, resetCount } = useDesignLimit();
   
   // Get template ID from URL if present
   const urlTemplateId = searchParams.get('template');
@@ -59,6 +65,9 @@ export default function DesignStudio() {
   const [showTemplatePicker, setShowTemplatePicker] = useState(true);
   const [resetTemplatePickerToStep1, setResetTemplatePickerToStep1] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+  
+  // Design limit modal state
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   // User uploaded photos
   const [uploadedPhotos, setUploadedPhotos] = useState([]);
@@ -143,9 +152,21 @@ export default function DesignStudio() {
   };
 
   const handleImageGenerated = async (result) => {
+    // Check design limit before generating (for guests)
+    if (isAtLimit) {
+      setIsGenerating(false); // Reset button state when limit is reached
+      setShowLimitModal(true);
+      return;
+    }
+    
     // result can be a URL string (backward compatibility) or an object with url
     const imageUrl = typeof result === 'string' ? result : result.url;
     const skipBackgroundRemoval = typeof result === 'object' && result.skipBackgroundRemoval;
+
+    // Increment count for guests (each generation counts, including regenerations)
+    if (!user && imageUrl) {
+      incrementCount();
+    }
 
     // Cache the original Gemini-generated image for retry functionality (unless restoring previous)
     if (!skipBackgroundRemoval) {
@@ -398,12 +419,15 @@ export default function DesignStudio() {
         creator_name: user?.full_name || 'Anonymous',
       });
 
-      // Store design ID in localStorage for "My Designs"
-      const userDesigns = JSON.parse(localStorage.getItem('userDesigns') || '[]');
-      if (!userDesigns.includes(design.id)) {
-        userDesigns.push(design.id);
-        localStorage.setItem('userDesigns', JSON.stringify(userDesigns));
-        console.log('✅ Design saved to localStorage:', design.id);
+      // Store design ID in localStorage for "My Designs" (for guests)
+      if (!user) {
+        const userDesigns = JSON.parse(localStorage.getItem('userDesigns') || '[]');
+        if (!userDesigns.includes(design.id)) {
+          userDesigns.push(design.id);
+          localStorage.setItem('userDesigns', JSON.stringify(userDesigns));
+          console.log('✅ Design saved to localStorage:', design.id);
+        }
+        // Note: Design count is incremented when image is generated, not when product is created
       }
 
       // Step 3: Create the product on Printify
@@ -577,6 +601,16 @@ export default function DesignStudio() {
     }
   };
 
+  // Show warnings at 8/10 and 9/10 designs
+  useEffect(() => {
+    if (isWarning && !user) {
+      const message = count === 8 
+        ? 'You have 2 free designs remaining. Create a free account for unlimited designs!'
+        : 'You have 1 free design remaining. Create a free account for unlimited designs!';
+      toast.warning(message, { duration: 5000 });
+    }
+  }, [count, isWarning, user]);
+
   // Get photo URLs for AI generation
   const getPhotoUrls = () => {
     return uploadedPhotos.map(p => p.preview);
@@ -606,6 +640,37 @@ export default function DesignStudio() {
 
       {/* AI Panel */}
       <div className="w-72 flex-shrink-0 hidden md:block overflow-y-auto">
+        {/* Design Limit Counter & Warnings (for guests only) */}
+        {!user && (
+          <div className="px-6 pt-6 pb-4 border-b border-pink-900/20">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-gray-400">Free Designs</span>
+              <span className="text-sm font-semibold text-white">
+                {count}/{maxFree}
+              </span>
+            </div>
+            <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-pink-500 to-red-500 transition-all duration-300"
+                style={{ width: `${(count / maxFree) * 100}%` }}
+              />
+            </div>
+            {isWarning && (
+              <div className="mt-3 p-3 bg-yellow-900/20 border border-yellow-600/30 rounded-lg flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-yellow-300 mb-1">
+                    {count === 8 ? '2 designs remaining!' : '1 design remaining!'}
+                  </p>
+                  <p className="text-xs text-yellow-200/80">
+                    Create a free account to continue creating unlimited designs
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <AIPanel 
           uploadedPhotos={uploadedPhotos}
           selectedTemplate={selectedTemplate}
@@ -789,6 +854,17 @@ export default function DesignStudio() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Design Limit Modal */}
+      {showLimitModal && (
+        <DesignLimitModal
+          onSignupSuccess={() => {
+            setShowLimitModal(false);
+            resetCount();
+            toast.success('Account created! You can now create unlimited designs.');
+          }}
+        />
+      )}
     </div>
   );
 }
