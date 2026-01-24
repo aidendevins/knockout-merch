@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Loader2, AlertCircle, RefreshCw, Heart, ImageIcon, Check, Scissors, History } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle, RefreshCw, Heart, ImageIcon, Check, Scissors, History, Repeat2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -98,7 +98,7 @@ function formatDateValue(dateString, formatType) {
 }
 
 // Dynamic field renderer component
-function DynamicField({ field, value, onChange }) {
+function DynamicField({ field, value, onChange, excludeShirtColorHex = null, shouldExcludeShirtColor = false }) {
   switch (field.type) {
     case 'text':
       return (
@@ -146,6 +146,52 @@ function DynamicField({ field, value, onChange }) {
       );
 
     case 'colorPicker':
+      // Helper to check if a color is dark (needs white border for visibility)
+      const isDarkColor = (hex) => {
+        if (!hex) return false;
+        const cleanHex = hex.replace('#', '');
+        const r = parseInt(cleanHex.substr(0, 2), 16);
+        const g = parseInt(cleanHex.substr(2, 2), 16);
+        const b = parseInt(cleanHex.substr(4, 2), 16);
+        // Calculate relative luminance
+        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        return luminance < 0.3; // Dark if luminance is below 30%
+      };
+
+      // Helper to get luminance of a color
+      const getLuminance = (hex) => {
+        if (!hex) return 0.5;
+        const cleanHex = hex.replace('#', '');
+        const r = parseInt(cleanHex.substr(0, 2), 16);
+        const g = parseInt(cleanHex.substr(2, 2), 16);
+        const b = parseInt(cleanHex.substr(4, 2), 16);
+        return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      };
+
+      // Filter out colors that match the shirt color
+      // Only apply this filter if shouldExcludeShirtColor is true (text_behavior is 'user-controlled')
+      // If shirt is white, exclude white from presets
+      // If shirt is black, exclude black from presets
+      // Light pink: no exclusions (light pink isn't typically used as text color)
+      const filteredPresets = COLOR_PRESETS.filter((color) => {
+        if (!shouldExcludeShirtColor || !excludeShirtColorHex) return true;
+        
+        const shirtHex = excludeShirtColorHex.toLowerCase();
+        const presetHex = color.toLowerCase();
+        
+        // Check for white shirt specifically (#f5f5f5) - exclude white preset (#ffffff)
+        if ((shirtHex === '#f5f5f5' || shirtHex === '#ffffff') && presetHex === '#ffffff') {
+          return false;
+        }
+        
+        // Check for black shirt specifically (#1a1a1a) - exclude black preset (#000000)
+        if ((shirtHex === '#1a1a1a' || shirtHex === '#000000' || shirtHex === '#111111') && presetHex === '#000000') {
+          return false;
+        }
+        
+        return true;
+      });
+
       return (
         <div className="space-y-1.5">
           <label className="text-xs text-white/60 flex items-center gap-1">
@@ -155,31 +201,43 @@ function DynamicField({ field, value, onChange }) {
           <div className="flex items-center gap-2">
             {/* Current color preview */}
             <div 
-              className="w-10 h-10 rounded-lg border-2 border-white/20 shadow-inner flex-shrink-0"
+              className={cn(
+                "w-10 h-10 rounded-lg shadow-inner flex-shrink-0",
+                isDarkColor(value || field.defaultValue) 
+                  ? "border-2 border-white/50" 
+                  : "border-2 border-white/20"
+              )}
               style={{ backgroundColor: value || field.defaultValue }}
             />
             {/* Color presets grid */}
             <div className="flex flex-wrap gap-1.5">
-              {COLOR_PRESETS.map((color) => (
-                <button
-                  key={color}
-                  onClick={() => onChange(color)}
-                  className={cn(
-                    "w-6 h-6 rounded-full border-2 transition-all hover:scale-110",
-                    (value || field.defaultValue) === color 
-                      ? "border-white shadow-lg shadow-white/20" 
-                      : "border-transparent hover:border-white/50"
-                  )}
-                  style={{ backgroundColor: color }}
-                >
-                  {(value || field.defaultValue) === color && (
-                    <Check className={cn(
-                      "w-3 h-3 mx-auto",
-                      ['#ffffff', '#eab308', '#22c55e'].includes(color) ? 'text-black' : 'text-white'
-                    )} />
-                  )}
-                </button>
-              ))}
+              {filteredPresets.map((color) => {
+                const isSelected = (value || field.defaultValue) === color;
+                const colorIsDark = isDarkColor(color);
+                
+                return (
+                  <button
+                    key={color}
+                    onClick={() => onChange(color)}
+                    className={cn(
+                      "w-6 h-6 rounded-full border-2 transition-all hover:scale-110",
+                      isSelected 
+                        ? "border-white shadow-lg shadow-white/20" 
+                        : colorIsDark 
+                          ? "border-white/40 hover:border-white/70" 
+                          : "border-transparent hover:border-white/50"
+                    )}
+                    style={{ backgroundColor: color }}
+                  >
+                    {isSelected && (
+                      <Check className={cn(
+                        "w-3 h-3 mx-auto",
+                        ['#ffffff', '#eab308', '#22c55e'].includes(color) ? 'text-black' : 'text-white'
+                      )} />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -241,6 +299,7 @@ export default function AIPanel({
   cachedGeminiImage = null,
   onRetryBackgroundRemoval = null,
   selectedColor = 'black', // The product color selected in the template picker
+  onChangeTemplate = null, // Callback to open template picker
 }) {
   const [fieldValues, setFieldValues] = useState({});
   const [styleTweaks, setStyleTweaks] = useState('');
@@ -539,8 +598,58 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
     if (!selectedTemplate?.panelSchema?.fields) return { valid: true };
 
     for (const field of selectedTemplate.panelSchema.fields) {
-      if (field.required && !fieldValues[field.id]?.trim()) {
+      const value = fieldValues[field.id];
+      
+      // Check required fields
+      if (field.required && !value?.trim()) {
         return { valid: false, message: `${field.label} is required` };
+      }
+      
+      // Check validation rules (only if field has a value)
+      if (field.validation && value?.trim()) {
+        const validation = field.validation;
+        
+        switch (validation.type) {
+          case 'contains':
+            const searchValue = validation.caseSensitive ? value : value.toLowerCase();
+            const searchTerm = validation.caseSensitive ? validation.value : validation.value.toLowerCase();
+            
+            if (!searchValue.includes(searchTerm)) {
+              return { 
+                valid: false, 
+                message: validation.errorMessage || `${field.label} must contain "${validation.value}"` 
+              };
+            }
+            break;
+            
+          case 'regex':
+            const regex = new RegExp(validation.pattern, validation.flags || '');
+            if (!regex.test(value)) {
+              return { 
+                valid: false, 
+                message: validation.errorMessage || `${field.label} format is invalid` 
+              };
+            }
+            break;
+            
+          case 'minLength':
+            if (value.length < validation.value) {
+              return { 
+                valid: false, 
+                message: validation.errorMessage || `${field.label} must be at least ${validation.value} characters` 
+              };
+            }
+            break;
+            
+          case 'maxLength':
+            if (value.length > validation.value) {
+              return { 
+                valid: false, 
+                message: validation.errorMessage || `${field.label} must be no more than ${validation.value} characters` 
+              };
+            }
+            break;
+        }
       }
     }
     return { valid: true };
@@ -649,15 +758,34 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
         {/* Template info */}
         {selectedTemplate && (
           <div className="mb-4 p-3 rounded-lg bg-pink-600/10 border border-pink-900/30">
-            <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="w-4 h-4 text-pink-400" />
-              <span className="text-white text-sm font-medium">{selectedTemplate.name}</span>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-pink-400" />
+                <span className="text-white text-sm font-medium">{selectedTemplate.name}</span>
+              </div>
+              {onChangeTemplate && (
+                <button
+                  onClick={onChangeTemplate}
+                  className="flex items-center gap-1 text-xs text-pink-400 hover:text-pink-300 transition-colors"
+                >
+                  <Repeat2 className="w-3 h-3" />
+                  Change
+                </button>
+              )}
             </div>
             <p className="text-white/50 text-xs">{selectedTemplate.description}</p>
             {/* Show selected background color */}
             <div className="flex items-center gap-2 mt-2">
               <div 
-                className="w-4 h-4 rounded border border-white/20"
+                className={cn(
+                  "w-4 h-4 rounded",
+                  // Add white border for dark colors to make them visible
+                  ['#000000', '#1a1a1a', '#111111', '#0a0a0a'].some(dark => 
+                    backgroundColorHex?.toLowerCase() === dark || 
+                    backgroundColorHex?.toLowerCase().startsWith('#0') ||
+                    backgroundColorHex?.toLowerCase().startsWith('#1')
+                  ) ? "border-2 border-white/40" : "border border-white/20"
+                )}
                 style={{ backgroundColor: backgroundColorHex }}
               />
               <span className="text-white/40 text-xs">Background: {selectedColor}</span>
@@ -710,6 +838,8 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
                 field={field}
                 value={fieldValues[field.id]}
                 onChange={(value) => updateFieldValue(field.id, value)}
+                excludeShirtColorHex={backgroundColorHex}
+                shouldExcludeShirtColor={selectedTemplate?.text_behavior === 'user-controlled'}
               />
             ))}
           </div>

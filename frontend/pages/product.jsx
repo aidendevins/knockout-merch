@@ -20,8 +20,9 @@ import { cn } from '@/lib/utils';
 
 const SIZES = ['S', 'M', 'L', 'XL', '2XL'];
 const COLORS = [
-  { name: 'Black', value: 'black', hex: '#000000' },
-  { name: 'White', value: 'white', hex: '#FFFFFF' },
+  { name: 'Black', value: 'black', hex: '#1a1a1a' },
+  { name: 'White', value: 'white', hex: '#f5f5f5' },
+  { name: 'Light Pink', value: 'light-pink', hex: '#fce7f3' },
 ];
 const PRODUCT_TYPES = [
   { name: 'T-Shirt', value: 'tshirt', price: 29.99 },
@@ -90,8 +91,17 @@ export default function Product() {
   // Set default color and product type from design when it loads
   React.useEffect(() => {
     if (design && !selectedColor && !selectedProductType) {
-      const defaultColor = design.color || 'black';
       const defaultProductType = design.product_type || 'tshirt';
+      
+      // Get available colors for this design (default to all if not specified)
+      const availableColors = design.available_colors || ['black', 'white', 'light-pink'];
+      
+      // Use the design's original color if it's available, otherwise use first available
+      let defaultColor = design.color || 'black';
+      if (!availableColors.includes(defaultColor)) {
+        defaultColor = availableColors[0] || 'black';
+        console.log(`⚠️ Original color "${design.color}" not available, using "${defaultColor}" instead`);
+      }
       
       setSelectedColor(defaultColor);
       setSelectedProductType(defaultProductType);
@@ -118,17 +128,21 @@ export default function Product() {
   const filterMockupsByColor = (mockups, color) => {
     if (!mockups || mockups.length === 0) return [];
     
-    console.log(`🔍 Filtering mockups for color: ${color}`);
+    // Normalize color (light-pink -> pink for matching)
+    const normalizedColor = color.toLowerCase().replace('light-', '');
+    
+    console.log(`🔍 Filtering mockups for color: ${color} (normalized: ${normalizedColor})`);
     console.log(`   Total mockups received: ${mockups.length}`);
     
     // Printify often includes color in the mockup URL or filename
-    // For example: "...Black..." or "...White..." or variant IDs that differ by color
+    // For example: "...Black..." or "...White..." or "...Pink..." or variant IDs that differ by color
     const colorKeywords = {
       black: ['black', 'Black', 'BLACK', '3001_Solid_Black', '_black_', 'solid-black', 'Heather_Black'],
-      white: ['white', 'White', 'WHITE', '3001_Solid_White', '_white_', 'solid-white', 'Heather_White']
+      white: ['white', 'White', 'WHITE', '3001_Solid_White', '_white_', 'solid-white', 'Heather_White'],
+      pink: ['pink', 'Pink', 'PINK', '3001_Solid_Pink', '_pink_', 'solid-pink', 'Soft_Pink', 'Light_Pink', 'Heather_Pink']
     };
     
-    const keywords = colorKeywords[color.toLowerCase()] || [];
+    const keywords = colorKeywords[normalizedColor] || [];
     
     // Filter mockups that contain any of the color keywords
     const filtered = mockups.filter(url => {
@@ -147,16 +161,26 @@ export default function Product() {
       console.warn(`   ⚠️ Could not filter mockups by color ${color} using keywords`);
       console.warn(`   ⚠️ Using fallback: split array by color consistently`);
       
-      // Split mockups in half - Printify likely returns them in consistent order
-      // Based on testing: WHITE mockups come FIRST, BLACK mockups come SECOND
-      const midpoint = Math.ceil(mockups.length / 2);
+      // Split mockups - Printify returns them grouped by color
+      // With 3 colors (black, white, pink), we divide into thirds
+      const totalMockups = mockups.length;
+      const colorsCount = 3; // black, white, pink
+      const perColor = Math.ceil(totalMockups / colorsCount);
       
-      // WHITE = first half, BLACK = second half (based on Printify's ordering)
-      const isWhite = color.toLowerCase() === 'white';
-      colorFiltered = isWhite ? mockups.slice(0, midpoint) : mockups.slice(midpoint);
+      // Determine which third based on color
+      // Order varies by product, but try to match based on typical Printify ordering
+      if (normalizedColor === 'white') {
+        colorFiltered = mockups.slice(0, perColor);
+      } else if (normalizedColor === 'black') {
+        colorFiltered = mockups.slice(perColor, perColor * 2);
+      } else if (normalizedColor === 'pink') {
+        colorFiltered = mockups.slice(perColor * 2);
+      } else {
+        colorFiltered = mockups.slice(0, perColor);
+      }
       
       console.log(`   📋 Requested color: ${color}`);
-      console.log(`   📋 Using ${isWhite ? 'FIRST' : 'SECOND'} half (${isWhite ? 'WHITE' : 'BLACK'}): ${colorFiltered.length} mockups`);
+      console.log(`   📋 Using segment for ${normalizedColor}: ${colorFiltered.length} mockups`);
       console.log(`   📋 Sample URL: ${colorFiltered[0]?.substring(0, 100)}...`);
     } else {
       colorFiltered = filtered;
@@ -464,7 +488,12 @@ export default function Product() {
                 )}
               </div>
               <div className="flex gap-3">
-                {COLORS.map((color) => (
+                {/* Filter colors to only show those available for this design */}
+                {COLORS.filter(color => {
+                  // If design has available_colors, filter by it
+                  const availableColors = design?.available_colors || ['black', 'white', 'light-pink'];
+                  return availableColors.includes(color.value);
+                }).map((color) => (
                   <button
                     key={color.value}
                     onClick={() => handleColorChange(color.value)}

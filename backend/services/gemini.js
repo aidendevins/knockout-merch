@@ -1,8 +1,44 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const s3 = require('./s3');
 
-// Initialize Gemini client
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// Track which API key is currently active (1 = primary, 2 = secondary)
+let activeKeyIndex = 1;
+
+// Get the current Gemini client based on active key
+function getGenAI() {
+  const apiKey = activeKeyIndex === 2 
+    ? process.env.GEMINI_API_KEY_2 
+    : process.env.GEMINI_API_KEY;
+  
+  if (!apiKey) {
+    throw new Error(`GEMINI_API_KEY${activeKeyIndex === 2 ? '_2' : ''} is not configured`);
+  }
+  
+  return new GoogleGenerativeAI(apiKey);
+}
+
+// Get the active key index
+function getActiveKeyIndex() {
+  return activeKeyIndex;
+}
+
+// Set the active key index (1 or 2)
+function setActiveKeyIndex(index) {
+  if (index !== 1 && index !== 2) {
+    throw new Error('Invalid key index. Must be 1 or 2.');
+  }
+  activeKeyIndex = index;
+  console.log(`🔑 Switched to GEMINI_API_KEY${index === 2 ? '_2' : ''}`);
+  return activeKeyIndex;
+}
+
+// Check if a specific key is configured
+function isKeyConfigured(index) {
+  if (index === 2) {
+    return !!process.env.GEMINI_API_KEY_2;
+  }
+  return !!process.env.GEMINI_API_KEY;
+}
 
 /**
  * Helper function to create a timeout promise
@@ -20,9 +56,16 @@ function createTimeout(ms) {
  * @returns {Promise<{url: string, key: string, prompt: string, model: string, fallbackUsed: boolean}>}
  */
 async function generateImage(prompt, referenceImageUrls = []) {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY is not configured');
+  const apiKey = activeKeyIndex === 2 
+    ? process.env.GEMINI_API_KEY_2 
+    : process.env.GEMINI_API_KEY;
+    
+  if (!apiKey) {
+    throw new Error(`GEMINI_API_KEY${activeKeyIndex === 2 ? '_2' : ''} is not configured`);
   }
+  
+  const genAI = getGenAI();
+  console.log(`🔑 Using API Key ${activeKeyIndex}`);
 
   // Primary model
   const primaryModelName = "gemini-3-pro-image-preview";
@@ -258,13 +301,28 @@ async function generateImage(prompt, referenceImageUrls = []) {
 }
 
 /**
- * Check if Gemini AI service is configured
+ * Check if Gemini AI service is configured (checks active key)
  */
 function isConfigured() {
-  return !!process.env.GEMINI_API_KEY;
+  return isKeyConfigured(activeKeyIndex);
+}
+
+/**
+ * Get available keys info for admin UI
+ */
+function getKeysInfo() {
+  return {
+    activeKey: activeKeyIndex,
+    key1Configured: isKeyConfigured(1),
+    key2Configured: isKeyConfigured(2),
+  };
 }
 
 module.exports = {
   generateImage,
   isConfigured,
+  getActiveKeyIndex,
+  setActiveKeyIndex,
+  getKeysInfo,
+  isKeyConfigured,
 };

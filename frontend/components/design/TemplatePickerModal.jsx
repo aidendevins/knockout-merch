@@ -56,6 +56,7 @@ export default function TemplatePickerModal({
   initialTemplate = null,   // Direct template object (legacy support)
   initialProduct = null,
   initialColor = null,
+  resetToFirstStep = false, // Force reset to step 1 (template selection)
 }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(1); // 1 for forward, -1 for back
@@ -63,6 +64,17 @@ export default function TemplatePickerModal({
   const [selectedProduct, setSelectedProduct] = useState(initialProduct);
   const [selectedColor, setSelectedColor] = useState(initialColor);
   const [hasInitialized, setHasInitialized] = useState(false);
+
+  // Reset to first step when resetToFirstStep changes to true
+  useEffect(() => {
+    if (resetToFirstStep && isOpen) {
+      setCurrentStep(0);
+      setSelectedTemplate(null);
+      setSelectedProduct(null);
+      setSelectedColor(null);
+      setHasInitialized(false);
+    }
+  }, [resetToFirstStep, isOpen]);
 
   // Fetch templates from API (excluding hidden templates)
   const { data: templates = [], isLoading: templatesLoading } = useQuery({
@@ -232,7 +244,7 @@ export default function TemplatePickerModal({
                 
                 {/* Selected indicator */}
                 {selectedTemplate?.id === template.id && (
-                  <div className="absolute top-3 right-3 w-6 h-6 bg-gradient-to-r from-pink-600 to-red-600 rounded-full flex items-center justify-center">
+                  <div className="absolute top-3 right-3 z-20 w-6 h-6 bg-gradient-to-r from-pink-600 to-red-600 rounded-full flex items-center justify-center shadow-lg">
                     <Check className="w-4 h-4 text-white" />
                   </div>
                 )}
@@ -272,9 +284,28 @@ export default function TemplatePickerModal({
         );
       
       case 2:
+        // Filter color options based on template text_behavior
+        let availableColors = COLOR_OPTIONS;
+        
+        if (selectedTemplate?.text_behavior === 'static-dark') {
+          // Text is dark (black) - black text invisible on black fabric
+          // Exclude BLACK fabric only, allow white and light pink
+          availableColors = COLOR_OPTIONS.filter(color => 
+            color.id !== 'black'
+          );
+        } else if (selectedTemplate?.text_behavior === 'static-light') {
+          // Text is light (white/cream) - light text invisible on white fabric
+          // Exclude WHITE fabric only, allow black and light pink
+          availableColors = COLOR_OPTIONS.filter(color => 
+            color.id !== 'white'
+          );
+        }
+        // If text_behavior is 'user-controlled' or 'none', show all colors
+        // Light pink is NEVER blocked - it works with both light and dark text
+        
         return (
           <div className="flex flex-wrap justify-center gap-6">
-            {COLOR_OPTIONS.map((color) => (
+            {availableColors.map((color) => (
               <motion.button
                 key={color.id}
                 onClick={() => setSelectedColor(color)}

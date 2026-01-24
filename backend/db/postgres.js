@@ -164,6 +164,35 @@ async function init() {
       END $$;
     `);
 
+    // Add Pink variant product IDs and mockups columns
+    await query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'designs' AND column_name = 'printify_tshirt_pink_id') THEN
+          ALTER TABLE designs ADD COLUMN printify_tshirt_pink_id VARCHAR(255);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'designs' AND column_name = 'printify_hoodie_pink_id') THEN
+          ALTER TABLE designs ADD COLUMN printify_hoodie_pink_id VARCHAR(255);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'designs' AND column_name = 'tshirt_pink_mockups') THEN
+          ALTER TABLE designs ADD COLUMN tshirt_pink_mockups JSONB DEFAULT '[]'::jsonb;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'designs' AND column_name = 'hoodie_pink_mockups') THEN
+          ALTER TABLE designs ADD COLUMN hoodie_pink_mockups JSONB DEFAULT '[]'::jsonb;
+        END IF;
+      END $$;
+    `);
+
+    // Add available_colors column to track which color variants exist for each design
+    await query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'designs' AND column_name = 'available_colors') THEN
+          ALTER TABLE designs ADD COLUMN available_colors JSONB DEFAULT '["black", "white", "light-pink"]'::jsonb;
+        END IF;
+      END $$;
+    `);
+
     // Add user_id column to link designs to users (nullable for backward compatibility)
     await query(`
       DO $$ 
@@ -296,6 +325,17 @@ async function init() {
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'templates' AND column_name = 'canvas_config') THEN
           ALTER TABLE templates ADD COLUMN canvas_config JSONB DEFAULT NULL;
+        END IF;
+      END $$;
+    `);
+
+    // Add text_behavior column for text/fabric color compatibility rules
+    // Values: 'none', 'static-light', 'static-dark', 'user-controlled'
+    await query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'templates' AND column_name = 'text_behavior') THEN
+          ALTER TABLE templates ADD COLUMN text_behavior VARCHAR(50) DEFAULT 'none';
         END IF;
       END $$;
     `);

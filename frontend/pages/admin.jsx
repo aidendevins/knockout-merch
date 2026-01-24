@@ -64,6 +64,52 @@ export default function Admin() {
   const [expandedDesign, setExpandedDesign] = useState(null);
   const [quickDeleteMode, setQuickDeleteMode] = useState(false);
   const [deleteModal, setDeleteModal] = useState({ open: false, design: null });
+  const [geminiKeysInfo, setGeminiKeysInfo] = useState({ activeKey: 1, key1Configured: false, key2Configured: false });
+  const [switchingKey, setSwitchingKey] = useState(false);
+
+  // Fetch Gemini API key status on mount
+  useEffect(() => {
+    const fetchGeminiKeys = async () => {
+      try {
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const apiBase = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
+        const response = await fetch(`${apiBase}/upload/gemini-keys`);
+        if (response.ok) {
+          const data = await response.json();
+          setGeminiKeysInfo(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch Gemini keys info:', error);
+      }
+    };
+    fetchGeminiKeys();
+  }, []);
+
+  // Switch Gemini API key
+  const switchGeminiKey = async (keyIndex) => {
+    setSwitchingKey(true);
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const apiBase = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
+      const response = await fetch(`${apiBase}/upload/gemini-keys/switch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keyIndex }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setGeminiKeysInfo(prev => ({ ...prev, activeKey: data.activeKey }));
+        toast.success(`Switched to API Key ${data.activeKey}`);
+      } else {
+        toast.error(data.error || 'Failed to switch API key');
+      }
+    } catch (error) {
+      toast.error('Failed to switch API key');
+      console.error(error);
+    } finally {
+      setSwitchingKey(false);
+    }
+  };
 
   // Fetch data
   const { data: templates = [], isLoading: templatesLoading } = useQuery({
@@ -371,13 +417,38 @@ export default function Admin() {
     <div className="min-h-screen bg-gradient-to-br from-black via-red-950/20 to-black pt-20 pb-12 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 bg-pink-500/20 rounded-lg flex items-center justify-center">
-            <ShieldCheck className="w-5 h-5 text-pink-500" />
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-pink-500/20 rounded-lg flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5 text-pink-500" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-black text-white">Admin Dashboard</h1>
+              <p className="text-gray-400 text-sm">Manage templates, designs, and orders</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-black text-white">Admin Dashboard</h1>
-            <p className="text-gray-400 text-sm">Manage templates, designs, and orders</p>
+          
+          {/* Gemini API Key Switcher */}
+          <div className="flex items-center gap-3 bg-gray-900/50 border border-pink-900/30 rounded-lg px-4 py-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-purple-400" />
+              <span className="text-gray-400 text-sm">Gemini API Key:</span>
+            </div>
+            <select
+              value={geminiKeysInfo.activeKey}
+              onChange={(e) => switchGeminiKey(parseInt(e.target.value))}
+              disabled={switchingKey}
+              className="bg-gray-800 border border-gray-700 text-white text-sm rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:opacity-50"
+            >
+              <option value={1} disabled={!geminiKeysInfo.key1Configured}>
+                Key 1 {!geminiKeysInfo.key1Configured ? '(not configured)' : ''}
+              </option>
+              <option value={2} disabled={!geminiKeysInfo.key2Configured}>
+                Key 2 {!geminiKeysInfo.key2Configured ? '(not configured)' : ''}
+              </option>
+            </select>
+            {switchingKey && <Loader2 className="w-4 h-4 text-pink-500 animate-spin" />}
+            <div className={`w-2 h-2 rounded-full ${geminiKeysInfo.activeKey === 1 ? 'bg-green-500' : 'bg-blue-500'}`} />
           </div>
         </div>
 
@@ -838,6 +909,49 @@ export default function Admin() {
                               </Button>
                             </div>
                           )}
+                        </div>
+                      </div>
+
+                      {/* Text Behavior Section */}
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <Label className="text-white font-medium flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-pink-400" />
+                            Text Behavior
+                          </Label>
+                        </div>
+                        <div className="p-4 bg-black/40 border border-pink-900/30 rounded-lg">
+                          <div className="mb-2">
+                            <p className="text-white text-sm">Text visibility on different fabric colors</p>
+                            <p className="text-gray-400 text-xs mt-1">Controls which fabric colors are available</p>
+                          </div>
+                          <select
+                            value={template.text_behavior || 'none'}
+                            onChange={(e) => {
+                              const value = e.target.value || 'none';
+                              updateTemplateMutation.mutate({
+                                id: template.id,
+                                data: { text_behavior: value },
+                              });
+                            }}
+                            disabled={updateTemplateMutation.isPending}
+                            className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-pink-900/30 text-white text-sm focus:border-pink-600 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <option value="none">None - No text in design</option>
+                            <option value="static-light">Static Light - Light text (white/cream), blocks white fabric only</option>
+                            <option value="static-dark">Static Dark - Dark text (black), blocks black fabric only</option>
+                            <option value="user-controlled">User Controlled - Color picker filters fabric color</option>
+                          </select>
+                          <div className="mt-3 p-2 bg-black/40 rounded border border-pink-900/20">
+                            <p className="text-xs text-gray-400">
+                              <span className="font-semibold text-white">Current: </span>
+                              {template.text_behavior === 'none' && 'No restrictions'}
+                              {template.text_behavior === 'static-light' && 'Blocks white fabric only (light text invisible on white)'}
+                              {template.text_behavior === 'static-dark' && 'Blocks black fabric only (dark text invisible on black)'}
+                              {template.text_behavior === 'user-controlled' && 'Color picker excludes selected fabric color'}
+                              {!template.text_behavior && 'None (default)'}
+                            </p>
+                          </div>
                         </div>
                       </div>
 
@@ -1641,6 +1755,137 @@ export default function Admin() {
                           className="bg-gray-800 border-pink-900/30 text-white text-sm min-h-[60px] resize-none"
                         />
                         <p className="text-gray-500 text-xs mt-1">Use {"{value}"} as placeholder for field value</p>
+                      </div>
+
+                      {/* Validation Section */}
+                      <div className="border border-pink-900/20 rounded-lg p-3 bg-black/20">
+                        <Label className="text-gray-400 text-xs mb-2 block">Field Validation (optional)</Label>
+                        
+                        <div className="space-y-3">
+                          {/* Validation Type */}
+                          <div>
+                            <Label className="text-gray-500 text-xs mb-1 block">Validation Type</Label>
+                            <select
+                              value={field.validation?.type || 'none'}
+                              onChange={(e) => {
+                                const validationType = e.target.value;
+                                if (validationType === 'none') {
+                                  // Remove validation
+                                  const { validation, ...fieldWithoutValidation } = field;
+                                  handleUpdateField(index, fieldWithoutValidation);
+                                } else {
+                                  // Initialize validation object
+                                  handleUpdateField(index, {
+                                    validation: {
+                                      type: validationType,
+                                      value: '',
+                                      errorMessage: '',
+                                      ...(validationType === 'contains' && { caseSensitive: false }),
+                                      ...(validationType === 'regex' && { flags: '' }),
+                                    }
+                                  });
+                                }
+                              }}
+                              className="w-full px-2 py-1.5 rounded bg-gray-800 border border-pink-900/30 text-white text-xs focus:border-pink-600 focus:outline-none"
+                            >
+                              <option value="none">None</option>
+                              <option value="contains">Contains Text</option>
+                              <option value="regex">Regex Pattern</option>
+                              <option value="minLength">Min Length</option>
+                              <option value="maxLength">Max Length</option>
+                            </select>
+                          </div>
+
+                          {/* Validation Value - Show if validation type is selected */}
+                          {field.validation?.type && field.validation.type !== 'none' && (
+                            <>
+                              <div>
+                                <Label className="text-gray-500 text-xs mb-1 block">
+                                  {field.validation.type === 'contains' && 'Text to Find'}
+                                  {field.validation.type === 'regex' && 'Regex Pattern'}
+                                  {(field.validation.type === 'minLength' || field.validation.type === 'maxLength') && 'Length'}
+                                </Label>
+                                <Input
+                                  value={field.validation?.value || ''}
+                                  onChange={(e) => handleUpdateField(index, {
+                                    validation: { ...field.validation, value: e.target.value }
+                                  })}
+                                  placeholder={
+                                    field.validation.type === 'contains' ? 'e.g., love' :
+                                    field.validation.type === 'regex' ? 'e.g., ^[A-Za-z]+$' :
+                                    'e.g., 5'
+                                  }
+                                  className="bg-gray-800 border-pink-900/30 text-white text-xs"
+                                />
+                              </div>
+
+                              {/* Case Sensitive for "contains" type */}
+                              {field.validation.type === 'contains' && (
+                                <div className="flex items-center gap-2">
+                                  <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={field.validation?.caseSensitive || false}
+                                      onChange={(e) => handleUpdateField(index, {
+                                        validation: { ...field.validation, caseSensitive: e.target.checked }
+                                      })}
+                                      className="sr-only peer"
+                                    />
+                                    <div className="w-7 h-4 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-pink-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-pink-600"></div>
+                                  </label>
+                                  <Label className="text-gray-500 text-xs">Case Sensitive</Label>
+                                </div>
+                              )}
+
+                              {/* Regex Flags */}
+                              {field.validation.type === 'regex' && (
+                                <div>
+                                  <Label className="text-gray-500 text-xs mb-1 block">Regex Flags</Label>
+                                  <Input
+                                    value={field.validation?.flags || ''}
+                                    onChange={(e) => handleUpdateField(index, {
+                                      validation: { ...field.validation, flags: e.target.value }
+                                    })}
+                                    placeholder="e.g., i (case-insensitive)"
+                                    className="bg-gray-800 border-pink-900/30 text-white text-xs"
+                                  />
+                                </div>
+                              )}
+
+                              {/* Custom Error Message */}
+                              <div>
+                                <Label className="text-gray-500 text-xs mb-1 block">Error Message</Label>
+                                <Input
+                                  value={field.validation?.errorMessage || ''}
+                                  onChange={(e) => handleUpdateField(index, {
+                                    validation: { ...field.validation, errorMessage: e.target.value }
+                                  })}
+                                  placeholder='e.g., Text must include the word "love"'
+                                  className="bg-gray-800 border-pink-900/30 text-white text-xs"
+                                />
+                              </div>
+
+                              {/* Validation Preview */}
+                              <div className="p-2 bg-gray-900/50 rounded border border-pink-900/20">
+                                <p className="text-xs text-gray-400">
+                                  <span className="text-pink-400 font-semibold">Preview: </span>
+                                  {field.validation.type === 'contains' && (
+                                    <>Must contain "{field.validation.value}"{field.validation.caseSensitive ? ' (case-sensitive)' : ''}</>
+                                  )}
+                                  {field.validation.type === 'regex' && (
+                                    <>Must match pattern: {field.validation.value}</>
+                                  )}
+                                  {field.validation.type === 'minLength' && (
+                                    <>Minimum {field.validation.value} characters</>
+                                  )}
+                                  {field.validation.type === 'maxLength' && (
+                                    <>Maximum {field.validation.value} characters</>
+                                  )}
+                                </p>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2">
