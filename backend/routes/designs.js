@@ -2,12 +2,40 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db/postgres');
 const s3 = require('../services/s3');
+const { authenticateUser, optionalAuth } = require('../middleware/auth');
 
 // Helper to check if a string is a valid UUID
 const isValidUUID = (str) => {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   return uuidRegex.test(str);
 };
+
+// GET /api/designs/my-designs - Get designs for logged-in user
+router.get('/my-designs', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    const designs = await db.all(
+      'SELECT * FROM designs WHERE user_id = $1 ORDER BY created_at DESC',
+      [userId]
+    );
+    
+    // Parse JSONB fields
+    const parsedDesigns = designs.map(design => ({
+      ...design,
+      mockup_urls: design.mockup_urls || [],
+      stills_used: design.stills_used || [],
+      canvas_data: design.canvas_data || {},
+      tshirt_mockups: design.tshirt_mockups || [],
+      hoodie_mockups: design.hoodie_mockups || [],
+    }));
+    
+    res.json(parsedDesigns);
+  } catch (error) {
+    console.error('Error fetching user designs:', error);
+    res.status(500).json({ error: 'Failed to fetch user designs' });
+  }
+});
 
 // Get all designs with optional filtering
 router.get('/', async (req, res) => {
@@ -100,7 +128,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create design
-router.post('/', async (req, res) => {
+router.post('/', optionalAuth, async (req, res) => {
   try {
     const {
       title,
@@ -124,19 +152,22 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Title and design_image_url are required' });
     }
     
+    // Link design to user if logged in
+    const userId = req.user ? req.user.userId : null;
+    
     const result = await db.get(
       `INSERT INTO designs (
         title, design_image_url, mockup_urls, printify_product_id, printify_blueprint_id,
         prompt_used, stills_used, canvas_data, is_published, is_featured, 
-        price, product_type, color, creator_name, creator_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        price, product_type, color, creator_name, creator_id, user_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
       RETURNING *`,
       [
         title, design_image_url, JSON.stringify(mockup_urls),
         printify_product_id || null, printify_blueprint_id || null,
         prompt_used || null, JSON.stringify(stills_used), JSON.stringify(canvas_data),
         is_published, is_featured, price, product_type, color,
-        creator_name || null, creator_id || null
+        creator_name || null, creator_id || null, userId
       ]
     );
     

@@ -1,6 +1,7 @@
 // Force redeploy - 2026-01-21
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 require('dotenv').config();
 
@@ -13,6 +14,7 @@ const printifyRouter = require('./routes/printify');
 const seedRouter = require('./routes/seed');
 const stripeRouter = require('./routes/stripe');
 const templatesRouter = require('./routes/templates');
+const authRouter = require('./routes/auth');
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -64,11 +66,13 @@ app.get('/api/stripe/webhook-test', (req, res) => {
 // Middleware (applied AFTER webhook route to preserve raw body for webhook)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(cookieParser()); // Parse cookies for JWT authentication
 
 // Serve uploaded files statically (fallback for local development)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
+app.use('/api/auth', authRouter);
 app.use('/api/designs', designsRouter);
 app.use('/api/stills', stillsRouter);
 app.use('/api/orders', ordersRouter);
