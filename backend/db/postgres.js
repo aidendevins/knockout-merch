@@ -417,6 +417,15 @@ async function init() {
       console.warn('⚠️  Polaroid template not found - canvas_config not set');
     }
 
+    // Update Couple Portrait template cover image to local file
+    // This runs automatically on deployment to set the cover image
+    await query(`
+      UPDATE templates 
+      SET example_image = '/templates/couple_portrait_cover.png'
+      WHERE id = 'couple-portrait' 
+      AND (example_image IS NULL OR example_image != '/templates/couple_portrait_cover.png')
+    `);
+
     // Set Couple Portrait positioning
     // Based on hand-drawn couple portrait design requirements:
     //   Print area: 13.17" wide × 16" tall
