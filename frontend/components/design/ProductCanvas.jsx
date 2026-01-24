@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Move, ZoomIn, ZoomOut, RotateCw, Save, Hand, MousePointer2, Grid3X3 } from 'lucide-react';
+import { Move, ZoomIn, ZoomOut, RotateCw, Save, Hand, MousePointer2, Grid3X3, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
@@ -99,6 +99,9 @@ const ProductCanvas = forwardRef(({
   const [resizeHandle, setResizeHandle] = useState(null);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [startDimensions, setStartDimensions] = useState({ x: 0, y: 0, width: 0, height: 0, rotation: 0 });
+  
+  // Preview modal state
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // Pan state
   const [isPanning, setIsPanning] = useState(false);
@@ -478,6 +481,11 @@ const ProductCanvas = forwardRef(({
       if (e.key === 'h' && !e.target.matches('input, textarea')) {
         setActiveTool('pan');
       }
+      
+      // ESC to close preview modal
+      if (e.key === 'Escape' && isPreviewOpen) {
+        setIsPreviewOpen(false);
+      }
     };
 
     const handleKeyUp = (e) => {
@@ -493,7 +501,7 @@ const ProductCanvas = forwardRef(({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, []);
+  }, [isPreviewOpen]);
 
   // Wheel handler for zoom/pan
   useEffect(() => {
@@ -620,12 +628,9 @@ const ProductCanvas = forwardRef(({
     const isLocked = canvasConfig && (canvasConfig.width_scale || canvasConfig.scale);
     
     if (isLocked) {
-      console.log('🔒 Design is locked - template positioning active');
-      // Still allow selection for visual feedback, but no dragging/resizing/rotating
+      // If locked, open preview modal instead of selecting
       if (isInsideElement(canvasX, canvasY, design)) {
-        setSelectedLayerId('design');
-      } else {
-        setSelectedLayerId(null);
+        setIsPreviewOpen(true);
       }
       return;
     }
@@ -1057,23 +1062,31 @@ const ProductCanvas = forwardRef(({
         </div>
       </div>
 
-      {/* Instructions */}
-      <div className="h-10 border-t border-pink-900/30 bg-gradient-to-r from-red-950/30 to-black flex items-center justify-center">
-        <div className="flex items-center gap-6 text-xs text-white/60">
-          <span className="flex items-center gap-1">
-            <Move className="w-3 h-3" /> Drag to position
-          </span>
-          <span className="flex items-center gap-1">
-            <ZoomIn className="w-3 h-3" /> Corners to resize
-          </span>
-          <span className="flex items-center gap-1">
-            <RotateCw className="w-3 h-3" /> Top handle to rotate
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="text-[10px] bg-pink-600/20 border border-pink-900/30 px-1 rounded">Space</span> Hold to pan
-          </span>
+      {/* Preview Modal */}
+      {isPreviewOpen && generatedImage && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setIsPreviewOpen(false)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] p-4">
+            {/* Close button */}
+            <button
+              onClick={() => setIsPreviewOpen(false)}
+              className="absolute -top-2 -right-2 z-10 p-2 bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 rounded-full text-white shadow-lg transition-all hover:scale-110"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            {/* High-quality preview image */}
+            <img
+              src={generatedImage}
+              alt="Design Preview"
+              className="max-w-full max-h-[85vh] rounded-lg shadow-2xl border-2 border-pink-500/30"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 });
