@@ -118,10 +118,10 @@ async function init() {
       )
     `);
 
-    // Create users table for authentication
+    // Create users table for authentication (using UUID to match Railway's default)
     await query(`
       CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         email VARCHAR(255) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         name VARCHAR(255),
@@ -169,7 +169,7 @@ async function init() {
       DO $$ 
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'designs' AND column_name = 'user_id') THEN
-          ALTER TABLE designs ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+          ALTER TABLE designs ADD COLUMN user_id UUID REFERENCES users(id) ON DELETE SET NULL;
         END IF;
       END $$;
     `);
