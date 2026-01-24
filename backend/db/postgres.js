@@ -340,17 +340,17 @@ async function init() {
     // SMALL DESIGN positioned in TOP RIGHT corner
     // Based on Printify measurements:
     //   Print area: 13.17" wide × 16" tall
-    //   Design size: 3.72" wide × 4.24" tall (MUCH SMALLER - about 28% of print area)
-    //   Position: left 65.92%, top 6.89% (TOP RIGHT CORNER placement)
+    //   Design size: 4.19" wide × 4.77" tall (small - about 31% of print area)
+    //   Position: left 66.94%, top 3.02% (TOP RIGHT CORNER placement)
     // 
     // COORDINATE SYSTEM MAPPING (1:1 with Printify):
-    // - width_scale = design_width / print_area_width = 3.72 / 13.17 = 0.2824
-    // - height_scale = design_height / print_area_height = 4.24 / 16 = 0.2650
-    // - x_offset = position_left = 0.6592 (65.92% from left edge - positioned to the right!)
-    // - y_offset = position_top = 0.0689 (6.89% from top edge - near top)
+    // - width_scale = design_width / print_area_width = 4.19 / 13.17 = 0.3181
+    // - height_scale = design_height / print_area_height = 4.77 / 16 = 0.2981
+    // - x_offset = position_left = 0.6694 (66.94% from left edge - positioned to the right!)
+    // - y_offset = position_top = 0.0302 (3.02% from top edge - very close to top)
     const romanticConfigResult = await query(`
       UPDATE templates 
-      SET canvas_config = '{"width_scale": 0.2824, "height_scale": 0.2650, "x_offset": 0.6592, "y_offset": 0.0689, "rotation": 0}'::jsonb
+      SET canvas_config = '{"width_scale": 0.3181, "height_scale": 0.2981, "x_offset": 0.6694, "y_offset": 0.0302, "rotation": 0}'::jsonb
       WHERE id = 'romantic-save-the-date'
       RETURNING id, canvas_config
     `);
