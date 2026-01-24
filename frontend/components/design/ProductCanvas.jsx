@@ -12,7 +12,9 @@ const PRODUCT_TYPES = {
     name: 'T-Shirt',
     baseColor: '#1a1a1a',
     // Print area as percentage of canvas (centered on chest)
-    printArea: { x: 0.25, y: 0.28, width: 0.50, height: 0.45 },
+    // Bella Canvas 3001: 13.17" wide × 16" tall (aspect ratio 0.823:1)
+    // Adjusted to match Printify's actual print area proportions
+    printArea: { x: 0.26, y: 0.20, width: 0.48, height: 0.58 },
     // Print dimensions for Printify (in pixels) - standard DTG print
     printDimensions: { width: 4000, height: 4500 }
   },
@@ -198,7 +200,7 @@ const ProductCanvas = forwardRef(({
 
       // Check if template has specific positioning config (from Printify reference)
       const canvasConfig = selectedTemplate?.canvas_config || selectedTemplate?.canvasConfig;
-      const useTemplatePositioning = canvasConfig && canvasConfig.scale;
+      const useTemplatePositioning = canvasConfig && (canvasConfig.width_scale || canvasConfig.scale);
 
       console.log('🎯 Template Positioning Debug:');
       console.log('  selectedTemplate:', selectedTemplate?.id, selectedTemplate?.name);
@@ -209,19 +211,19 @@ const ProductCanvas = forwardRef(({
 
       if (useTemplatePositioning) {
         // Use template-specific positioning (matches Printify reference)
-        const aspectRatio = img.naturalWidth / img.naturalHeight;
-        const scale = canvasConfig.scale || 0.6;
+        // Printify dimensions are ABSOLUTE sizes set manually, not based on aspect ratio
         
-        // Calculate design dimensions
-        designWidth = printAreaWidth * scale;
-        designHeight = designWidth / aspectRatio;
-
-        if (designHeight > printAreaHeight * scale) {
-          designHeight = printAreaHeight * scale;
-          designWidth = designHeight * aspectRatio;
-        }
+        // Get width and height scales (design dimensions / print area dimensions)
+        // e.g., 12.16" / 13.17" = 0.9233 for width, 13.93" / 16" = 0.8706 for height
+        const widthScale = canvasConfig.width_scale || canvasConfig.scale || 0.6;
+        const heightScale = canvasConfig.height_scale || canvasConfig.scale || 0.6;
+        
+        // Force exact dimensions as set in Printify (ignore generated image's aspect ratio)
+        designWidth = printAreaWidth * widthScale;
+        designHeight = printAreaHeight * heightScale;
 
         // Apply template-defined offsets (percentages of print area)
+        // e.g., 3.84% of 13.17" = 0.506" from left edge
         const xOffset = canvasConfig.x_offset || 0;
         const yOffset = canvasConfig.y_offset || 0;
         
@@ -230,11 +232,11 @@ const ProductCanvas = forwardRef(({
         x = CANVAS_WIDTH * printArea.x + (printAreaWidth * xOffset);
         y = CANVAS_HEIGHT * printArea.y + (printAreaHeight * yOffset);
         
-        console.log('  ✅ Using template positioning:');
-        console.log('     Scale:', scale);
+        console.log('  ✅ Using template positioning (FORCED dimensions):');
+        console.log('     Width scale:', widthScale, '→', designWidth, 'px');
+        console.log('     Height scale:', heightScale, '→', designHeight, 'px');
         console.log('     Offsets:', xOffset, yOffset);
-        console.log('     Final position:', x, y);
-        console.log('     Final size:', designWidth, designHeight);
+        console.log('     Final position (x, y):', x, y);
       } else {
         // Default positioning: scale to 60% and center
         const aspectRatio = img.naturalWidth / img.naturalHeight;
@@ -388,7 +390,7 @@ const ProductCanvas = forwardRef(({
 
     // Check if design is locked due to template positioning
     const canvasConfig = selectedTemplate?.canvas_config || selectedTemplate?.canvasConfig;
-    const isLocked = canvasConfig && canvasConfig.scale;
+    const isLocked = canvasConfig && (canvasConfig.width_scale || canvasConfig.scale);
 
     ctx.save();
 
@@ -613,7 +615,7 @@ const ProductCanvas = forwardRef(({
 
     // 🔒 Check if design is locked due to template positioning
     const canvasConfig = selectedTemplate?.canvas_config || selectedTemplate?.canvasConfig;
-    const isLocked = canvasConfig && canvasConfig.scale;
+    const isLocked = canvasConfig && (canvasConfig.width_scale || canvasConfig.scale);
     
     if (isLocked) {
       console.log('🔒 Design is locked - template positioning active');
