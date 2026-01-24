@@ -14,7 +14,6 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
 
 // Helper to get image URL (use proxy if needed for CORS)
 const getImageUrl = (url) => {
@@ -105,13 +104,6 @@ export default function DesignStudio() {
     setProductType(generation.productType);
     setSelectedColor(generation.color);
     toast.success('Design loaded!');
-  };
-
-  // Delete a past generation
-  const handleDeletePastGeneration = (e, generationId) => {
-    e.stopPropagation(); // Prevent triggering the parent button's onClick
-    setPastGenerations(prev => prev.filter(gen => gen.id !== generationId));
-    toast.success('Design removed from history');
   };
 
   // Create design mutation
@@ -643,43 +635,31 @@ export default function DesignStudio() {
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {pastGenerations.map((gen) => (
-                <div
+                <button
                   key={gen.id}
-                  className="relative group"
+                  onClick={() => handleReusePastGeneration(gen)}
+                  className="w-full flex items-center gap-3 p-2 rounded-lg border border-pink-900/30 bg-gradient-to-br from-red-950/20 to-black hover:border-pink-600/50 hover:from-red-950/40 hover:to-black/80 transition-all group"
                 >
-                  <button
-                    onClick={() => handleReusePastGeneration(gen)}
-                    className="w-full flex items-center gap-3 p-2 rounded-lg border border-pink-900/30 bg-gradient-to-br from-red-950/20 to-black hover:border-pink-600/50 hover:from-red-950/40 hover:to-black/80 transition-all"
-                  >
-                    <img
-                      src={getImageUrl(gen.imageUrl) || gen.imageUrl}
-                      alt={`Generation ${gen.id}`}
-                      className="w-12 h-12 object-cover rounded border border-pink-900/30"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                      }}
-                    />
-                    <div className="flex-1 text-left min-w-0">
-                      <p className="text-xs text-white truncate font-medium">
-                        {gen.template}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(gen.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                    <svg className="w-4 h-4 text-pink-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                  {/* Delete button - appears on hover */}
-                  <button
-                    onClick={(e) => handleDeletePastGeneration(e, gen.id)}
-                    className="absolute top-1 right-1 p-1.5 rounded-md bg-red-600/80 hover:bg-red-600 text-white opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
-                    title="Delete this design"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
+                  <img
+                    src={getImageUrl(gen.imageUrl) || gen.imageUrl}
+                    alt={`Generation ${gen.id}`}
+                    className="w-12 h-12 object-cover rounded border border-pink-900/30"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="text-xs text-white truncate font-medium">
+                      {gen.template}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(gen.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <svg className="w-4 h-4 text-pink-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
               ))}
             </div>
           )}
