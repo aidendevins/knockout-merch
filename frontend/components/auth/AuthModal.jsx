@@ -91,7 +91,7 @@ export default function AuthModal({ isOpen, onClose }) {
   return (
     <AnimatePresence>
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto"
         onClick={onClose}
       >
         <motion.div
@@ -100,7 +100,7 @@ export default function AuthModal({ isOpen, onClose }) {
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.2 }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-md bg-gradient-to-br from-gray-900 via-red-950/30 to-gray-900 border border-pink-900/30 rounded-2xl p-8 shadow-2xl"
+          className="relative w-full max-w-md bg-gradient-to-br from-gray-900 via-red-950/30 to-gray-900 border border-pink-900/30 rounded-2xl p-8 shadow-2xl my-8"
         >
           {/* Close button */}
           <button
