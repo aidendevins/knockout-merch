@@ -1065,6 +1065,14 @@ const ProductCanvas = forwardRef(({
         </div>
       </div>
 
+      {/* Preview Note */}
+      <div className="h-12 border-t border-pink-900/30 bg-gradient-to-r from-red-950/30 to-black flex items-center justify-center px-4">
+        <p className="text-xs text-white/60 text-center">
+          <span className="text-pink-400">💡 Preview Mode:</span> Click your design for a high-quality view. 
+          Create the product to see it on the actual shirt. Make sure you're satisfied before creating!
+        </p>
+      </div>
+
       {/* Preview Modal */}
       {isPreviewOpen && generatedImage && (
         <div 
