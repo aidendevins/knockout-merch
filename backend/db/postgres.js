@@ -420,17 +420,17 @@ async function init() {
     // Set Couple Portrait positioning
     // Based on hand-drawn couple portrait design requirements:
     //   Print area: 13.17" wide × 16" tall
-    //   Design size: 12.1" wide × 13.92" tall (similar to polaroid proportions for portrait style)
-    //   Position: left 4%, top 6.5% (centered horizontally, slight offset from top)
+    //   Design size: 12.1" wide × 13.92" tall (large portrait - similar to polaroid)
+    //   Position: left 4%, top 2% (centered horizontally with minimal top margin)
     // 
     // COORDINATE SYSTEM MAPPING:
     // - width_scale = design_width / print_area_width = 12.1 / 13.17 = 0.92
     // - height_scale = design_height / print_area_height = 13.92 / 16 = 0.87
     // - x_offset = position_left = 0.04 (4% from left edge of print area, moving right)
-    // - y_offset = position_top = 0.065 (6.5% from top edge of print area, moving down)
+    // - y_offset = position_top = 0.02 (2% from top edge of print area, moving down)
     const couplePortraitConfigResult = await query(`
       UPDATE templates 
-      SET canvas_config = '{"width_scale": 0.92, "height_scale": 0.87, "x_offset": 0.04, "y_offset": 0.065, "rotation": 0}'::jsonb
+      SET canvas_config = '{"width_scale": 0.92, "height_scale": 0.87, "x_offset": 0.04, "y_offset": 0.02, "rotation": 0}'::jsonb
       WHERE id = 'couple-portrait'
       RETURNING id, canvas_config
     `);
