@@ -141,6 +141,7 @@ export default function Checkout() {
   const [discountCode, setDiscountCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(null);
   const [isApplyingDiscount, setIsApplyingDiscount] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   // Stripe Elements state
   const [clientSecret, setClientSecret] = useState(null);
@@ -222,12 +223,24 @@ export default function Checkout() {
     toast.info('Discount removed');
   };
 
+  // Email validation regex
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   // Handle checkout with Stripe
   const handleCheckout = async () => {
     // Validate shipping info
     if (!customerInfo.name || !customerInfo.email || !customerInfo.line1 ||
       !customerInfo.city || !customerInfo.state || !customerInfo.postal_code) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+
+    // Validate email format
+    if (!isValidEmail(customerInfo.email)) {
+      toast.error('Please enter a valid email address');
       return;
     }
 
@@ -298,6 +311,15 @@ export default function Checkout() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setCustomerInfo((prev) => ({ ...prev, [name]: value }));
+    
+    // Validate email on change
+    if (name === 'email') {
+      if (value && !isValidEmail(value)) {
+        setFieldErrors(prev => ({ ...prev, email: 'Please enter a valid email address' }));
+      } else {
+        setFieldErrors(prev => ({ ...prev, email: null }));
+      }
+    }
   };
 
   return (
@@ -374,9 +396,12 @@ export default function Checkout() {
                           value={customerInfo.email}
                           onChange={handleInputChange}
                           placeholder="john@example.com"
-                          className="bg-gray-800 border-gray-700 text-white"
+                          className={`bg-gray-800 border-gray-700 text-white ${fieldErrors.email ? 'border-red-500' : ''}`}
                           required
                         />
+                        {fieldErrors.email && (
+                          <p className="text-red-400 text-xs mt-1">{fieldErrors.email}</p>
+                        )}
                       </div>
                     </div>
 

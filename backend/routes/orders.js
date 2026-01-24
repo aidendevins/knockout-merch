@@ -139,6 +139,12 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'design_id and customer_email are required' });
     }
     
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(customer_email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+    
     const result = await db.get(
       `INSERT INTO orders (
         design_id, printify_order_id, stripe_payment_id, stripe_session_id,
@@ -230,6 +236,12 @@ router.post('/free', async (req, res) => {
 
     if (!shippingInfo || !shippingInfo.email) {
       return res.status(400).json({ error: 'Shipping information is required' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(shippingInfo.email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
     }
 
     const orders = [];

@@ -370,15 +370,6 @@ async function init() {
       console.warn('⚠️  Retro Name Portrait template not found - canvas_config not set');
     }
 
-    // Update Photo Collage template cover image to local file
-    // This runs automatically on deployment to set the cover image
-    await query(`
-      UPDATE templates 
-      SET example_image = '/templates/photo_collage_cover.png'
-      WHERE id = 'photo-collage' 
-      AND (example_image IS NULL OR example_image != '/templates/photo_collage_cover.png')
-    `);
-
     // Set Photo Collage positioning from Printify reference
     // Using SAME dimensions as Retro Name Portrait, but CLOSER to top
     // Based on Printify measurements:
@@ -403,15 +394,6 @@ async function init() {
       console.warn('⚠️  Photo Collage template not found - canvas_config not set');
     }
 
-    // Update Romantic Save-the-Date template cover image to local file
-    // This runs automatically on deployment to set the cover image
-    await query(`
-      UPDATE templates 
-      SET example_image = '/templates/romantic_cover.webp'
-      WHERE id = 'romantic-save-the-date' 
-      AND (example_image IS NULL OR example_image != '/templates/romantic_cover.webp')
-    `);
-
     // Set Romantic Save-the-Date positioning from Printify reference
     // SMALL DESIGN positioned in TOP RIGHT corner
     // Based on Printify measurements:
@@ -435,15 +417,6 @@ async function init() {
     } else {
       console.warn('⚠️  Romantic Save-the-Date template not found - canvas_config not set');
     }
-
-    // Update Minimalist Line Art template cover image to local file
-    // This runs automatically on deployment to set the cover image
-    await query(`
-      UPDATE templates 
-      SET example_image = '/templates/minimalist_cover.webp'
-      WHERE id = 'minimalist-line-art' 
-      AND (example_image IS NULL OR example_image != '/templates/minimalist_cover.webp')
-    `);
 
     // Set Minimalist Line Art positioning from Printify reference
     // Using SAME dimensions and position as Romantic Save-the-Date
@@ -492,15 +465,6 @@ async function init() {
     } else {
       console.warn('⚠️  Polaroid template not found - canvas_config not set');
     }
-
-    // Update Couple Portrait template cover image to local file
-    // This runs automatically on deployment to set the cover image
-    await query(`
-      UPDATE templates 
-      SET example_image = '/templates/couple_portrait_cover.png'
-      WHERE id = 'couple-portrait' 
-      AND (example_image IS NULL OR example_image != '/templates/couple_portrait_cover.png')
-    `);
 
     // Set Couple Portrait positioning
     // Based on hand-drawn couple portrait design requirements:

@@ -37,6 +37,17 @@ router.post('/create-checkout-session', async (req, res) => {
       return res.status(400).json({ error: 'Cart is empty' });
     }
 
+    // Validate shipping info and email
+    if (!shippingInfo || !shippingInfo.email) {
+      return res.status(400).json({ error: 'Shipping information with email is required' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(shippingInfo.email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
     // Calculate shipping
     const totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
     const shippingCost = 4.75 + (totalQuantity - 1) * 2.50;
