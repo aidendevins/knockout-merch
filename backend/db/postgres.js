@@ -268,23 +268,8 @@ async function init() {
       END $$;
     `);
 
-    // Update Polaroid Ransom Note template cover image to local file
-    // This runs automatically on deployment to set the cover image
-    await query(`
-      UPDATE templates 
-      SET example_image = '/templates/polaroid_cover.webp'
-      WHERE id = 'polaroid-ransom-note' 
-      AND (example_image IS NULL OR example_image != '/templates/polaroid_cover.webp')
-    `);
-
-    // Update Retro Name Portrait template cover image to local file
-    // This runs automatically on deployment to set the cover image
-    await query(`
-      UPDATE templates 
-      SET example_image = '/templates/retro_cover.webp'
-      WHERE id = 'retro-name-portrait' 
-      AND (example_image IS NULL OR example_image != '/templates/retro_cover.webp')
-    `);
+    // Note: example_image is now uploaded via admin panel and stored in S3 examples folder
+    // The static files in /frontend/public/templates/ are legacy and no longer used
 
     // Set Retro Name Portrait positioning from Printify reference
     // Based on Printify measurements:
@@ -330,6 +315,29 @@ async function init() {
       console.log('✅ Polaroid template canvas_config set:', polaroidConfigResult.rows[0].canvas_config);
     } else {
       console.warn('⚠️  Polaroid template not found - canvas_config not set');
+    }
+
+    // Set Couple Portrait positioning
+    // Based on hand-drawn couple portrait design requirements:
+    //   Print area: 13.17" wide × 16" tall
+    //   Design size: 12.1" wide × 13.92" tall (similar to polaroid proportions for portrait style)
+    //   Position: left 4%, top 6.5% (centered horizontally, slight offset from top)
+    // 
+    // COORDINATE SYSTEM MAPPING:
+    // - width_scale = design_width / print_area_width = 12.1 / 13.17 = 0.92
+    // - height_scale = design_height / print_area_height = 13.92 / 16 = 0.87
+    // - x_offset = position_left = 0.04 (4% from left edge of print area, moving right)
+    // - y_offset = position_top = 0.065 (6.5% from top edge of print area, moving down)
+    const couplePortraitConfigResult = await query(`
+      UPDATE templates 
+      SET canvas_config = '{"width_scale": 0.92, "height_scale": 0.87, "x_offset": 0.04, "y_offset": 0.065, "rotation": 0}'::jsonb
+      WHERE id = 'couple-portrait'
+      RETURNING id, canvas_config
+    `);
+    if (couplePortraitConfigResult.rows && couplePortraitConfigResult.rows.length > 0) {
+      console.log('✅ Couple Portrait template canvas_config set:', couplePortraitConfigResult.rows[0].canvas_config);
+    } else {
+      console.warn('⚠️  Couple Portrait template not found - canvas_config not set');
     }
 
     // Add template_id to designs table if it doesn't exist

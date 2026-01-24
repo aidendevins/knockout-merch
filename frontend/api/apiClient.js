@@ -158,6 +158,13 @@ class TemplatesAPI {
     });
   }
 
+  async uploadExampleImage(id, imageBase64) {
+    return apiCall(`${this.basePath}/${id}/example-image`, {
+      method: 'POST',
+      body: JSON.stringify({ imageBase64 }),
+    });
+  }
+
   async syncTemplates(templates) {
     return apiCall(`${this.basePath}/sync`, {
       method: 'POST',

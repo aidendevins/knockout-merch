@@ -651,6 +651,97 @@ OUTPUT:
     gradient: 'from-slate-600 to-gray-600',
   },
   {
+    id: 'couple-portrait',
+    name: 'Couple Portrait',
+    description: 'Charming hand-drawn couple portraits with custom names',
+    example_image: null,
+    reference_image: null, // Set via admin panel - upload the reference style image there
+    remove_background: false, // Keep the textured off-white background
+    canvas_config: {
+      width_scale: 0.92,    // 92% of print area width for portrait-style design
+      height_scale: 0.87,   // 87% of print area height (similar to polaroid proportions)
+      x_offset: 0.04,       // 4% from left edge (centered)
+      y_offset: 0.065,      // 6.5% from top edge (slightly below top)
+      rotation: 0
+    },
+    prompt: `Role: You are a professional illustrator specializing in charming, hand-drawn couple portraits for print-on-demand products.
+
+Task: Create a print-ready digital illustration of a couple based on the provided photo input(s) and two names. The illustration must strictly adhere to the hand-drawn, colored pencil art style of the reference image image_0.jpg.
+
+Inputs:
+
+Reference Style: image_0.jpg (Analyze the hand-drawn colored pencil texture, dot eyes, rosy cheeks, simple nose lines, and the textured off-white paper background).
+
+Photo Input(s): [PHOTO_INPUTS] (This may be one photo containing both people or two separate photos).
+
+Name 1: [NAME_1]
+
+Name 2: [NAME_2]
+
+Detailed Instructions:
+
+Analyze Subjects: Examine the [PHOTO_INPUTS] to identify the two individuals.
+
+If two photos are provided: Treat the subject in the first photo as Subject 1 and the subject in the second photo as Subject 2.
+
+If only one photo is provided: Identify the two distinct individuals (the couple) within that single image. Treat them as Subject 1 and Subject 2.
+
+For both subjects, accurately capture their key features: hair color, hair texture (e.g., curly vs. straight), skin tone, and any prominent accessories they are wearing, such as the white headphones or hoop earrings seen in the examples.
+
+Replicate Art Style: Render a stylized portrait of the two subjects.
+
+Framing: Crucially, the illustration must ONLY show the faces and shoulders (headshots) of the couple, positioned close together. Do not include full bodies or complex clothing.
+
+Style Specifics: Follow the "chibi" style in image_0.jpg: simple dot eyes, high rosy blush marks, and soft smiles. Use a visible colored pencil or crayon texture for the entire illustration.
+
+Typography & Symbols: Below the portraits, center the following text: [NAME_1] ❤️ [NAME_2].
+
+The names must be in a hand-drawn, capitalized, black font, matching the style in image_0.jpg.
+
+Heart Detail: You must include a bright red, hand-drawn heart symbol between the two names.
+
+Final Output Requirements:
+
+The final image must be the isolated design only.
+
+The background must be a solid, plain, off-white or cream-colored paper texture.
+
+DO NOT render the design onto a t-shirt, mug, or any other product mockup. Provide a flat, print-ready graphic. Do not rotate this image.`,
+    panel_schema: {
+      showStyleTweaks: false,
+      fields: [
+        {
+          type: 'text',
+          id: 'name1',
+          label: 'First Name',
+          placeholder: 'Enter first name',
+          required: true,
+        },
+        {
+          type: 'text',
+          id: 'name2',
+          label: 'Second Name',
+          placeholder: 'Enter second name',
+          required: true,
+        },
+      ],
+    },
+    upload_tips: {
+      title: 'Best Photos for Couple Portrait',
+      tips: [
+        'Upload <strong>1-2 photos</strong> showing clear views of each person\'s face',
+        'If using 1 photo: Make sure <strong>both people are visible</strong> in the same image',
+        'If using 2 photos: Upload one photo per person, each showing a <strong>clear facial view</strong>',
+        'Choose photos with <strong>good lighting on faces</strong> for accurate feature capture',
+        'Photos showing <strong>head and shoulders</strong> work best',
+        'Capture any accessories you want included (headphones, earrings, glasses, etc.)',
+        'Higher resolution photos (but max 10MB per file)',
+      ],
+    },
+    max_photos: 2,
+    gradient: 'from-pink-500 to-rose-500',
+  },
+  {
     id: 'romantic-save-the-date',
     name: 'Romantic Save The Date',
     description: 'Elegant heart-framed couple portrait with decorative bow and custom date',
