@@ -30,6 +30,9 @@ const PRODUCT_TYPES = {
 const CANVAS_WIDTH = 660;
 const CANVAS_HEIGHT = 660;
 
+// High-DPI rendering for crisp quality (2x pixel ratio)
+const PIXEL_RATIO = 2;
+
 // Helper: Wrap text for multi-line rendering
 const wrapText = (ctx, text, maxWidth, fontSize) => {
   const words = text.split(' ');
@@ -137,8 +140,25 @@ const ProductCanvas = forwardRef(({
     const previewCanvas = previewCanvasRef.current;
 
     if (canvas && previewCanvas) {
+      // Set up high-DPI canvas for crisp rendering
+      canvas.width = CANVAS_WIDTH * PIXEL_RATIO;
+      canvas.height = CANVAS_HEIGHT * PIXEL_RATIO;
+      previewCanvas.width = CANVAS_WIDTH * PIXEL_RATIO;
+      previewCanvas.height = CANVAS_HEIGHT * PIXEL_RATIO;
+
       const context = canvas.getContext('2d');
       const previewContext = previewCanvas.getContext('2d');
+      
+      // Scale context to match pixel ratio
+      context.scale(PIXEL_RATIO, PIXEL_RATIO);
+      previewContext.scale(PIXEL_RATIO, PIXEL_RATIO);
+      
+      // Enable high-quality image smoothing
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = 'high';
+      previewContext.imageSmoothingEnabled = true;
+      previewContext.imageSmoothingQuality = 'high';
+      
       setCtx(context);
       setPreviewCtx(previewContext);
     }
@@ -1050,16 +1070,14 @@ const ProductCanvas = forwardRef(({
           {/* Main canvas */}
           <canvas
             ref={canvasRef}
-            width={CANVAS_WIDTH}
-            height={CANVAS_HEIGHT}
+            style={{ width: `${CANVAS_WIDTH}px`, height: `${CANVAS_HEIGHT}px` }}
             className="rounded-2xl"
           />
 
           {/* Preview canvas for overlays */}
           <canvas
             ref={previewCanvasRef}
-            width={CANVAS_WIDTH}
-            height={CANVAS_HEIGHT}
+            style={{ width: `${CANVAS_WIDTH}px`, height: `${CANVAS_HEIGHT}px` }}
             className="absolute inset-0 pointer-events-none"
           />
         </div>
