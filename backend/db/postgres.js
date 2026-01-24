@@ -369,6 +369,31 @@ async function init() {
       AND (example_image IS NULL OR example_image != '/templates/minimalist_cover.webp')
     `);
 
+    // Set Minimalist Line Art positioning from Printify reference
+    // Using SAME dimensions and position as Romantic Save-the-Date
+    // SMALL DESIGN positioned in TOP RIGHT corner
+    // Based on Printify measurements:
+    //   Print area: 13.17" wide × 16" tall
+    //   Design size: 4.19" wide × 4.77" tall (small - about 31% of print area)
+    //   Position: left 66.94%, top 3.02% (TOP RIGHT CORNER placement)
+    // 
+    // COORDINATE SYSTEM MAPPING (1:1 with Printify):
+    // - width_scale = design_width / print_area_width = 4.19 / 13.17 = 0.3181
+    // - height_scale = design_height / print_area_height = 4.77 / 16 = 0.2981
+    // - x_offset = position_left = 0.6694 (66.94% from left edge - positioned to the right!)
+    // - y_offset = position_top = 0.0302 (3.02% from top edge - very close to top)
+    const minimalistConfigResult = await query(`
+      UPDATE templates 
+      SET canvas_config = '{"width_scale": 0.3181, "height_scale": 0.2981, "x_offset": 0.6694, "y_offset": 0.0302, "rotation": 0}'::jsonb
+      WHERE id = 'minimalist-line-art'
+      RETURNING id, canvas_config
+    `);
+    if (minimalistConfigResult.rows && minimalistConfigResult.rows.length > 0) {
+      console.log('✅ Minimalist Line Art template canvas_config set:', minimalistConfigResult.rows[0].canvas_config);
+    } else {
+      console.warn('⚠️  Minimalist Line Art template not found - canvas_config not set');
+    }
+
     // Set Polaroid Ransom Note positioning from Printify reference
     // Based on Printify measurements:
     //   Print area: 13.17" wide × 16" tall
