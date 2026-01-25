@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Camera, Palette, Sparkles, ArrowRight, Image } from 'lucide-react';
+import { X, Camera, Palette, Sparkles, ArrowRight, Shirt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import apiClient from '@/api/apiClient';
@@ -42,6 +42,12 @@ export default function StudioCarousel({ designs }) {
   const [selectedDesign, setSelectedDesign] = useState(null);
   const [templateDetails, setTemplateDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [selectedMockupIndex, setSelectedMockupIndex] = useState(0);
+
+  // Reset mockup index when selecting a new design
+  useEffect(() => {
+    setSelectedMockupIndex(0);
+  }, [selectedDesign?.id]);
 
   // Fetch full template details when a design is selected
   useEffect(() => {
@@ -81,6 +87,27 @@ export default function StudioCarousel({ designs }) {
       type: field.type,
       required: field.required,
     }));
+  };
+
+  // Get available colors based on text_behavior
+  const getAvailableColors = (template) => {
+    const textBehavior = template?.text_behavior;
+    
+    const allColors = [
+      { id: 'black', name: 'Black', hex: '#1a1a1a' },
+      { id: 'white', name: 'White', hex: '#f5f5f5' },
+      { id: 'pink', name: 'Pink', hex: '#e2b8c9' },
+    ];
+    
+    if (textBehavior === 'static-dark') {
+      // Dark text blocks black fabric - allow white + pink
+      return allColors.filter(c => c.id !== 'black');
+    } else if (textBehavior === 'static-light') {
+      // Light text blocks white fabric - allow black + pink
+      return allColors.filter(c => c.id !== 'white');
+    }
+    // 'none' or 'user-controlled' - all colors available
+    return allColors;
   };
 
   return (
@@ -163,15 +190,9 @@ export default function StudioCarousel({ designs }) {
                   </motion.h3>
                   <div className="flex items-center justify-between mt-auto">
                     <div>
-                      {design.has_printify_product ? (
-                        <span className="text-3xl font-black text-white">
-                          ${typeof design.price === 'number' ? design.price.toFixed(2) : (parseFloat(design.price) || 29.99).toFixed(2)}
-                        </span>
-                      ) : (
-                        <span className="text-lg font-semibold text-pink-300">
-                          From $29.99
-                        </span>
-                      )}
+                      <span className="text-xl font-bold text-pink-400">
+                        From $29.99
+                      </span>
                       {design.sales_count > 0 && (
                         <p className="text-pink-300/60 text-sm mt-1">
                           {design.sales_count} sold
@@ -226,18 +247,18 @@ export default function StudioCarousel({ designs }) {
                       layoutId={`card-image-${selectedDesign.id}`}
                       className="md:w-1/2 bg-gradient-to-br from-gray-800/30 via-red-950/20 to-black/30 p-6 flex flex-col"
                     >
-                      {/* Main reference image */}
+                      {/* Main image - shows selected mockup or reference image */}
                       <div className="aspect-[3/4] flex items-center justify-center relative overflow-hidden rounded-xl">
-                        {selectedDesign.reference_image ? (
+                        {selectedDesign.mockup_urls?.length > 0 ? (
                           <img 
-                            src={getImageUrl(selectedDesign.reference_image)} 
+                            src={getImageUrl(selectedDesign.mockup_urls[selectedMockupIndex] || selectedDesign.mockup_urls[0])} 
                             alt={selectedDesign.title}
                             className="w-full h-full object-contain"
                             draggable="false"
                           />
-                        ) : selectedDesign.mockup_urls?.[0] ? (
+                        ) : selectedDesign.reference_image ? (
                           <img 
-                            src={getImageUrl(selectedDesign.mockup_urls[0])} 
+                            src={getImageUrl(selectedDesign.reference_image)} 
                             alt={selectedDesign.title}
                             className="w-full h-full object-contain"
                             draggable="false"
@@ -250,15 +271,20 @@ export default function StudioCarousel({ designs }) {
                       </div>
 
                       {/* Thumbnail gallery - show mockups if available */}
-                      {selectedDesign.mockup_urls?.length > 0 && (
+                      {selectedDesign.mockup_urls?.length > 1 && (
                         <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
-                          {selectedDesign.mockup_urls.slice(0, 4).map((url, idx) => (
+                          {selectedDesign.mockup_urls.slice(0, 6).map((url, idx) => (
                             <motion.div
                               key={idx}
                               initial={{ opacity: 0, scale: 0.8 }}
                               animate={{ opacity: 1, scale: 1 }}
                               transition={{ delay: idx * 0.1 }}
-                              className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-pink-900/30 hover:border-pink-600/50 transition-colors cursor-pointer"
+                              onClick={() => setSelectedMockupIndex(idx)}
+                              className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                                selectedMockupIndex === idx 
+                                  ? 'border-pink-500 ring-2 ring-pink-500/30' 
+                                  : 'border-pink-900/30 hover:border-pink-600/50'
+                              }`}
                             >
                               <img 
                                 src={getImageUrl(url)} 
@@ -281,15 +307,9 @@ export default function StudioCarousel({ designs }) {
                       </motion.h2>
 
                       <div className="flex items-center gap-3 mb-4">
-                        {selectedDesign.has_printify_product ? (
-                          <span className="text-3xl font-black text-pink-400">
-                            ${typeof selectedDesign.price === 'number' ? selectedDesign.price.toFixed(2) : (parseFloat(selectedDesign.price) || 29.99).toFixed(2)}
-                          </span>
-                        ) : (
-                          <span className="text-2xl font-semibold text-pink-400">
-                            From $29.99
-                          </span>
-                        )}
+                        <span className="text-2xl font-bold text-pink-400">
+                          From $29.99
+                        </span>
                         <Badge className="bg-pink-600/20 text-pink-300 border-pink-600/30">
                           Template
                         </Badge>
@@ -344,7 +364,7 @@ export default function StudioCarousel({ designs }) {
                             </div>
                           </motion.div>
 
-                          {/* Mockup previews */}
+                          {/* Available Colors */}
                           <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -352,11 +372,22 @@ export default function StudioCarousel({ designs }) {
                             className="p-3 rounded-lg bg-white/5 border border-white/10"
                           >
                             <div className="flex items-center gap-2 mb-1">
-                              <Image className="w-4 h-4 text-pink-400" />
-                              <span className="text-xs text-white/50 uppercase">Previews</span>
+                              <Shirt className="w-4 h-4 text-pink-400" />
+                              <span className="text-xs text-white/50 uppercase">Colors</span>
                             </div>
-                            <div className="text-lg font-semibold text-white">
-                              {selectedDesign.mockup_urls?.length || 0} mockups
+                            <div className="flex items-center gap-1.5">
+                              {loadingDetails ? (
+                                <span className="text-lg font-semibold text-white">...</span>
+                              ) : (
+                                getAvailableColors(templateDetails).map((color) => (
+                                  <div
+                                    key={color.id}
+                                    title={color.name}
+                                    className="w-5 h-5 rounded-full border border-white/20"
+                                    style={{ backgroundColor: color.hex }}
+                                  />
+                                ))
+                              )}
                             </div>
                           </motion.div>
 
