@@ -133,4 +133,4 @@ After all changes:
 |---------|-----|-----|
 | Frontend Domain | `knockout-merch.vercel.app` | `designforwear.com` |
 | Email From | `onboarding@resend.dev` | `noreply@designforwear.com` |
-| CORS Origins | `influencerboxingiscooked.com` | `designforwear.com` |
+| CORS Origins | — | `designforwear.com` |

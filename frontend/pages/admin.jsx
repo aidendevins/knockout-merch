@@ -72,6 +72,7 @@ export default function Admin() {
   const [analyticsDays, setAnalyticsDays] = useState(30);
   const [recentEvents, setRecentEvents] = useState([]);
   const [visitorLocations, setVisitorLocations] = useState([]);
+  const [productVisits, setProductVisits] = useState([]);
 
   // Fetch Gemini API key status on mount
   useEffect(() => {
@@ -98,10 +99,11 @@ export default function Admin() {
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const apiBase = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
       
-      const [summaryRes, eventsRes, locationsRes] = await Promise.all([
+      const [summaryRes, eventsRes, locationsRes, productVisitsRes] = await Promise.all([
         fetch(`${apiBase}/analytics/summary?days=${analyticsDays}`),
         fetch(`${apiBase}/analytics/events?limit=20`),
-        fetch(`${apiBase}/analytics/visitors/locations?days=${analyticsDays}`)
+        fetch(`${apiBase}/analytics/visitors/locations?days=${analyticsDays}`),
+        fetch(`${apiBase}/analytics/product-visits?days=${analyticsDays}&limit=50`)
       ]);
 
       if (summaryRes.ok) {
@@ -115,6 +117,10 @@ export default function Admin() {
       if (locationsRes.ok) {
         const locations = await locationsRes.json();
         setVisitorLocations(locations);
+      }
+      if (productVisitsRes.ok) {
+        const visits = await productVisitsRes.json();
+        setProductVisits(visits);
       }
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
@@ -1786,6 +1792,83 @@ export default function Admin() {
                       </CardContent>
                     </Card>
                   </div>
+
+                  {/* Product Page Visits */}
+                  <Card className="bg-gray-900/50 border-pink-900/30">
+                    <CardHeader>
+                      <CardTitle className="text-white flex items-center gap-2">
+                        <Package className="w-5 h-5 text-pink-400" />
+                        Product Page Visits
+                      </CardTitle>
+                      <p className="text-gray-400 text-sm font-normal mt-1">
+                        Visits to /product/:id – linked to design, location & device
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-80">
+                        {productVisits.length > 0 ? (
+                          <div className="space-y-2">
+                            {productVisits.map((v, i) => (
+                              <div
+                                key={v.id || i}
+                                className="flex items-center gap-4 p-3 bg-gray-800/50 rounded-lg flex-wrap"
+                              >
+                                <a
+                                  href={`/product/${v.design_id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-3 min-w-0 flex-1 hover:opacity-80 transition-opacity"
+                                >
+                                  {v.design_image_url ? (
+                                    <img
+                                      src={getImageUrl(v.design_image_url) || v.design_image_url}
+                                      alt=""
+                                      className="w-12 h-12 object-cover rounded bg-gray-700 flex-shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-12 rounded bg-gray-700 flex items-center justify-center flex-shrink-0">
+                                      <Package className="w-6 h-6 text-gray-500" />
+                                    </div>
+                                  )}
+                                  <div className="min-w-0">
+                                    <p className="text-white font-medium truncate">
+                                      {v.design_title || `Design ${(v.design_id || '').slice(0, 8)}…`}
+                                    </p>
+                                    <p className="text-gray-500 text-xs truncate">{v.design_id}</p>
+                                  </div>
+                                </a>
+                                <div className="flex items-center gap-3 flex-wrap">
+                                  <span
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-gray-700/60 text-gray-300"
+                                    title={`${v.device_type || 'unknown'}`}
+                                  >
+                                    {v.device_type === 'desktop' && <Monitor className="w-3 h-3 text-green-400" />}
+                                    {v.device_type === 'mobile' && <Smartphone className="w-3 h-3 text-blue-400" />}
+                                    {v.device_type === 'tablet' && <Tablet className="w-3 h-3 text-purple-400" />}
+                                    {!['desktop', 'mobile', 'tablet'].includes(v.device_type) && (
+                                      <Monitor className="w-3 h-3 text-gray-500" />
+                                    )}
+                                    <span className="capitalize">{v.device_type || 'unknown'}</span>
+                                  </span>
+                                  {(v.city || v.country) && (
+                                    <span className="inline-flex items-center gap-1 text-xs text-gray-400">
+                                      <Globe className="w-3 h-3 text-pink-400" />
+                                      {[v.city, v.region, v.country].filter(Boolean).join(', ')}
+                                    </span>
+                                  )}
+                                  <span className="text-gray-500 text-xs whitespace-nowrap">
+                                    {new Date(v.created_at).toLocaleString()}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-gray-500 text-sm">No product page visits yet.</p>
+                        )}
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
 
                   {/* Detailed Locations */}
                   <Card className="bg-gray-900/50 border-pink-900/30">

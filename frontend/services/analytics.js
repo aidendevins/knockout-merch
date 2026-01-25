@@ -50,6 +50,8 @@ const analytics = {
   designStarted: (templateId) => trackEvent('design_started', { template_id: templateId }),
   designCreated: (designId, templateId) => trackEvent('design_created', { design_id: designId, template_id: templateId }),
   designViewed: (designId) => trackEvent('design_viewed', { design_id: designId }),
+  /** Track product page visit (/product/:designId) – links visit to design with location & device */
+  productPageViewed: (designId) => trackEvent('product_page_viewed', { design_id: designId }),
   
   // Template events
   templateSelected: (templateId) => trackEvent('template_selected', { template_id: templateId }),

@@ -934,12 +934,12 @@ export default function DesignStudio() {
 
       {/* Design Name Dialog */}
       <Dialog open={showNameDialog} onOpenChange={setShowNameDialog}>
-        <DialogContent className="bg-gradient-to-br from-gray-900 to-black border border-pink-900/30 text-white">
+        <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-md max-h-[95vh] bg-gradient-to-br from-gray-900 to-black border border-pink-900/30 text-white overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-red-400">
+            <DialogTitle className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-red-400">
               Name Your Design
             </DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-gray-400 text-sm sm:text-base">
               Give your design a memorable name so you can easily find it later in "My Designs"
             </DialogDescription>
           </DialogHeader>
