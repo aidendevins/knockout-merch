@@ -37,6 +37,42 @@ router.get('/blueprints', async (req, res) => {
   }
 });
 
+// Get variants for a specific blueprint and provider (helper for finding variant IDs)
+router.get('/blueprints/:blueprintId/providers/:providerId/variants', async (req, res) => {
+  try {
+    if (!printify.isConfigured()) {
+      return res.status(400).json({ error: 'Printify not configured' });
+    }
+    
+    const { blueprintId, providerId } = req.params;
+    const variants = await printify.getVariants(parseInt(blueprintId), parseInt(providerId));
+    
+    // Organize by color and size for easier reading
+    const organized = {};
+    for (const variant of variants.variants) {
+      const parts = variant.title.split(' / ');
+      const color = parts[0]?.toLowerCase();
+      const size = parts[1];
+      
+      if (color && size) {
+        if (!organized[color]) organized[color] = {};
+        organized[color][size] = variant.id;
+      }
+    }
+    
+    res.json({
+      blueprint_id: blueprintId,
+      provider_id: providerId,
+      total_variants: variants.variants.length,
+      organized_by_color: organized,
+      raw_variants: variants.variants
+    });
+  } catch (error) {
+    console.error('Error fetching variants:', error);
+    res.status(500).json({ error: 'Failed to fetch variants', details: error.message });
+  }
+});
+
 // Get shops
 router.get('/shops', async (req, res) => {
   try {

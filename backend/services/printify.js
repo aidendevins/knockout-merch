@@ -39,22 +39,25 @@ const BLUEPRINTS = {
     }]
   },
   hoodie: {
-    id: 77, // Gildan 18500 Heavy Blend Hooded Sweatshirt
+    id: 448, // Comfort Colors 1467 - Unisex Lightweight Hooded Sweatshirt
     printProviderId: 99, // Printify Choice
     variants: {
+      // TODO: Get exact variant IDs from Printify catalog
+      // Use the admin panel to fetch these: https://knockout-merch-production.up.railway.app/admin
+      // Or use Printify API: GET /catalog/blueprints/448/print_providers/99/variants.json
       black: {
-        'S': 12370,
-        'M': 12371,
-        'L': 12372,
-        'XL': 12373,
-        '2XL': 12374,
+        'S': null, // Update with actual variant ID
+        'M': null,
+        'L': null,
+        'XL': null,
+        '2XL': null,
       },
       white: {
-        'S': 12535,
-        'M': 12536,
-        'L': 12537,
-        'XL': 12538,
-        '2XL': 12539,
+        'S': null, // Update with actual variant ID
+        'M': null,
+        'L': null,
+        'XL': null,
+        '2XL': null,
       }
     },
     placeholders: [{
