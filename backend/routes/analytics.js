@@ -29,6 +29,15 @@ function getClientIP(req) {
   return req.headers['x-real-ip'] || req.connection?.remoteAddress || req.ip || 'unknown';
 }
 
+// Build SQL clause: exclude null city + restricted cities (from DB)
+async function getExcludeCitiesClause() {
+  const rows = await db.all('SELECT city FROM analytics_restricted_cities ORDER BY city');
+  const cities = (rows || []).map((r) => String(r.city || '').trim().toLowerCase()).filter(Boolean);
+  const escaped = cities.map((c) => `'${c.replace(/'/g, "''")}'`);
+  const notIn = escaped.length ? ` AND LOWER(TRIM(city)) NOT IN (${escaped.join(', ')})` : '';
+  return `AND city IS NOT NULL${notIn}`;
+}
+
 // Track an analytics event
 router.post('/track', async (req, res) => {
   try {
@@ -193,8 +202,8 @@ router.get('/summary', async (req, res) => {
       GROUP BY event_type
     `, [daysAgo]);
 
-    // Landing → Design funnel (exclude Philadelphia, Atlanta, and events without city)
-    const excludeCities = `AND city IS NOT NULL AND LOWER(TRIM(city)) NOT IN ('philadelphia', 'atlanta')`;
+    // Landing → Design funnel (exclude null city + restricted cities from DB)
+    const excludeCities = await getExcludeCitiesClause();
     const landingVisitors = await db.get(`
       SELECT COUNT(DISTINCT session_id) as count
       FROM analytics_events
@@ -260,8 +269,7 @@ router.get('/funnel/converted-locations', async (req, res) => {
     const { days = 30 } = req.query;
     const daysAgo = new Date();
     daysAgo.setDate(daysAgo.getDate() - parseInt(days));
-    const exclude =
-      `AND city IS NOT NULL AND LOWER(TRIM(city)) NOT IN ('philadelphia', 'atlanta')`;
+    const exclude = await getExcludeCitiesClause();
 
     const rows = await db.all(`
       WITH converted_sessions AS (
@@ -451,6 +459,52 @@ router.get('/product-visits', async (req, res) => {
   } catch (error) {
     console.error('Analytics product-visits error:', error);
     res.status(500).json({ error: 'Failed to get product visits' });
+  }
+});
+
+// Restricted cities (excluded from funnel; null cities always excluded)
+router.get('/restricted-cities', async (req, res) => {
+  try {
+    const rows = await db.all('SELECT id, city FROM analytics_restricted_cities ORDER BY city');
+    res.json(rows);
+  } catch (error) {
+    console.error('Restricted cities list error:', error);
+    res.status(500).json({ error: 'Failed to list restricted cities' });
+  }
+});
+
+router.post('/restricted-cities', async (req, res) => {
+  try {
+    const { city } = req.body;
+    const c = String(city || '').trim();
+    if (!c) return res.status(400).json({ error: 'City is required' });
+    const lower = c.toLowerCase();
+    try {
+      await db.query('INSERT INTO analytics_restricted_cities (city) VALUES ($1)', [lower]);
+    } catch (e) {
+      if (e.code === '23505') {
+        const row = await db.get('SELECT id, city FROM analytics_restricted_cities WHERE city = $1', [lower]);
+        return res.status(200).json({ ...row, message: 'Already exists' });
+      }
+      throw e;
+    }
+    const row = await db.get('SELECT id, city FROM analytics_restricted_cities WHERE city = $1', [lower]);
+    res.status(201).json(row);
+  } catch (error) {
+    console.error('Restricted cities add error:', error);
+    res.status(500).json({ error: 'Failed to add restricted city' });
+  }
+});
+
+router.delete('/restricted-cities/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const r = await db.query('DELETE FROM analytics_restricted_cities WHERE id = $1 RETURNING id', [id]);
+    if (!r.rowCount) return res.status(404).json({ error: 'Not found' });
+    res.status(204).send();
+  } catch (error) {
+    console.error('Restricted cities delete error:', error);
+    res.status(500).json({ error: 'Failed to delete restricted city' });
   }
 });
 

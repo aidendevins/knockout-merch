@@ -526,6 +526,16 @@ async function init() {
     await query(`CREATE INDEX IF NOT EXISTS idx_analytics_country ON analytics_events(country)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_analytics_session ON analytics_events(session_id)`);
 
+    // Restricted cities excluded from funnel (null cities always excluded)
+    await query(`
+      CREATE TABLE IF NOT EXISTS analytics_restricted_cities (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        city VARCHAR(100) UNIQUE NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await query(`CREATE INDEX IF NOT EXISTS idx_restricted_cities_city ON analytics_restricted_cities(LOWER(city))`);
+
     // Create indexes for better performance
     await query(`CREATE INDEX IF NOT EXISTS idx_designs_published ON designs(is_published)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_designs_featured ON designs(is_featured)`);
