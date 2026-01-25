@@ -499,6 +499,33 @@ async function init() {
       END $$;
     `);
 
+    // Create analytics_events table for tracking user actions
+    await query(`
+      CREATE TABLE IF NOT EXISTS analytics_events (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        event_type VARCHAR(100) NOT NULL,
+        event_data JSONB DEFAULT '{}'::jsonb,
+        page_url TEXT,
+        referrer TEXT,
+        ip_address VARCHAR(45),
+        country VARCHAR(100),
+        city VARCHAR(100),
+        region VARCHAR(100),
+        user_agent TEXT,
+        device_type VARCHAR(50),
+        browser VARCHAR(100),
+        session_id VARCHAR(100),
+        user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create indexes for analytics queries
+    await query(`CREATE INDEX IF NOT EXISTS idx_analytics_event_type ON analytics_events(event_type)`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_analytics_created_at ON analytics_events(created_at DESC)`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_analytics_country ON analytics_events(country)`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_analytics_session ON analytics_events(session_id)`);
+
     // Create indexes for better performance
     await query(`CREATE INDEX IF NOT EXISTS idx_designs_published ON designs(is_published)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_designs_featured ON designs(is_featured)`);

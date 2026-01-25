@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import analytics from '@/services/analytics';
 
 const CartContext = createContext();
 
@@ -50,6 +51,9 @@ export function CartProvider({ children }) {
       }
     });
     
+    // Track analytics
+    analytics.addToCart(design.id, design.product_type || 'tshirt', design.color || 'black', size);
+    
     // Open cart drawer when item is added
     setIsCartOpen(true);
   };
@@ -59,6 +63,9 @@ export function CartProvider({ children }) {
     setCartItems((prevItems) =>
       prevItems.filter((item) => !(item.design.id === designId && item.size === size))
     );
+    
+    // Track analytics
+    analytics.removeFromCart(designId);
   };
 
   // Update item quantity

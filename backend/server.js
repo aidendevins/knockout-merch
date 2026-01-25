@@ -15,6 +15,7 @@ const seedRouter = require('./routes/seed');
 const stripeRouter = require('./routes/stripe');
 const templatesRouter = require('./routes/templates');
 const authRouter = require('./routes/auth');
+const analyticsRouter = require('./routes/analytics');
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -81,6 +82,7 @@ app.use('/api/printify', printifyRouter);
 app.use('/api/seed', seedRouter);
 app.use('/api/stripe', stripeRouter);
 app.use('/api/templates', templatesRouter);
+app.use('/api/analytics', analyticsRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
