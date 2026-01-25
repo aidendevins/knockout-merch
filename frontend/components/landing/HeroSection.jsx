@@ -32,15 +32,15 @@ export default function HeroSection({ products = [], isLoading = false }) {
     <section className="relative min-h-screen w-full flex items-center overflow-hidden">
       
       {/* Content - Split Layout */}
-      <div className="relative z-10 w-full max-w-[2400px] mx-auto px-4 md:px-8 lg:px-16 xl:px-24 2xl:px-32 pt-24 pb-12">
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-4 items-center min-h-[calc(100vh-12rem)]">
+      <div className="relative z-10 w-full max-w-[2400px] mx-auto px-4 md:px-8 lg:px-16 xl:px-24 2xl:px-32 pt-20 sm:pt-24 pb-8 sm:pb-12">
+        <div className="grid lg:grid-cols-2 gap-6 lg:gap-4 items-center min-h-[calc(100vh-10rem)] sm:min-h-[calc(100vh-12rem)]">
           
           {/* Left Side - Text Content */}
           <motion.div
             initial={{ opacity: 0, x: -40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
-            className="space-y-6 lg:pr-8"
+            className="space-y-4 sm:space-y-6 lg:pr-8 text-center lg:text-left"
           >
             {/* Badge */}
             <motion.div 
@@ -54,8 +54,8 @@ export default function HeroSection({ products = [], isLoading = false }) {
               <span className="text-xs font-light tracking-tight text-white/80">Custom Shirts</span>
             </motion.div>
 
-            {/* Main headline - Lighter weight typography */}
-            <h1 className="max-w-2xl text-left text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extralight leading-[1.05] tracking-tight text-white">
+            {/* Main headline - Responsive typography */}
+            <h1 className="max-w-2xl mx-auto lg:mx-0 text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extralight leading-[1.1] sm:leading-[1.05] tracking-tight text-white">
               Make a Valentine shirt
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-red-400">
@@ -63,30 +63,30 @@ export default function HeroSection({ products = [], isLoading = false }) {
               </span>
             </h1>
             
-            <p className="max-w-xl text-left text-base font-light leading-relaxed tracking-tight text-white/75 sm:text-lg">
+            <p className="max-w-xl mx-auto lg:mx-0 text-sm sm:text-base font-light leading-relaxed tracking-tight text-white/75 sm:text-lg">
               Upload photos, fill in the details, and see an instant preview
               on a real shirt. Approve it — we print & ship. It's that simple.
             </p>
             
-            {/* CTA Buttons - Split Layout */}
-            <div className="max-w-xl flex gap-3">
+            {/* CTA Buttons - Stack on mobile, side by side on larger */}
+            <div className="max-w-xl mx-auto lg:mx-0 flex flex-col xs:flex-row gap-3">
               <button
                 onClick={handleCreate}
-                className="flex-1 group relative bg-white/10 hover:bg-white/15 backdrop-blur-xl rounded-2xl px-6 py-5 border border-white/20 hover:border-white/30 shadow-2xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white/30"
+                className="flex-1 group relative bg-white/10 hover:bg-white/15 backdrop-blur-xl rounded-xl sm:rounded-2xl px-4 sm:px-6 py-4 sm:py-5 border border-white/20 hover:border-white/30 shadow-2xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white/30"
               >
                 <div className="flex items-center justify-center gap-2">
-                  <Heart className="w-5 h-5 text-pink-400 group-hover:scale-110 transition-transform duration-300" />
-                  <span className="text-base font-light tracking-tight text-white">
+                  <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-pink-400 group-hover:scale-110 transition-transform duration-300" />
+                  <span className="text-sm sm:text-base font-light tracking-tight text-white">
                     Design the perfect gift
                   </span>
                 </div>
               </button>
               <button
                 onClick={handleBrowseDesigns}
-                className="flex-1 group relative bg-white/5 hover:bg-white/10 backdrop-blur-xl rounded-2xl px-6 py-5 border border-white/10 hover:border-white/20 shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white/20"
+                className="flex-1 group relative bg-white/5 hover:bg-white/10 backdrop-blur-xl rounded-xl sm:rounded-2xl px-4 sm:px-6 py-4 sm:py-5 border border-white/10 hover:border-white/20 shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white/20"
               >
                 <div className="flex items-center justify-center gap-2">
-                  <span className="text-base font-light tracking-tight text-white/80 group-hover:text-white">
+                  <span className="text-sm sm:text-base font-light tracking-tight text-white/80 group-hover:text-white">
                     Browse designs
                   </span>
                   <ChevronDown className="w-4 h-4 text-white/60 group-hover:text-white/80 group-hover:translate-y-0.5 transition-all duration-300" />
@@ -94,29 +94,29 @@ export default function HeroSection({ products = [], isLoading = false }) {
               </button>
             </div>
 
-            {/* Feature Highlights - Refined Style */}
-            <div className="flex flex-wrap items-center gap-6 pt-4">
+            {/* Feature Highlights - Responsive */}
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 sm:gap-6 pt-2 sm:pt-4">
               <div className="flex items-center gap-2 text-white/60">
                 <span className="h-1 w-1 rounded-full bg-white/40" />
-                <span className="font-extralight text-xs tracking-tight">Proof in seconds</span>
+                <span className="font-extralight text-[11px] sm:text-xs tracking-tight">Proof in seconds</span>
               </div>
               <div className="flex items-center gap-2 text-white/60">
                 <span className="h-1 w-1 rounded-full bg-white/40" />
-                <span className="font-extralight text-xs tracking-tight">Ships fast</span>
+                <span className="font-extralight text-[11px] sm:text-xs tracking-tight">Ships fast</span>
               </div>
               <div className="flex items-center gap-2 text-white/60">
                 <span className="h-1 w-1 rounded-full bg-white/40" />
-                <span className="font-extralight text-xs tracking-tight">Printed in the USA</span>
+                <span className="font-extralight text-[11px] sm:text-xs tracking-tight">Printed in the USA</span>
               </div>
             </div>
           </motion.div>
 
-          {/* Right Side - Product Carousel */}
+          {/* Right Side - Product Carousel (hidden on small screens) */}
           <motion.div
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative lg:pl-4 hidden md:block"
+            className="relative lg:pl-4 hidden lg:block"
           >
             {isLoading ? (
               <div className="flex items-center justify-center h-[500px]">

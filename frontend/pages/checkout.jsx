@@ -327,43 +327,43 @@ export default function Checkout() {
   };
 
   return (
-    <div className="min-h-screen bg-black pt-20 pb-12 px-4">
+    <div className="min-h-screen bg-black pt-16 sm:pt-20 pb-8 sm:pb-12 px-3 sm:px-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <Link to={createPageUrl('Home')}>
-          <Button variant="ghost" className="mb-6 text-gray-400 hover:text-white">
-            <ArrowLeft className="w-4 h-4 mr-2" />
+          <Button variant="ghost" className="mb-4 sm:mb-6 text-gray-400 hover:text-white text-sm sm:text-base">
+            <ArrowLeft className="w-4 h-4 mr-1 sm:mr-2" />
             Back to shop
           </Button>
         </Link>
 
-        <h1 className="text-4xl font-black text-white mb-8">
-          <ShoppingBag className="w-8 h-8 inline mr-3" />
+        <h1 className="text-2xl sm:text-4xl font-black text-white mb-6 sm:mb-8 flex items-center">
+          <ShoppingBag className="w-6 h-6 sm:w-8 sm:h-8 mr-2 sm:mr-3" />
           Checkout
         </h1>
 
         {/* Progress Steps */}
-        <div className="flex items-center justify-center mb-12">
-          <div className="flex items-center gap-4">
-            <div className={`flex items-center gap-2 ${step >= 1 ? 'text-red-500' : 'text-gray-600'}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${step >= 1 ? 'bg-red-500 text-white' : 'bg-gray-800 text-gray-400'}`}>
-                {step > 1 ? <Check className="w-5 h-5" /> : '1'}
+        <div className="flex items-center justify-center mb-8 sm:mb-12">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className={`flex items-center gap-1.5 sm:gap-2 ${step >= 1 ? 'text-red-500' : 'text-gray-600'}`}>
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm sm:text-base ${step >= 1 ? 'bg-red-500 text-white' : 'bg-gray-800 text-gray-400'}`}>
+                {step > 1 ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : '1'}
               </div>
-              <span className="hidden sm:inline font-semibold">Shipping</span>
+              <span className="hidden xs:inline text-sm sm:text-base font-semibold">Shipping</span>
             </div>
-            <ChevronRight className="text-gray-600" />
-            <div className={`flex items-center gap-2 ${step >= 2 ? 'text-red-500' : 'text-gray-600'}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${step >= 2 ? 'bg-red-500 text-white' : 'bg-gray-800 text-gray-400'}`}>
+            <ChevronRight className="text-gray-600 w-4 h-4 sm:w-5 sm:h-5" />
+            <div className={`flex items-center gap-1.5 sm:gap-2 ${step >= 2 ? 'text-red-500' : 'text-gray-600'}`}>
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm sm:text-base ${step >= 2 ? 'bg-red-500 text-white' : 'bg-gray-800 text-gray-400'}`}>
                 2
               </div>
-              <span className="hidden sm:inline font-semibold">Payment</span>
+              <span className="hidden xs:inline text-sm sm:text-base font-semibold">Payment</span>
             </div>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-6 sm:gap-8">
           {/* Left Column: Forms */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* Step 1: Shipping Information */}
             {step === 1 && (
               <motion.div
@@ -371,28 +371,28 @@ export default function Checkout() {
                 animate={{ opacity: 1, y: 0 }}
               >
                 <Card className="bg-gray-900 border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Truck className="w-5 h-5" />
+                  <CardHeader className="p-4 sm:p-6">
+                    <CardTitle className="text-white flex items-center gap-2 text-lg sm:text-xl">
+                      <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
                       Shipping Information
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-4">
+                  <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div>
-                        <Label htmlFor="name" className="text-gray-400">Full Name *</Label>
+                        <Label htmlFor="name" className="text-gray-400 text-sm">Full Name *</Label>
                         <Input
                           id="name"
                           name="name"
                           value={customerInfo.name}
                           onChange={handleInputChange}
                           placeholder="John Doe"
-                          className="bg-gray-800 border-gray-700 text-white"
+                          className="bg-gray-800 border-gray-700 text-white mt-1"
                           required
                         />
                       </div>
                       <div>
-                        <Label htmlFor="email" className="text-gray-400">Email *</Label>
+                        <Label htmlFor="email" className="text-gray-400 text-sm">Email *</Label>
                         <Input
                           id="email"
                           name="email"
@@ -400,7 +400,7 @@ export default function Checkout() {
                           value={customerInfo.email}
                           onChange={handleInputChange}
                           placeholder="john@example.com"
-                          className={`bg-gray-800 border-gray-700 text-white ${fieldErrors.email ? 'border-red-500' : ''}`}
+                          className={`bg-gray-800 border-gray-700 text-white mt-1 ${fieldErrors.email ? 'border-red-500' : ''}`}
                           required
                         />
                         {fieldErrors.email && (
@@ -410,63 +410,63 @@ export default function Checkout() {
                     </div>
 
                     <div>
-                      <Label htmlFor="phone" className="text-gray-400">Phone</Label>
+                      <Label htmlFor="phone" className="text-gray-400 text-sm">Phone</Label>
                       <Input
                         id="phone"
                         name="phone"
                         value={customerInfo.phone}
                         onChange={handleInputChange}
                         placeholder="(555) 123-4567"
-                        className="bg-gray-800 border-gray-700 text-white"
+                        className="bg-gray-800 border-gray-700 text-white mt-1"
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="line1" className="text-gray-400">Street Address *</Label>
+                      <Label htmlFor="line1" className="text-gray-400 text-sm">Street Address *</Label>
                       <Input
                         id="line1"
                         name="line1"
                         value={customerInfo.line1}
                         onChange={handleInputChange}
                         placeholder="123 Main St"
-                        className="bg-gray-800 border-gray-700 text-white"
+                        className="bg-gray-800 border-gray-700 text-white mt-1"
                         required
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="line2" className="text-gray-400">Apartment, suite, etc.</Label>
+                      <Label htmlFor="line2" className="text-gray-400 text-sm">Apartment, suite, etc.</Label>
                       <Input
                         id="line2"
                         name="line2"
                         value={customerInfo.line2}
                         onChange={handleInputChange}
                         placeholder="Apt 4B"
-                        className="bg-gray-800 border-gray-700 text-white"
+                        className="bg-gray-800 border-gray-700 text-white mt-1"
                       />
                     </div>
 
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <div>
-                        <Label htmlFor="city" className="text-gray-400">City *</Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                      <div className="col-span-2 sm:col-span-1">
+                        <Label htmlFor="city" className="text-gray-400 text-sm">City *</Label>
                         <Input
                           id="city"
                           name="city"
                           value={customerInfo.city}
                           onChange={handleInputChange}
                           placeholder="New York"
-                          className="bg-gray-800 border-gray-700 text-white"
+                          className="bg-gray-800 border-gray-700 text-white mt-1"
                           required
                         />
                       </div>
                       <div>
-                        <Label htmlFor="state" className="text-gray-400">State *</Label>
+                        <Label htmlFor="state" className="text-gray-400 text-sm">State *</Label>
                         <select
                           id="state"
                           name="state"
                           value={customerInfo.state}
                           onChange={handleInputChange}
-                          className="w-full h-10 px-3 rounded-md bg-gray-800 border border-gray-700 text-white"
+                          className="w-full h-10 px-3 mt-1 rounded-md bg-gray-800 border border-gray-700 text-white text-sm"
                           required
                         >
                           <option value="">Select...</option>
@@ -476,14 +476,14 @@ export default function Checkout() {
                         </select>
                       </div>
                       <div>
-                        <Label htmlFor="postal_code" className="text-gray-400">ZIP Code *</Label>
+                        <Label htmlFor="postal_code" className="text-gray-400 text-sm">ZIP *</Label>
                         <Input
                           id="postal_code"
                           name="postal_code"
                           value={customerInfo.postal_code}
                           onChange={handleInputChange}
                           placeholder="10001"
-                          className="bg-gray-800 border-gray-700 text-white"
+                          className="bg-gray-800 border-gray-700 text-white mt-1"
                           required
                         />
                       </div>
@@ -491,10 +491,10 @@ export default function Checkout() {
 
                     <Button
                       onClick={() => setStep(2)}
-                      className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6"
+                      className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-5 sm:py-6 text-sm sm:text-base"
                     >
                       Continue to Payment
-                      <ChevronRight className="w-5 h-5 ml-2" />
+                      <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
                     </Button>
                   </CardContent>
                 </Card>
@@ -605,13 +605,13 @@ export default function Checkout() {
           </div>
 
           {/* Right Column: Order Summary */}
-          <div>
-            <Card className="bg-gray-900 border-gray-800 sticky top-24">
-              <CardHeader>
-                <CardTitle className="text-white">Order Summary</CardTitle>
+          <div className="order-first lg:order-last">
+            <Card className="bg-gray-900 border-gray-800 lg:sticky lg:top-24">
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-white text-lg sm:text-xl">Order Summary</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
+              <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
+                <div className="space-y-2 text-sm sm:text-base">
                   <div className="flex justify-between text-gray-400">
                     <span>Subtotal</span>
                     <span>${cartTotal.toFixed(2)}</span>
@@ -630,21 +630,21 @@ export default function Checkout() {
 
                 <Separator className="bg-gray-800" />
 
-                <div className="flex justify-between text-white text-xl font-bold">
+                <div className="flex justify-between text-white text-lg sm:text-xl font-bold">
                   <span>Total</span>
                   <span>${total.toFixed(2)}</span>
                 </div>
 
                 {/* Discount Code */}
-                <div className="mt-6 p-4 bg-gray-800/50 rounded-lg">
-                  <Label htmlFor="discount" className="text-gray-400 mb-2 block">Discount Code</Label>
+                <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gray-800/50 rounded-lg">
+                  <Label htmlFor="discount" className="text-gray-400 mb-2 block text-sm">Discount Code</Label>
                   <div className="flex gap-2">
                     <Input
                       id="discount"
                       value={discountCode}
                       onChange={(e) => setDiscountCode(e.target.value)}
                       placeholder="Enter code"
-                      className="bg-gray-700 border-gray-600 text-white flex-1"
+                      className="bg-gray-700 border-gray-600 text-white flex-1 text-sm"
                       disabled={isApplyingDiscount || appliedDiscount}
                       onKeyPress={(e) => {
                         if (e.key === 'Enter') {
@@ -656,7 +656,7 @@ export default function Checkout() {
                       <Button
                         onClick={applyDiscount}
                         disabled={isApplyingDiscount}
-                        className="bg-red-600 hover:bg-red-700 text-white"
+                        className="bg-red-600 hover:bg-red-700 text-white text-sm px-3 sm:px-4"
                       >
                         {isApplyingDiscount ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
                       </Button>
@@ -664,7 +664,7 @@ export default function Checkout() {
                       <Button
                         onClick={removeDiscount}
                         variant="outline"
-                        className="border-gray-700 text-white hover:bg-gray-700"
+                        className="border-gray-700 text-white hover:bg-gray-700 text-sm px-3 sm:px-4"
                       >
                         Remove
                       </Button>
@@ -674,7 +674,7 @@ export default function Checkout() {
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
-                      className="mt-2 text-green-400 text-sm flex items-center gap-1"
+                      className="mt-2 text-green-400 text-xs sm:text-sm flex items-center gap-1"
                     >
                       <Check className="w-4 h-4" />
                       <span>{appliedDiscount.description}</span>
