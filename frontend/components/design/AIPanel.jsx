@@ -824,7 +824,10 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
           ) : (
             <div className="flex items-center gap-2 text-white/40 text-xs p-3 rounded-lg border border-dashed border-pink-900/30">
               <ImageIcon className="w-4 h-4" />
-              <span>Upload photos on the right panel →</span>
+              <span>
+                <span className="md:hidden">Upload photos on the top panel →</span>
+                <span className="hidden md:inline">Upload photos on the right panel →</span>
+              </span>
             </div>
           )}
         </div>

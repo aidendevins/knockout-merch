@@ -240,29 +240,29 @@ export default function PhotoUploadPanel({
           }
         }}
       >
-        <DialogContent className="max-w-lg bg-gradient-to-br from-gray-900 via-red-950/30 to-gray-900 border-pink-900/30">
+        <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[95vh] overflow-y-auto bg-gradient-to-br from-gray-900 via-red-950/30 to-gray-900 border-pink-900/30">
           <DialogHeader>
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-pink-600 to-red-600 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-pink-600 to-red-600 flex items-center justify-center">
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
-              <DialogTitle className="text-white text-xl">Photo Upload Tips</DialogTitle>
+              <DialogTitle className="text-white text-lg sm:text-xl">Photo Upload Tips</DialogTitle>
             </div>
-            <DialogDescription className="text-white/60">
+            <DialogDescription className="text-white/60 text-sm">
               Get the best results from our AI designer
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 mt-4">
+          <div className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
             {/* Image Quality Tips - Template-specific or default */}
-            <div className="bg-pink-600/10 border border-pink-900/30 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <Info className="w-5 h-5 text-pink-400 flex-shrink-0 mt-0.5" />
-                <div className="space-y-2">
-                  <h4 className="text-white font-medium text-sm">
+            <div className="bg-pink-600/10 border border-pink-900/30 rounded-lg p-3 sm:p-4">
+              <div className="flex items-start gap-2 sm:gap-3">
+                <Info className="w-4 h-4 sm:w-5 sm:h-5 text-pink-400 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1.5 sm:space-y-2">
+                  <h4 className="text-white font-medium text-xs sm:text-sm">
                     {selectedTemplate?.uploadTips?.title || 'Best Image Quality'}
                   </h4>
-                  <ul className="text-white/70 text-sm space-y-1.5 list-disc list-inside">
+                  <ul className="text-white/70 text-xs sm:text-sm space-y-1 sm:space-y-1.5 list-disc list-inside">
                     {(selectedTemplate?.uploadTips?.tips || [
                       'Use photos with a <strong>clear subject</strong> (person, pet, object)',
                       'Choose images with a <strong>simple or transparent background</strong>',
@@ -277,17 +277,17 @@ export default function PhotoUploadPanel({
             </div>
 
             {/* Privacy Disclaimer */}
-            <div className="bg-black/40 border border-pink-900/30 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <Shield className="w-5 h-5 text-pink-400 flex-shrink-0 mt-0.5" />
-                <div className="space-y-2">
-                  <h4 className="text-white font-medium text-sm">Privacy & Security</h4>
-                  <p className="text-white/70 text-sm leading-relaxed">
+            <div className="bg-black/40 border border-pink-900/30 rounded-lg p-3 sm:p-4">
+              <div className="flex items-start gap-2 sm:gap-3">
+                <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-pink-400 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1.5 sm:space-y-2">
+                  <h4 className="text-white font-medium text-xs sm:text-sm">Privacy & Security</h4>
+                  <p className="text-white/70 text-xs sm:text-sm leading-relaxed">
                     <strong>We don't store your images.</strong> Your photos are processed locally in your browser 
                     and only sent to our AI service temporarily to generate your design. Once your design is created, 
                     the original photos are not saved on our servers.
                   </p>
-                  <p className="text-white/70 text-sm leading-relaxed mt-2">
+                  <p className="text-white/70 text-xs sm:text-sm leading-relaxed mt-1.5 sm:mt-2">
                     <strong>Content Policy:</strong> Please do not upload any nude, explicit, or inappropriate images 
                     that would not be accepted by common AI image generation models. Such content will be rejected by 
                     our AI service and may result in your account being restricted.
@@ -297,29 +297,29 @@ export default function PhotoUploadPanel({
             </div>
 
             {/* Additional Tips */}
-            <div className="text-white/60 text-xs space-y-1">
+            <div className="text-white/60 text-[10px] sm:text-xs space-y-1">
               <p className="flex items-center gap-2">
-                <Heart className="w-3 h-3 text-pink-500" />
+                <Heart className="w-3 h-3 text-pink-500 flex-shrink-0" />
                 <span>You can upload up to {maxPhotos} photos per design</span>
               </p>
               <p className="flex items-center gap-2">
-                <Heart className="w-3 h-3 text-pink-500" />
+                <Heart className="w-3 h-3 text-pink-500 flex-shrink-0" />
                 <span>Supported formats: PNG, JPG, JPEG</span>
               </p>
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 mt-6">
+          <div className="flex flex-col sm:flex-row justify-end gap-2 mt-4 sm:mt-6">
             <Button
               variant="ghost"
               onClick={handleModalClose}
-              className="text-white/60 hover:text-white hover:bg-pink-600/10"
+              className="text-white/60 hover:text-white hover:bg-pink-600/10 text-sm w-full sm:w-auto order-2 sm:order-1"
             >
               Go Back
             </Button>
             <Button
               onClick={handleModalContinue}
-              className="bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white font-medium"
+              className="bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white font-medium text-sm w-full sm:w-auto order-1 sm:order-2"
             >
               Continue Upload
             </Button>
