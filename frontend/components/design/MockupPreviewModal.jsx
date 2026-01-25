@@ -52,7 +52,7 @@ export default function MockupPreviewModal({
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                    className="relative w-[95vw] max-w-[95vw] sm:max-w-3xl lg:max-w-4xl h-[95vh] max-h-[95vh] bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+                    className="relative w-full max-w-[95vw] sm:max-w-3xl lg:max-w-4xl max-h-[95vh] overflow-hidden bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-xl sm:rounded-2xl shadow-2xl"
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Close button */}
@@ -74,9 +74,9 @@ export default function MockupPreviewModal({
                         </div>
                     ) : (
                         /* Content */
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-0 flex-1 min-h-0 overflow-y-auto">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
                             {/* Left - Image Gallery */}
-                            <div className="relative bg-gradient-to-br from-gray-800 to-gray-900 aspect-square md:aspect-auto flex items-center justify-center flex-shrink-0">
+                            <div className="relative bg-gradient-to-br from-gray-800 to-gray-900 aspect-square md:aspect-auto md:min-h-[400px] flex items-center justify-center">
                                 {images.length > 0 ? (
                                     <>
                                         <AnimatePresence mode="wait">
@@ -126,7 +126,7 @@ export default function MockupPreviewModal({
                             </div>
 
                             {/* Right - Product Info & Actions */}
-                            <div className="p-4 sm:p-6 md:p-8 flex flex-col overflow-y-auto">
+                            <div className="p-4 sm:p-6 md:p-8 flex flex-col">
                                 {/* Header */}
                                 <div className="mb-4 sm:mb-6">
                                     <div className="flex items-center gap-2 mb-2 sm:mb-3 flex-wrap">
