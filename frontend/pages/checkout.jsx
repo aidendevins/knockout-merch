@@ -15,7 +15,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
+<<<<<<< Updated upstream
 import analytics from '@/services/analytics';
+=======
+>>>>>>> Stashed changes
 
 // US States for dropdown
 const US_STATES = [
@@ -196,6 +199,7 @@ export default function Checkout() {
       }
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
       // Set client secret for Stripe Elements
       setClientSecret(result.clientSecret);
       setPaymentIntentId(result.paymentIntentId);
@@ -204,6 +208,10 @@ export default function Checkout() {
       
       // Track checkout started
       analytics.checkoutStarted(total, cartItems.reduce((sum, item) => sum + item.quantity, 0));
+=======
+      // Redirect to Stripe Checkout
+      window.location.href = result.url;
+>>>>>>> Stashed changes
 =======
       // Redirect to Stripe Checkout
       window.location.href = result.url;
@@ -247,6 +255,7 @@ export default function Checkout() {
         </h1>
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         {/* Progress Steps */}
         <div className="flex items-center justify-center mb-8 sm:mb-12">
           <div className="flex items-center gap-2 sm:gap-4">
@@ -286,6 +295,9 @@ export default function Checkout() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
 =======
 
+=======
+
+>>>>>>> Stashed changes
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Left Column: Shipping Form */}
           <div className="lg:col-span-2 space-y-6">
@@ -415,6 +427,7 @@ export default function Checkout() {
 
                     <Button
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                       onClick={() => setStep(2)}
                       className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-5 sm:py-6 text-sm sm:text-base"
                     >
@@ -425,6 +438,12 @@ export default function Checkout() {
                       disabled={isProcessing}
                       className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6"
                     >
+=======
+                      onClick={handleCheckout}
+                      disabled={isProcessing}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6"
+                    >
+>>>>>>> Stashed changes
                       {isProcessing ? (
                         <>
                           <Loader2 className="w-5 h-5 mr-2 animate-spin" />
@@ -436,6 +455,9 @@ export default function Checkout() {
                           <ChevronRight className="w-5 h-5 ml-2" />
                         </>
                       )}
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                     </Button>
                 </CardContent>
