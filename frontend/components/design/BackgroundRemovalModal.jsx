@@ -34,15 +34,15 @@ export default function BackgroundRemovalModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] sm:max-w-3xl lg:max-w-4xl max-h-[95vh] bg-gradient-to-br from-gray-900 via-purple-950/30 to-gray-900 border-pink-900/30 overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-3xl lg:max-w-4xl h-[95vh] max-h-[95vh] bg-gradient-to-br from-gray-900 via-purple-950/30 to-gray-900 border-pink-900/30 overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-white flex items-center gap-2 text-base sm:text-lg">
             <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />
             Background Removal
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-4 sm:space-y-6 flex-1 min-h-0 overflow-y-auto">
           {/* Loading State */}
           {isProcessing && (
             <motion.div

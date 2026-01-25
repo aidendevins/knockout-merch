@@ -17,6 +17,7 @@ import { createPageUrl } from '@/utils';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import analytics from '@/services/analytics';
 
 const SIZES = ['S', 'M', 'L', 'XL', '2XL'];
 const COLORS = [
@@ -51,6 +52,13 @@ export default function Product() {
     setSelectedProductType(null);
     setIsFetchingMockups(false);
     setMockupsByProductTypeAndColor({});
+  }, [designId]);
+
+  // Track product page visit (location & device captured by backend)
+  React.useEffect(() => {
+    if (designId) {
+      analytics.productPageViewed(designId);
+    }
   }, [designId]);
 
   // Fetch design - first try database, then try Printify directly

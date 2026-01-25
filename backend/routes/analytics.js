@@ -297,4 +297,58 @@ router.get('/visitors/locations', async (req, res) => {
   }
 });
 
+// Get product page visits – each visit to /product/:designId with location, device, linked design
+router.get('/product-visits', async (req, res) => {
+  try {
+    const { days = 30, limit = 100 } = req.query;
+    const daysAgo = new Date();
+    daysAgo.setDate(daysAgo.getDate() - parseInt(days));
+
+    const rows = await db.all(`
+      SELECT 
+        e.id,
+        e.event_data->>'design_id' AS design_id,
+        e.page_url,
+        e.country,
+        e.city,
+        e.region,
+        e.device_type,
+        e.browser,
+        e.created_at,
+        e.session_id,
+        d.title AS design_title,
+        d.design_image_url AS design_image_url,
+        d.template_id AS design_template_id
+      FROM analytics_events e
+      LEFT JOIN designs d ON d.id::text = (e.event_data->>'design_id')
+      WHERE e.event_type = 'product_page_viewed'
+        AND e.event_data->>'design_id' IS NOT NULL
+        AND e.created_at >= $1
+      ORDER BY e.created_at DESC
+      LIMIT $2
+    `, [daysAgo, parseInt(limit)]);
+
+    const visits = rows.map((r) => ({
+      id: r.id,
+      design_id: r.design_id,
+      design_title: r.design_title,
+      design_image_url: r.design_image_url,
+      design_template_id: r.design_template_id,
+      page_url: r.page_url,
+      country: r.country,
+      city: r.city,
+      region: r.region,
+      device_type: r.device_type,
+      browser: r.browser,
+      created_at: r.created_at,
+      session_id: r.session_id,
+    }));
+
+    res.json(visits);
+  } catch (error) {
+    console.error('Analytics product-visits error:', error);
+    res.status(500).json({ error: 'Failed to get product visits' });
+  }
+});
+
 module.exports = router;
