@@ -1800,23 +1800,45 @@ export default function Admin() {
                         {visitorLocations.length > 0 ? (
                           <div className="space-y-2">
                             {visitorLocations.map((loc, i) => (
-                              <div key={i} className="flex items-center justify-between p-2 bg-gray-800/50 rounded-lg">
-                                <div className="flex items-center gap-3">
-                                  <Globe className="w-4 h-4 text-pink-400" />
-                                  <div>
-                                    <span className="text-white">{loc.city || 'Unknown City'}</span>
-                                    <span className="text-gray-400">, {loc.region || ''}</span>
-                                    <span className="text-gray-500 ml-2">({loc.country || 'Unknown'})</span>
+                              <div key={i} className="p-3 bg-gray-800/50 rounded-lg space-y-2">
+                                <div className="flex items-center justify-between flex-wrap gap-2">
+                                  <div className="flex items-center gap-3">
+                                    <Globe className="w-4 h-4 text-pink-400 flex-shrink-0" />
+                                    <div>
+                                      <span className="text-white">{loc.city || 'Unknown City'}</span>
+                                      <span className="text-gray-400">, {loc.region || ''}</span>
+                                      <span className="text-gray-500 ml-2">({loc.country || 'Unknown'})</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="secondary" className="bg-pink-900/30 text-pink-300">
+                                      {loc.visitors} visitors
+                                    </Badge>
+                                    <Badge variant="secondary" className="bg-gray-700 text-gray-300">
+                                      {loc.events} events
+                                    </Badge>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-4">
-                                  <Badge variant="secondary" className="bg-pink-900/30 text-pink-300">
-                                    {loc.visitors} visitors
-                                  </Badge>
-                                  <Badge variant="secondary" className="bg-gray-700 text-gray-300">
-                                    {loc.events} events
-                                  </Badge>
-                                </div>
+                                {loc.devices && loc.devices.length > 0 && (
+                                  <div className="flex flex-wrap gap-1.5 pl-7">
+                                    {loc.devices.map((d, j) => (
+                                      <span
+                                        key={j}
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-gray-700/60 text-gray-300"
+                                        title={`${d.device_type}: ${d.visitors} visitors`}
+                                      >
+                                        {d.device_type === 'desktop' && <Monitor className="w-3 h-3 text-green-400" />}
+                                        {d.device_type === 'mobile' && <Smartphone className="w-3 h-3 text-blue-400" />}
+                                        {d.device_type === 'tablet' && <Tablet className="w-3 h-3 text-purple-400" />}
+                                        {!['desktop', 'mobile', 'tablet'].includes(d.device_type) && (
+                                          <Monitor className="w-3 h-3 text-gray-500" />
+                                        )}
+                                        <span className="capitalize">{d.device_type}</span>
+                                        <span className="text-gray-500">×{d.visitors}</span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
