@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import Navbar from '@/components/common/Navbar';
 import CartDrawer from '@/components/cart/CartDrawer';
 import { base44 } from '@/api/base44Client';
+import analytics from '@/services/analytics';
 
 export default function Layout({ children }) {
   const [user, setUser] = useState(null);
+  const location = useLocation();
+
+  // Track page views on route change
+  useEffect(() => {
+    analytics.pageView(location.pathname);
+  }, [location.pathname]);
 
   useEffect(() => {
     const loadUser = async () => {

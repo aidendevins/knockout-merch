@@ -3,6 +3,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
 import Layout from './Layout';
@@ -58,6 +60,8 @@ root.render(
                 <Route path="/about" element={<About />} />
               </Routes>
             </Layout>
+            <Analytics />
+            <SpeedInsights />
           </BrowserRouter>
         </CartProvider>
       </AuthProvider>

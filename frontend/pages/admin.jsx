@@ -5,7 +5,8 @@ import { base44 } from '@/api/base44Client';
 import { motion } from 'framer-motion';
 import { 
   Upload, Image, Star, StarOff, Loader2, Check, X, Save, Edit, Plus, Trash2,
-  ShieldCheck, Package, Users, DollarSign, FileText, Sparkles, Settings, Eye, EyeOff
+  ShieldCheck, Package, Users, DollarSign, FileText, Sparkles, Settings, Eye, EyeOff,
+  BarChart3, Globe, Monitor, Smartphone, Tablet, MousePointer, TrendingUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -66,6 +67,11 @@ export default function Admin() {
   const [deleteModal, setDeleteModal] = useState({ open: false, design: null });
   const [geminiKeysInfo, setGeminiKeysInfo] = useState({ activeKey: 1, key1Configured: false, key2Configured: false });
   const [switchingKey, setSwitchingKey] = useState(false);
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsDays, setAnalyticsDays] = useState(30);
+  const [recentEvents, setRecentEvents] = useState([]);
+  const [visitorLocations, setVisitorLocations] = useState([]);
 
   // Fetch Gemini API key status on mount
   useEffect(() => {
@@ -84,6 +90,42 @@ export default function Admin() {
     };
     fetchGeminiKeys();
   }, []);
+
+  // Fetch analytics data
+  const fetchAnalytics = async () => {
+    setAnalyticsLoading(true);
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const apiBase = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
+      
+      const [summaryRes, eventsRes, locationsRes] = await Promise.all([
+        fetch(`${apiBase}/analytics/summary?days=${analyticsDays}`),
+        fetch(`${apiBase}/analytics/events?limit=20`),
+        fetch(`${apiBase}/analytics/visitors/locations?days=${analyticsDays}`)
+      ]);
+
+      if (summaryRes.ok) {
+        const data = await summaryRes.json();
+        setAnalyticsData(data);
+      }
+      if (eventsRes.ok) {
+        const events = await eventsRes.json();
+        setRecentEvents(events);
+      }
+      if (locationsRes.ok) {
+        const locations = await locationsRes.json();
+        setVisitorLocations(locations);
+      }
+    } catch (error) {
+      console.error('Failed to fetch analytics:', error);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [analyticsDays]);
 
   // Switch Gemini API key
   const switchGeminiKey = async (keyIndex) => {
@@ -531,6 +573,13 @@ export default function Admin() {
             >
               <DollarSign className="w-4 h-4 mr-2" />
               Orders
+            </TabsTrigger>
+            <TabsTrigger 
+              value="analytics" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-600 data-[state=active]:to-red-600 data-[state=active]:text-white"
+            >
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Analytics
             </TabsTrigger>
           </TabsList>
 
@@ -1543,6 +1592,288 @@ export default function Admin() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics">
+            <div className="space-y-6">
+              {/* Time Period Selector */}
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-pink-400" />
+                  Site Analytics
+                </h2>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={analyticsDays}
+                    onChange={(e) => setAnalyticsDays(parseInt(e.target.value))}
+                    className="bg-gray-800 border border-pink-900/30 text-white rounded-lg px-3 py-2 text-sm"
+                  >
+                    <option value={7}>Last 7 days</option>
+                    <option value={14}>Last 14 days</option>
+                    <option value={30}>Last 30 days</option>
+                    <option value={90}>Last 90 days</option>
+                  </select>
+                  <Button
+                    onClick={fetchAnalytics}
+                    disabled={analyticsLoading}
+                    className="bg-pink-600 hover:bg-pink-700"
+                  >
+                    {analyticsLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Refresh'}
+                  </Button>
+                </div>
+              </div>
+
+              {analyticsLoading && !analyticsData ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 text-pink-400 animate-spin" />
+                </div>
+              ) : analyticsData ? (
+                <>
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <Card className="bg-gray-900/50 border-pink-900/30">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-gray-400 text-sm">Unique Visitors</p>
+                            <p className="text-2xl font-bold text-white">{analyticsData.summary.unique_visitors.toLocaleString()}</p>
+                          </div>
+                          <Users className="w-8 h-8 text-pink-400" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-gray-900/50 border-pink-900/30">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-gray-400 text-sm">Page Views</p>
+                            <p className="text-2xl font-bold text-white">{analyticsData.summary.page_views.toLocaleString()}</p>
+                          </div>
+                          <MousePointer className="w-8 h-8 text-blue-400" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-gray-900/50 border-pink-900/30">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-gray-400 text-sm">Designs Created</p>
+                            <p className="text-2xl font-bold text-white">
+                              {analyticsData.conversions.find(c => c.event_type === 'design_created')?.count || 0}
+                            </p>
+                          </div>
+                          <Sparkles className="w-8 h-8 text-purple-400" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-gray-900/50 border-pink-900/30">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-gray-400 text-sm">Purchases</p>
+                            <p className="text-2xl font-bold text-white">
+                              {analyticsData.conversions.find(c => c.event_type === 'purchase_completed')?.count || 0}
+                            </p>
+                          </div>
+                          <DollarSign className="w-8 h-8 text-green-400" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Visitors by Location */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card className="bg-gray-900/50 border-pink-900/30">
+                      <CardHeader>
+                        <CardTitle className="text-white flex items-center gap-2">
+                          <Globe className="w-5 h-5 text-pink-400" />
+                          Visitors by Country
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3 max-h-64 overflow-y-auto">
+                          {analyticsData.visitors_by_country.length > 0 ? (
+                            analyticsData.visitors_by_country.map((item, i) => (
+                              <div key={i} className="flex items-center justify-between">
+                                <span className="text-gray-300">{item.country || 'Unknown'}</span>
+                                <Badge variant="secondary" className="bg-pink-900/30 text-pink-300">
+                                  {item.visitors} visitors
+                                </Badge>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-gray-500 text-sm">No location data yet</p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-gray-900/50 border-pink-900/30">
+                      <CardHeader>
+                        <CardTitle className="text-white flex items-center gap-2">
+                          <Monitor className="w-5 h-5 text-pink-400" />
+                          Visitors by Device
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {analyticsData.visitors_by_device.map((item, i) => (
+                            <div key={i} className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {item.device_type === 'mobile' && <Smartphone className="w-4 h-4 text-blue-400" />}
+                                {item.device_type === 'tablet' && <Tablet className="w-4 h-4 text-purple-400" />}
+                                {item.device_type === 'desktop' && <Monitor className="w-4 h-4 text-green-400" />}
+                                <span className="text-gray-300 capitalize">{item.device_type || 'Unknown'}</span>
+                              </div>
+                              <Badge variant="secondary" className="bg-pink-900/30 text-pink-300">
+                                {item.visitors} visitors
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Top Pages & Events */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card className="bg-gray-900/50 border-pink-900/30">
+                      <CardHeader>
+                        <CardTitle className="text-white flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5 text-pink-400" />
+                          Top Pages
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3 max-h-64 overflow-y-auto">
+                          {analyticsData.top_pages.length > 0 ? (
+                            analyticsData.top_pages.map((page, i) => (
+                              <div key={i} className="flex items-center justify-between">
+                                <span className="text-gray-300 truncate max-w-[200px]" title={page.page_url}>
+                                  {page.page_url || '/'}
+                                </span>
+                                <Badge variant="secondary" className="bg-blue-900/30 text-blue-300">
+                                  {page.views} views
+                                </Badge>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-gray-500 text-sm">No page view data yet</p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-gray-900/50 border-pink-900/30">
+                      <CardHeader>
+                        <CardTitle className="text-white flex items-center gap-2">
+                          <MousePointer className="w-5 h-5 text-pink-400" />
+                          Event Types
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3 max-h-64 overflow-y-auto">
+                          {analyticsData.events_by_type.map((event, i) => (
+                            <div key={i} className="flex items-center justify-between">
+                              <span className="text-gray-300">{event.event_type.replace(/_/g, ' ')}</span>
+                              <Badge variant="secondary" className="bg-purple-900/30 text-purple-300">
+                                {event.count}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Detailed Locations */}
+                  <Card className="bg-gray-900/50 border-pink-900/30">
+                    <CardHeader>
+                      <CardTitle className="text-white flex items-center gap-2">
+                        <Globe className="w-5 h-5 text-pink-400" />
+                        Visitor Locations (Detailed)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-64">
+                        {visitorLocations.length > 0 ? (
+                          <div className="space-y-2">
+                            {visitorLocations.map((loc, i) => (
+                              <div key={i} className="flex items-center justify-between p-2 bg-gray-800/50 rounded-lg">
+                                <div className="flex items-center gap-3">
+                                  <Globe className="w-4 h-4 text-pink-400" />
+                                  <div>
+                                    <span className="text-white">{loc.city || 'Unknown City'}</span>
+                                    <span className="text-gray-400">, {loc.region || ''}</span>
+                                    <span className="text-gray-500 ml-2">({loc.country || 'Unknown'})</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                  <Badge variant="secondary" className="bg-pink-900/30 text-pink-300">
+                                    {loc.visitors} visitors
+                                  </Badge>
+                                  <Badge variant="secondary" className="bg-gray-700 text-gray-300">
+                                    {loc.events} events
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-gray-500 text-sm">No detailed location data yet</p>
+                        )}
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+
+                  {/* Recent Events Feed */}
+                  <Card className="bg-gray-900/50 border-pink-900/30">
+                    <CardHeader>
+                      <CardTitle className="text-white flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-pink-400" />
+                        Recent Events
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-64">
+                        {recentEvents.length > 0 ? (
+                          <div className="space-y-2">
+                            {recentEvents.map((event, i) => (
+                              <div key={i} className="flex items-center justify-between p-2 bg-gray-800/50 rounded-lg text-sm">
+                                <div className="flex items-center gap-3">
+                                  <Badge className="bg-pink-900/50 text-pink-300 text-xs">
+                                    {event.event_type.replace(/_/g, ' ')}
+                                  </Badge>
+                                  <span className="text-gray-400">{event.page_url}</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-gray-500">
+                                  {event.country && (
+                                    <span className="flex items-center gap-1">
+                                      <Globe className="w-3 h-3" />
+                                      {event.city ? `${event.city}, ` : ''}{event.country}
+                                    </span>
+                                  )}
+                                  <span>{new Date(event.created_at).toLocaleString()}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-gray-500 text-sm text-center py-8">No events recorded yet. Events will appear here as visitors interact with your site.</p>
+                        )}
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : (
+                <div className="text-center py-12">
+                  <BarChart3 className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                  <p className="text-gray-500">No analytics data available yet.</p>
+                  <p className="text-gray-600 text-sm">Data will appear once visitors start using your site.</p>
+                </div>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </div>

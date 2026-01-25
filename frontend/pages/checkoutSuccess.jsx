@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Check, Package, Mail, ArrowRight } from 'lucide-react';
@@ -6,16 +6,26 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { createPageUrl } from '@/utils';
 import { useCart } from '@/context/CartContext';
+import analytics from '@/services/analytics';
 
 export default function CheckoutSuccess() {
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
+  const paymentIntentId = searchParams.get('payment_intent');
   const { clearCart } = useCart();
   const [sessionData, setSessionData] = useState(null);
+  const hasTracked = useRef(false);
 
   useEffect(() => {
     // Clear the cart
     clearCart();
+
+    // Track purchase completed (only once)
+    if (!hasTracked.current) {
+      const orderId = sessionId || paymentIntentId || 'unknown';
+      analytics.purchaseCompleted(orderId, sessionData?.amount_total ? sessionData.amount_total / 100 : null);
+      hasTracked.current = true;
+    }
 
     // Optionally fetch session details (skip for free orders)
     if (sessionId && sessionId !== 'free-order') {
@@ -24,7 +34,7 @@ export default function CheckoutSuccess() {
         .then(data => setSessionData(data))
         .catch(err => console.error('Error fetching session:', err));
     }
-  }, [sessionId, clearCart]);
+  }, [sessionId, paymentIntentId, clearCart, sessionData?.amount_total]);
 
   return (
     <div className="min-h-screen bg-black pt-20 pb-12 px-4 flex items-center justify-center">

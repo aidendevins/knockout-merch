@@ -17,6 +17,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
+import analytics from '@/services/analytics';
 
 // Initialize Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
@@ -300,6 +301,9 @@ export default function Checkout() {
       setPaymentIntentId(result.paymentIntentId);
       setStep(2);
       setIsProcessing(false);
+      
+      // Track checkout started
+      analytics.checkoutStarted(total, cartItems.reduce((sum, item) => sum + item.quantity, 0));
 
     } catch (error) {
       console.error('Checkout error:', error);
