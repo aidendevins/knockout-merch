@@ -1,10 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Loader2, AlertCircle, RefreshCw, Heart, ImageIcon, Check, Scissors, History, Repeat2 } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle, RefreshCw, Heart, ImageIcon, Check, Scissors, History, Repeat2, Upload, X, Info, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { base44 } from '@/api/base44Client';
 import { COLOR_PRESETS, getColorHex, getBuildPromptFunction } from '@/config/templates';
 import { cn } from '@/lib/utils';
@@ -290,6 +297,8 @@ function DynamicField({ field, value, onChange, excludeShirtColorHex = null, sho
 
 export default function AIPanel({
   uploadedPhotos = [],
+  onPhotosChange,
+  maxPhotos = 9,
   selectedTemplate,
   onImageGenerated,
   generatedImage,
@@ -305,6 +314,100 @@ export default function AIPanel({
   const [styleTweaks, setStyleTweaks] = useState('');
   const [error, setError] = useState(null);
   const [previousDesigns, setPreviousDesigns] = useState([]);
+  
+  // Photo upload state (for mobile)
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const fileInputRef = useRef(null);
+
+  // Photo upload handlers (for mobile)
+  const processFiles = useCallback(async (files) => {
+    setUploadError(null);
+    
+    const fileArray = Array.isArray(files) ? files : Array.from(files);
+    const validFiles = fileArray.filter(file => {
+      if (!file.type.startsWith('image/')) {
+        setUploadError('Please upload only image files');
+        return false;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        setUploadError('Images must be under 10MB');
+        return false;
+      }
+      return true;
+    });
+
+    const remainingSlots = maxPhotos - uploadedPhotos.length;
+    if (validFiles.length > remainingSlots) {
+      setUploadError(`You can only add ${remainingSlots} more photo${remainingSlots !== 1 ? 's' : ''}`);
+      validFiles.splice(remainingSlots);
+    }
+
+    if (validFiles.length === 0) return;
+
+    const newPhotos = [];
+    for (const file of validFiles) {
+      try {
+        const photoData = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const dataUrl = e.target.result;
+            const img = new Image();
+            img.onload = () => {
+              resolve({
+                id: `photo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                file,
+                preview: dataUrl,
+                name: file.name,
+              });
+            };
+            img.onerror = () => reject(new Error('Invalid image'));
+            img.src = dataUrl;
+          };
+          reader.onerror = () => reject(new Error('Failed to read file'));
+          reader.readAsDataURL(file);
+        });
+        newPhotos.push(photoData);
+      } catch (error) {
+        console.error(`Failed to load image: ${file.name}`, error);
+      }
+    }
+    
+    if (newPhotos.length > 0 && onPhotosChange) {
+      onPhotosChange([...uploadedPhotos, ...newPhotos]);
+    }
+  }, [uploadedPhotos, maxPhotos, onPhotosChange]);
+
+  const handleFileInput = useCallback((e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) {
+      e.target.value = '';
+      return;
+    }
+    processFiles(files);
+    e.target.value = '';
+    setShowUploadModal(false);
+  }, [processFiles]);
+
+  const handleUploadClick = useCallback(() => {
+    setShowUploadModal(true);
+  }, []);
+
+  const handleModalContinue = () => {
+    setShowUploadModal(false);
+    setTimeout(() => {
+      if (fileInputRef.current) {
+        fileInputRef.current.click();
+      }
+    }, 50);
+  };
+
+  const handleRemovePhoto = useCallback((photoId) => {
+    if (onPhotosChange) {
+      onPhotosChange(uploadedPhotos.filter(p => p.id !== photoId));
+    }
+    setUploadError(null);
+  }, [uploadedPhotos, onPhotosChange]);
 
   // Initialize field values when template changes
   useEffect(() => {
@@ -801,34 +904,65 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
               variant="outline" 
               className={uploadedPhotos.length > 0 ? "border-pink-600/50 text-pink-400" : "border-pink-900/30 text-white/40"}
             >
-              {uploadedPhotos.length} / {selectedTemplate?.maxPhotos || 9}
+              {uploadedPhotos.length} / {maxPhotos}
             </Badge>
           </div>
           
           {uploadedPhotos.length > 0 ? (
-            <div className="flex gap-1 flex-wrap">
-              {uploadedPhotos.slice(0, 4).map((photo) => (
-                <img 
-                  key={photo.id}
-                  src={photo.preview}
-                  alt=""
-                  className="w-10 h-10 object-cover rounded border border-pink-900/30"
-                />
-              ))}
-              {uploadedPhotos.length > 4 && (
-                <div className="w-10 h-10 rounded border border-pink-900/30 bg-black/40 flex items-center justify-center text-white/60 text-xs">
-                  +{uploadedPhotos.length - 4}
-                </div>
+            <div className="space-y-2">
+              <div className="flex gap-1 flex-wrap">
+                {uploadedPhotos.slice(0, 4).map((photo, index) => (
+                  <div key={photo.id} className="relative group">
+                    <img 
+                      src={photo.preview}
+                      alt=""
+                      className="w-10 h-10 object-cover rounded border border-pink-900/30"
+                    />
+                    {/* Remove button on mobile only */}
+                    <button
+                      onClick={() => handleRemovePhoto(photo.id)}
+                      className="md:hidden absolute -top-1 -right-1 w-4 h-4 bg-red-600 rounded-full flex items-center justify-center text-white opacity-100"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                ))}
+                {uploadedPhotos.length > 4 && (
+                  <div className="w-10 h-10 rounded border border-pink-900/30 bg-black/40 flex items-center justify-center text-white/60 text-xs">
+                    +{uploadedPhotos.length - 4}
+                  </div>
+                )}
+              </div>
+              {/* Add more button - mobile only */}
+              {uploadedPhotos.length < maxPhotos && (
+                <Button
+                  onClick={handleUploadClick}
+                  variant="outline"
+                  size="sm"
+                  className="md:hidden w-full border-pink-900/30 hover:border-pink-600 hover:bg-pink-600/10 text-white/60 hover:text-white text-xs"
+                >
+                  <Upload className="w-3 h-3 mr-1" />
+                  Add More Photos
+                </Button>
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-white/40 text-xs p-3 rounded-lg border border-dashed border-pink-900/30">
-              <ImageIcon className="w-4 h-4" />
-              <span>
-                <span className="md:hidden">Upload photos on the top panel →</span>
-                <span className="hidden md:inline">Upload photos on the right panel →</span>
-              </span>
-            </div>
+            <>
+              {/* Mobile: Upload button */}
+              <Button
+                onClick={handleUploadClick}
+                variant="outline"
+                className="md:hidden w-full border-pink-900/30 hover:border-pink-600 hover:bg-pink-600/10 text-white/60 hover:text-white text-xs py-6"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Upload Photos
+              </Button>
+              {/* Desktop: Info text */}
+              <div className="hidden md:flex items-center gap-2 text-white/40 text-xs p-3 rounded-lg border border-dashed border-pink-900/30">
+                <ImageIcon className="w-4 h-4" />
+                <span>Upload photos on the right panel →</span>
+              </div>
+            </>
           )}
         </div>
 
@@ -986,6 +1120,103 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
           )}
         </AnimatePresence>
       </ScrollArea>
+
+      {/* Upload Modal - Mobile Only */}
+      <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
+        <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[95vh] overflow-y-auto bg-gradient-to-br from-gray-900 via-red-950/30 to-gray-900 border-pink-900/30 md:hidden">
+          <DialogHeader>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-pink-600 to-red-600 flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-white" />
+              </div>
+              <DialogTitle className="text-white text-lg">Photo Upload Tips</DialogTitle>
+            </div>
+            <DialogDescription className="text-white/60 text-sm">
+              Get the best results from our AI designer
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 mt-3">
+            {/* Image Quality Tips */}
+            <div className="bg-pink-600/10 border border-pink-900/30 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <Info className="w-4 h-4 text-pink-400 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1.5">
+                  <h4 className="text-white font-medium text-xs">
+                    {selectedTemplate?.uploadTips?.title || 'Best Image Quality'}
+                  </h4>
+                  <ul className="text-white/70 text-xs space-y-1 list-disc list-inside">
+                    {(selectedTemplate?.uploadTips?.tips || [
+                      'Use photos with a <strong>clear subject</strong> (person, pet, object)',
+                      'Choose images with a <strong>simple or transparent background</strong>',
+                      'Higher resolution photos work better (but max 10MB per file)',
+                      'Well-lit photos produce the best designs',
+                    ]).map((tip, index) => (
+                      <li key={index} dangerouslySetInnerHTML={{ __html: tip }} />
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Privacy Disclaimer */}
+            <div className="bg-black/40 border border-pink-900/30 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <Shield className="w-4 h-4 text-pink-400 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1.5">
+                  <h4 className="text-white font-medium text-xs">Privacy & Security</h4>
+                  <p className="text-white/70 text-xs leading-relaxed">
+                    <strong>We don't store your images.</strong> Your photos are processed locally in your browser 
+                    and only sent to our AI service temporarily to generate your design.
+                  </p>
+                  <p className="text-white/70 text-xs leading-relaxed">
+                    <strong>Content Policy:</strong> Please do not upload inappropriate images. 
+                    Such content will be rejected and may result in restrictions.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Tips */}
+            <div className="text-white/60 text-[10px] space-y-1">
+              <p className="flex items-center gap-2">
+                <Heart className="w-3 h-3 text-pink-500 flex-shrink-0" />
+                <span>You can upload up to {maxPhotos} photos per design</span>
+              </p>
+              <p className="flex items-center gap-2">
+                <Heart className="w-3 h-3 text-pink-500 flex-shrink-0" />
+                <span>Supported formats: PNG, JPG, JPEG</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row justify-end gap-2 mt-4">
+            <Button
+              variant="ghost"
+              onClick={() => setShowUploadModal(false)}
+              className="text-white/60 hover:text-white hover:bg-pink-600/10 text-sm w-full order-2"
+            >
+              Go Back
+            </Button>
+            <Button
+              onClick={handleModalContinue}
+              className="bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white font-medium text-sm w-full order-1"
+            >
+              Continue Upload
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/*"
+        onChange={handleFileInput}
+        className="hidden"
+      />
     </div>
   );
 }
