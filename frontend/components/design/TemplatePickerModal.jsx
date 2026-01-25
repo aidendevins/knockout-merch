@@ -343,23 +343,23 @@ export default function TemplatePickerModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-4xl lg:max-w-6xl max-h-[95vh] bg-gradient-to-br from-gray-900 via-red-950/30 to-gray-900 border-pink-900/30 p-0 flex flex-col overflow-hidden">
+      <DialogContent className="max-w-[95vw] sm:max-w-4xl lg:max-w-6xl max-h-[95vh] bg-gradient-to-br from-gray-900 via-red-950/30 to-gray-900 border-pink-900/30 p-0 flex flex-col">
         {/* Header */}
-        <div className="p-2 sm:p-3 md:p-4 lg:p-6 border-b border-pink-900/30 flex-shrink-0">
-          <div className="flex items-center gap-2 mb-0.5 sm:mb-1">
+        <div className="p-3 sm:p-4 md:p-6 border-b border-pink-900/30 flex-shrink-0">
+          <div className="flex items-center gap-2 mb-1">
             <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />
-            <h2 className="font-bold text-white text-sm sm:text-base md:text-lg lg:text-xl">
+            <h2 className="font-bold text-white text-base sm:text-lg md:text-xl">
               {STEPS[currentStep].title}
             </h2>
           </div>
           <p className="text-white/60 text-xs sm:text-sm">{STEPS[currentStep].subtitle}</p>
           
           {/* Step indicators */}
-          <div className="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3 md:mt-4">
+          <div className="flex items-center gap-1.5 sm:gap-2 mt-3 sm:mt-4">
             {STEPS.map((step, index) => (
               <div key={step.id} className="flex items-center">
                 <div className={cn(
-                  "w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold transition-all",
+                  "w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold transition-all",
                   index < currentStep 
                     ? "bg-gradient-to-r from-pink-600 to-red-600 text-white"
                     : index === currentStep
@@ -367,14 +367,14 @@ export default function TemplatePickerModal({
                       : "bg-black/40 text-white/40 border border-pink-900/30"
                 )}>
                   {index < currentStep ? (
-                    <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-4 md:h-4" />
+                    <Check className="w-3 h-3 sm:w-4 sm:h-4" />
                   ) : (
                     index + 1
                   )}
                 </div>
                 {index < STEPS.length - 1 && (
                   <div className={cn(
-                    "w-3 sm:w-4 md:w-8 h-0.5 mx-0.5 sm:mx-1",
+                    "w-4 sm:w-8 h-0.5 mx-0.5 sm:mx-1",
                     index < currentStep ? "bg-pink-600" : "bg-pink-900/30"
                   )} />
                 )}
@@ -394,7 +394,7 @@ export default function TemplatePickerModal({
               animate="center"
               exit="exit"
               transition={{ duration: 0.3, ease: 'easeInOut' }}
-              className="p-2 sm:p-3 md:p-4 lg:p-6"
+              className="p-3 sm:p-4 md:p-6"
             >
               {renderStepContent()}
             </motion.div>
@@ -402,12 +402,12 @@ export default function TemplatePickerModal({
         </div>
 
         {/* Footer with navigation */}
-        <div className="p-2 sm:p-3 md:p-4 lg:p-6 border-t border-pink-900/30 flex justify-between items-center gap-2 flex-shrink-0">
+        <div className="p-3 sm:p-4 md:p-6 border-t border-pink-900/30 flex justify-between items-center gap-2 flex-shrink-0">
           <Button
             variant="ghost"
             onClick={handleBack}
             disabled={currentStep === 0}
-            className="text-white/60 hover:text-white hover:bg-pink-600/10 disabled:opacity-0 text-xs sm:text-sm px-2 sm:px-4 h-8 sm:h-9"
+            className="text-white/60 hover:text-white hover:bg-pink-600/10 disabled:opacity-0 text-xs sm:text-sm px-2 sm:px-4"
           >
             <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-0.5 sm:mr-1" />
             <span className="hidden xs:inline">Back</span>
@@ -416,7 +416,7 @@ export default function TemplatePickerModal({
           <Button
             onClick={handleNext}
             disabled={!canProceed()}
-            className="bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white font-bold px-3 sm:px-6 disabled:opacity-50 text-xs sm:text-sm h-8 sm:h-9"
+            className="bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white font-bold px-3 sm:px-6 disabled:opacity-50 text-xs sm:text-sm"
           >
             {currentStep === STEPS.length - 1 ? (
               <>
