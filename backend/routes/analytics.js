@@ -193,11 +193,51 @@ router.get('/summary', async (req, res) => {
       GROUP BY event_type
     `, [daysAgo]);
 
+    // Landing → Design funnel (exclude Philadelphia, Atlanta, and events without city)
+    const excludeCities = `AND city IS NOT NULL AND LOWER(TRIM(city)) NOT IN ('philadelphia', 'atlanta')`;
+    const landingVisitors = await db.get(`
+      SELECT COUNT(DISTINCT session_id) as count
+      FROM analytics_events
+      WHERE created_at >= $1 AND page_url = '/' ${excludeCities}
+    `, [daysAgo]);
+
+    const designVisitors = await db.get(`
+      SELECT COUNT(DISTINCT session_id) as count
+      FROM analytics_events
+      WHERE created_at >= $1
+        AND (page_url = '/design' OR event_type IN ('design_started', 'design_created'))
+        ${excludeCities}
+    `, [daysAgo]);
+
+    const landingToDesignConverted = await db.get(`
+      SELECT COUNT(*) as count FROM (
+        SELECT session_id FROM analytics_events
+        WHERE created_at >= $1 AND page_url = '/' ${excludeCities}
+        INTERSECT
+        SELECT session_id FROM analytics_events
+        WHERE created_at >= $1
+          AND (page_url = '/design' OR event_type IN ('design_started', 'design_created'))
+          ${excludeCities}
+      ) x
+    `, [daysAgo]);
+
+    const landingCount = parseInt(landingVisitors?.count || 0, 10);
+    const convertedCount = parseInt(landingToDesignConverted?.count || 0, 10);
+    const conversionRate = landingCount > 0
+      ? Math.round((convertedCount / landingCount) * 1000) / 10
+      : 0;
+
     res.json({
       summary: {
         unique_visitors: parseInt(uniqueVisitors?.count || 0),
         page_views: parseInt(pageViews?.count || 0),
         time_period_days: parseInt(days)
+      },
+      funnel: {
+        landing_visitors: landingCount,
+        design_visitors: parseInt(designVisitors?.count || 0, 10),
+        landing_to_design_converted: convertedCount,
+        landing_to_design_conversion_rate: conversionRate
       },
       events_by_type: eventsByType,
       visitors_by_country: visitorsByCountry,
@@ -211,6 +251,69 @@ router.get('/summary', async (req, res) => {
   } catch (error) {
     console.error('Analytics summary error:', error);
     res.status(500).json({ error: 'Failed to get analytics summary' });
+  }
+});
+
+// Get locations of converted users (landing → design), same exclusions as funnel
+router.get('/funnel/converted-locations', async (req, res) => {
+  try {
+    const { days = 30 } = req.query;
+    const daysAgo = new Date();
+    daysAgo.setDate(daysAgo.getDate() - parseInt(days));
+    const exclude =
+      `AND city IS NOT NULL AND LOWER(TRIM(city)) NOT IN ('philadelphia', 'atlanta')`;
+
+    const rows = await db.all(`
+      WITH converted_sessions AS (
+        SELECT session_id FROM analytics_events
+        WHERE created_at >= $1 AND page_url = '/' ${exclude}
+        INTERSECT
+        SELECT session_id FROM analytics_events
+        WHERE created_at >= $1
+          AND (page_url = '/design' OR event_type IN ('design_started', 'design_created'))
+          ${exclude}
+      )
+      SELECT
+        e.country,
+        e.city,
+        e.region,
+        e.device_type,
+        COUNT(DISTINCT e.session_id) AS visitors,
+        COUNT(*) AS events
+      FROM analytics_events e
+      INNER JOIN converted_sessions c ON c.session_id = e.session_id
+      WHERE e.created_at >= $1 ${exclude}
+      GROUP BY e.country, e.city, e.region, e.device_type
+      ORDER BY visitors DESC
+    `, [daysAgo]);
+
+    const byKey = {};
+    for (const r of rows) {
+      const key = `${r.country}|${r.city || ''}|${r.region || ''}`;
+      if (!byKey[key]) {
+        byKey[key] = {
+          country: r.country,
+          city: r.city,
+          region: r.region,
+          visitors: 0,
+          events: 0,
+          devices: [],
+        };
+      }
+      byKey[key].visitors += parseInt(r.visitors, 10);
+      byKey[key].events += parseInt(r.events, 10);
+      byKey[key].devices.push({
+        device_type: r.device_type || 'unknown',
+        visitors: parseInt(r.visitors, 10),
+        events: parseInt(r.events, 10),
+      });
+    }
+
+    const locations = Object.values(byKey).sort((a, b) => b.visitors - a.visitors);
+    res.json(locations);
+  } catch (error) {
+    console.error('Converted locations error:', error);
+    res.status(500).json({ error: 'Failed to get converted locations' });
   }
 });
 
