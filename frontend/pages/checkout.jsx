@@ -15,13 +15,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-import analytics from '@/services/analytics';
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 
 // US States for dropdown
 const US_STATES = [
@@ -201,29 +194,8 @@ export default function Checkout() {
         return;
       }
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-      // Set client secret for Stripe Elements
-      setClientSecret(result.clientSecret);
-      setPaymentIntentId(result.paymentIntentId);
-      setStep(2);
-      setIsProcessing(false);
-      
-      // Track checkout started
-      analytics.checkoutStarted(total, cartItems.reduce((sum, item) => sum + item.quantity, 0));
-=======
       // Redirect to Stripe Checkout
       window.location.href = result.url;
->>>>>>> Stashed changes
-=======
-      // Redirect to Stripe Checkout
-      window.location.href = result.url;
->>>>>>> Stashed changes
-=======
-      // Redirect to Stripe Checkout
-      window.location.href = result.url;
->>>>>>> Stashed changes
 
     } catch (error) {
       console.error('Checkout error:', error);
@@ -262,54 +234,6 @@ export default function Checkout() {
           Checkout
         </h1>
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-        {/* Progress Steps */}
-        <div className="flex items-center justify-center mb-8 sm:mb-12">
-          <div className="flex items-center gap-2 sm:gap-4">
-            <div className={`flex items-center gap-1.5 sm:gap-2 ${step >= 1 ? 'text-red-500' : 'text-gray-600'}`}>
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm sm:text-base ${step >= 1 ? 'bg-red-500 text-white' : 'bg-gray-800 text-gray-400'}`}>
-                {step > 1 ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : '1'}
-              </div>
-              <span className="hidden xs:inline text-sm sm:text-base font-semibold">Shipping</span>
-            </div>
-            <ChevronRight className="text-gray-600 w-4 h-4 sm:w-5 sm:h-5" />
-            <div className={`flex items-center gap-1.5 sm:gap-2 ${step >= 2 ? 'text-red-500' : 'text-gray-600'}`}>
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm sm:text-base ${step >= 2 ? 'bg-red-500 text-white' : 'bg-gray-800 text-gray-400'}`}>
-                2
-              </div>
-              <span className="hidden xs:inline text-sm sm:text-base font-semibold">Payment</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid lg:grid-cols-3 gap-6 sm:gap-8">
-          {/* Left Column: Forms */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            {/* Step 1: Shipping Information */}
-            {step === 1 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <Card className="bg-gray-900 border-gray-800">
-                  <CardHeader className="p-4 sm:p-6">
-                    <CardTitle className="text-white flex items-center gap-2 text-lg sm:text-xl">
-                      <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
-                      Shipping Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-=======
-
-=======
-
->>>>>>> Stashed changes
-=======
-
->>>>>>> Stashed changes
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Left Column: Shipping Form */}
           <div className="lg:col-span-2 space-y-6">
@@ -326,7 +250,6 @@ export default function Checkout() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-2 gap-4">
->>>>>>> Stashed changes
                       <div>
                         <Label htmlFor="name" className="text-gray-400 text-sm">Full Name *</Label>
                         <Input
@@ -438,31 +361,10 @@ export default function Checkout() {
                     </div>
 
                     <Button
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                      onClick={() => setStep(2)}
-                      className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-5 sm:py-6 text-sm sm:text-base"
-                    >
-                      Continue to Payment
-                      <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
-=======
                       onClick={handleCheckout}
                       disabled={isProcessing}
                       className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6"
                     >
-=======
-                      onClick={handleCheckout}
-                      disabled={isProcessing}
-                      className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6"
-                    >
->>>>>>> Stashed changes
-=======
-                      onClick={handleCheckout}
-                      disabled={isProcessing}
-                      className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6"
-                    >
->>>>>>> Stashed changes
                       {isProcessing ? (
                         <>
                           <Loader2 className="w-5 h-5 mr-2 animate-spin" />
@@ -474,13 +376,6 @@ export default function Checkout() {
                           <ChevronRight className="w-5 h-5 ml-2" />
                         </>
                       )}
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
                     </Button>
                 </CardContent>
               </Card>
