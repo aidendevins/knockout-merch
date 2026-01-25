@@ -241,26 +241,54 @@ router.get('/events', async (req, res) => {
   }
 });
 
-// Get visitor details by location
+// Get visitor details by location (with desktop/mobile/tablet per location)
 router.get('/visitors/locations', async (req, res) => {
   try {
     const { days = 30 } = req.query;
     const daysAgo = new Date();
     daysAgo.setDate(daysAgo.getDate() - parseInt(days));
 
-    const locations = await db.all(`
+    // Group by location AND device_type to get desktop/mobile/tablet per location
+    const rows = await db.all(`
       SELECT 
         country, 
         city, 
         region,
+        device_type,
         COUNT(DISTINCT session_id) as visitors,
         COUNT(*) as events
       FROM analytics_events
       WHERE country IS NOT NULL AND created_at >= $1
-      GROUP BY country, city, region
-      ORDER BY visitors DESC
-      LIMIT 100
+      GROUP BY country, city, region, device_type
+      ORDER BY country, city, region, visitors DESC
     `, [daysAgo]);
+
+    // Aggregate by location, building devices array
+    const byKey = {};
+    for (const r of rows) {
+      const key = `${r.country}|${r.city || ''}|${r.region || ''}`;
+      if (!byKey[key]) {
+        byKey[key] = {
+          country: r.country,
+          city: r.city,
+          region: r.region,
+          visitors: 0,
+          events: 0,
+          devices: [],
+        };
+      }
+      byKey[key].visitors += parseInt(r.visitors, 10);
+      byKey[key].events += parseInt(r.events, 10);
+      byKey[key].devices.push({
+        device_type: r.device_type || 'unknown',
+        visitors: parseInt(r.visitors, 10),
+        events: parseInt(r.events, 10),
+      });
+    }
+
+    const locations = Object.values(byKey)
+      .sort((a, b) => b.visitors - a.visitors)
+      .slice(0, 100);
 
     res.json(locations);
   } catch (error) {

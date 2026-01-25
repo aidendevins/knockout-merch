@@ -938,36 +938,36 @@ const ProductCanvas = forwardRef(({
   return (
     <div className="h-full flex flex-col bg-black">
       {/* Toolbar */}
-      <div className="h-12 bg-gradient-to-r from-red-950/30 to-black border-b border-pink-900/30 flex items-center justify-between px-4">
+      <div className="h-10 sm:h-12 bg-gradient-to-r from-red-950/30 to-black border-b border-pink-900/30 flex items-center justify-between px-2 sm:px-4 gap-2">
         {/* Left: Tools */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           {/* Tool switcher */}
-          <div className="flex bg-black/40 border border-pink-900/30 rounded-lg p-1">
+          <div className="flex bg-black/40 border border-pink-900/30 rounded-lg p-0.5 sm:p-1">
             <Button
               size="icon"
               variant="ghost"
               onClick={() => setActiveTool('select')}
               className={cn(
-                "h-7 w-7 relative",
+                "h-6 w-6 sm:h-7 sm:w-7 relative",
                 activeTool === 'select' ? "text-white bg-pink-600" : "text-white/60 hover:text-white hover:bg-pink-600/20"
               )}
             >
-              <MousePointer2 className="w-4 h-4" />
+              <MousePointer2 className="w-3 h-3 sm:w-4 sm:h-4" />
             </Button>
             <Button
               size="icon"
               variant="ghost"
               onClick={() => setActiveTool('pan')}
               className={cn(
-                "h-7 w-7",
+                "h-6 w-6 sm:h-7 sm:w-7",
                 activeTool === 'pan' ? "text-white bg-pink-600" : "text-white/60 hover:text-white hover:bg-pink-600/20"
               )}
             >
-              <Hand className="w-4 h-4" />
+              <Hand className="w-3 h-3 sm:w-4 sm:h-4" />
             </Button>
           </div>
           
-          <div className="w-px h-6 bg-pink-900/30 mx-2" />
+          <div className="w-px h-4 sm:h-6 bg-pink-900/30 mx-1 sm:mx-2 hidden xs:block" />
           
           {/* Grid toggle */}
           <Button
@@ -975,32 +975,32 @@ const ProductCanvas = forwardRef(({
             variant="ghost"
             onClick={() => setShowGrid(!showGrid)}
             className={cn(
-              "h-8 w-8 hover:bg-pink-600/10",
+              "h-6 w-6 sm:h-8 sm:w-8 hover:bg-pink-600/10 hidden xs:flex",
               showGrid ? "text-white" : "text-white/40"
             )}
           >
-            <Grid3X3 className="w-4 h-4" />
+            <Grid3X3 className="w-3 h-3 sm:w-4 sm:h-4" />
           </Button>
         </div>
 
         {/* Right: Zoom and Actions */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1.5 sm:gap-2 md:gap-4">
           {/* Zoom controls */}
-          <div className="flex items-center gap-2 bg-black/40 border border-pink-900/30 rounded-lg px-2 py-1">
+          <div className="flex items-center gap-1 sm:gap-2 bg-black/40 border border-pink-900/30 rounded-lg px-1 sm:px-2 py-0.5 sm:py-1">
             <button 
               onClick={() => setZoom(z => Math.max(0.25, z - 0.1))} 
-              className="text-white/60 hover:text-white px-1"
+              className="text-white/60 hover:text-white px-0.5 sm:px-1"
             >
-              <ZoomOut className="w-4 h-4" />
+              <ZoomOut className="w-3 h-3 sm:w-4 sm:h-4" />
             </button>
-            <span className="text-xs text-white w-12 text-center">
+            <span className="text-[10px] sm:text-xs text-white w-8 sm:w-12 text-center">
               {Math.round(zoom * 100)}%
             </span>
             <button 
               onClick={() => setZoom(z => Math.min(3, z + 0.1))} 
-              className="text-white/60 hover:text-white px-1"
+              className="text-white/60 hover:text-white px-0.5 sm:px-1"
             >
-              <ZoomIn className="w-4 h-4" />
+              <ZoomIn className="w-3 h-3 sm:w-4 sm:h-4" />
             </button>
           </div>
 
@@ -1009,14 +1009,15 @@ const ProductCanvas = forwardRef(({
             <Button
               onClick={onSave}
               disabled={!designLayers.design || isSaving || isExporting}
-              className="bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white font-bold shadow-lg shadow-pink-600/30"
+              className="bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white font-bold shadow-lg shadow-pink-600/30 text-xs sm:text-sm px-2 sm:px-4 h-7 sm:h-9"
             >
               {isSaving || isExporting ? (
-                <>Processing...</>
+                <span className="hidden xs:inline">Processing...</span>
               ) : (
                 <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Create Product
+                  <Save className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+                  <span className="hidden xs:inline">Create Product</span>
+                  <span className="xs:hidden">Create</span>
                 </>
               )}
             </Button>
@@ -1084,33 +1085,34 @@ const ProductCanvas = forwardRef(({
       </div>
 
       {/* Preview Note */}
-      <div className="h-12 border-t border-pink-900/30 bg-gradient-to-r from-red-950/30 to-black flex items-center justify-center px-4">
-        <p className="text-xs text-white/60 text-center">
-          <span className="text-pink-400">💡 Preview Mode:</span> Click your design for a high-quality view. 
-          Create the product to see it on the actual shirt. Make sure you're satisfied before creating!
+      <div className="h-10 sm:h-12 border-t border-pink-900/30 bg-gradient-to-r from-red-950/30 to-black flex items-center justify-center px-2 sm:px-4">
+        <p className="text-[10px] sm:text-xs text-white/60 text-center">
+          <span className="text-pink-400">💡 <span className="hidden xs:inline">Preview Mode:</span></span> <span className="hidden sm:inline">Click your design for a high-quality view. 
+          Create the product to see it on the actual shirt. Make sure you're satisfied before creating!</span>
+          <span className="sm:hidden">Tap design for preview. Create product to see on shirt.</span>
         </p>
       </div>
 
       {/* Preview Modal */}
       {isPreviewOpen && generatedImage && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 p-2 sm:p-4"
           onClick={() => setIsPreviewOpen(false)}
         >
-          <div className="relative max-w-4xl max-h-[90vh] p-4">
+          <div className="relative max-w-[95vw] sm:max-w-3xl lg:max-w-4xl max-h-[90vh] p-2 sm:p-4">
             {/* Close button */}
             <button
               onClick={() => setIsPreviewOpen(false)}
-              className="absolute -top-2 -right-2 z-10 p-2 bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 rounded-full text-white shadow-lg transition-all hover:scale-110"
+              className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 z-10 p-1.5 sm:p-2 bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 rounded-full text-white shadow-lg transition-all hover:scale-110"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
             
             {/* High-quality preview image */}
             <img
               src={generatedImage}
               alt="Design Preview"
-              className="max-w-full max-h-[85vh] rounded-lg shadow-2xl border-2 border-pink-500/30"
+              className="max-w-full max-h-[85vh] rounded-md sm:rounded-lg shadow-2xl border-2 border-pink-500/30"
               onClick={(e) => e.stopPropagation()}
             />
           </div>
