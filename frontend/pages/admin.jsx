@@ -6,7 +6,8 @@ import { motion } from 'framer-motion';
 import { 
   Upload, Image, Star, StarOff, Loader2, Check, X, Save, Edit, Plus, Trash2,
   ShieldCheck, Package, Users, DollarSign, FileText, Sparkles, Settings, Eye, EyeOff,
-  BarChart3, Globe, Monitor, Smartphone, Tablet, MousePointer, TrendingUp
+  BarChart3, Globe, Monitor, Smartphone, Tablet, MousePointer, TrendingUp,
+  ArrowRight, Home
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -73,6 +74,9 @@ export default function Admin() {
   const [recentEvents, setRecentEvents] = useState([]);
   const [visitorLocations, setVisitorLocations] = useState([]);
   const [productVisits, setProductVisits] = useState([]);
+  const [convertedLocationsModalOpen, setConvertedLocationsModalOpen] = useState(false);
+  const [convertedLocations, setConvertedLocations] = useState([]);
+  const [convertedLocationsLoading, setConvertedLocationsLoading] = useState(false);
 
   // Fetch Gemini API key status on mount
   useEffect(() => {
@@ -132,6 +136,25 @@ export default function Admin() {
   useEffect(() => {
     fetchAnalytics();
   }, [analyticsDays]);
+
+  const openConvertedLocationsModal = async () => {
+    setConvertedLocationsModalOpen(true);
+    setConvertedLocationsLoading(true);
+    setConvertedLocations([]);
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const apiBase = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
+      const res = await fetch(`${apiBase}/analytics/funnel/converted-locations?days=${analyticsDays}`);
+      if (res.ok) {
+        const data = await res.json();
+        setConvertedLocations(data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch converted locations:', e);
+    } finally {
+      setConvertedLocationsLoading(false);
+    }
+  };
 
   // Switch Gemini API key
   const switchGeminiKey = async (keyIndex) => {
@@ -1688,6 +1711,71 @@ export default function Admin() {
                     </Card>
                   </div>
 
+                  {/* Landing → Design conversion */}
+                  {analyticsData.funnel && (
+                    <Card className="bg-gray-900/50 border-pink-900/30 overflow-hidden">
+                      <CardHeader>
+                        <CardTitle className="text-white flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5 text-pink-400" />
+                          Landing → Design conversion
+                        </CardTitle>
+                        <p className="text-gray-400 text-sm font-normal mt-1">
+                          Visitors who hit the home page and then went to the design studio or created a design.
+                          <span className="text-gray-500 ml-1">Philadelphia, Atlanta, and events without city excluded.</span>
+                        </p>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6 flex-wrap">
+                          <div className="flex items-center gap-3 p-4 rounded-lg bg-gray-800/50 flex-1 min-w-[140px]">
+                            <div className="w-10 h-10 rounded-full bg-pink-900/30 flex items-center justify-center">
+                              <Home className="w-5 h-5 text-pink-400" />
+                            </div>
+                            <div>
+                              <p className="text-gray-400 text-xs uppercase tracking-wide">Landing (/)</p>
+                              <p className="text-xl font-bold text-white">
+                                {analyticsData.funnel.landing_visitors.toLocaleString()}
+                              </p>
+                              <p className="text-gray-500 text-xs">unique visitors</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-center text-gray-500 shrink-0">
+                            <ArrowRight className="w-6 h-6 sm:w-8 sm:h-8" />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={openConvertedLocationsModal}
+                            className="flex items-center gap-3 p-4 rounded-lg bg-gray-800/50 flex-1 min-w-[140px] text-left hover:bg-gray-700/50 hover:ring-1 hover:ring-purple-500/50 transition-all cursor-pointer group"
+                          >
+                            <div className="w-10 h-10 rounded-full bg-purple-900/30 flex items-center justify-center group-hover:bg-purple-800/40">
+                              <Sparkles className="w-5 h-5 text-purple-400" />
+                            </div>
+                            <div>
+                              <p className="text-gray-400 text-xs uppercase tracking-wide">Design studio</p>
+                              <p className="text-xl font-bold text-white">
+                                {analyticsData.funnel.design_visitors.toLocaleString()}
+                              </p>
+                              <p className="text-gray-500 text-xs group-hover:text-purple-400 transition-colors">Click to see where converted visitors are from</p>
+                            </div>
+                          </button>
+                          <div className="flex items-center gap-3 p-4 rounded-lg bg-green-900/20 border border-green-800/40 flex-1 min-w-[140px]">
+                            <div className="w-10 h-10 rounded-full bg-green-900/30 flex items-center justify-center">
+                              <TrendingUp className="w-5 h-5 text-green-400" />
+                            </div>
+                            <div>
+                              <p className="text-gray-400 text-xs uppercase tracking-wide">Converted</p>
+                              <p className="text-xl font-bold text-white">
+                                {analyticsData.funnel.landing_to_design_converted.toLocaleString()}
+                              </p>
+                              <p className="text-green-400 text-sm font-semibold">
+                                {analyticsData.funnel.landing_to_design_conversion_rate}% rate
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   {/* Visitors by Location */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <Card className="bg-gray-900/50 border-pink-900/30">
@@ -2034,6 +2122,75 @@ export default function Admin() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Converted visitors – where they're from */}
+      <Dialog open={convertedLocationsModalOpen} onOpenChange={setConvertedLocationsModalOpen}>
+        <DialogContent className="bg-gray-900 border-pink-900/30 max-w-2xl max-h-[85vh]">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Globe className="w-5 h-5 text-pink-400" />
+              Converted visitors – where they&apos;re from
+            </DialogTitle>
+            <p className="text-gray-400 text-sm font-normal mt-1">
+              Locations of visitors who hit landing (/) then design studio or created a design. Philadelphia, Atlanta, and no-city excluded.
+            </p>
+          </DialogHeader>
+          <ScrollArea className="h-[50vh] pr-4">
+            {convertedLocationsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 text-pink-400 animate-spin" />
+              </div>
+            ) : convertedLocations.length > 0 ? (
+              <div className="space-y-2">
+                {convertedLocations.map((loc, i) => (
+                  <div key={i} className="p-3 bg-gray-800/50 rounded-lg space-y-2">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-3">
+                        <Globe className="w-4 h-4 text-pink-400 flex-shrink-0" />
+                        <div>
+                          <span className="text-white">{loc.city || 'Unknown City'}</span>
+                          <span className="text-gray-400">, {loc.region || ''}</span>
+                          <span className="text-gray-500 ml-2">({loc.country || 'Unknown'})</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="bg-pink-900/30 text-pink-300">
+                          {loc.visitors} visitors
+                        </Badge>
+                        <Badge variant="secondary" className="bg-gray-700 text-gray-300">
+                          {loc.events} events
+                        </Badge>
+                      </div>
+                    </div>
+                    {loc.devices && loc.devices.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pl-7">
+                        {loc.devices.map((d, j) => (
+                          <span
+                            key={j}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-gray-700/60 text-gray-300"
+                            title={`${d.device_type}: ${d.visitors} visitors`}
+                          >
+                            {d.device_type === 'desktop' && <Monitor className="w-3 h-3 text-green-400" />}
+                            {d.device_type === 'mobile' && <Smartphone className="w-3 h-3 text-blue-400" />}
+                            {d.device_type === 'tablet' && <Tablet className="w-3 h-3 text-purple-400" />}
+                            {!['desktop', 'mobile', 'tablet'].includes(d.device_type) && (
+                              <Monitor className="w-3 h-3 text-gray-500" />
+                            )}
+                            <span className="capitalize">{d.device_type}</span>
+                            <span className="text-gray-500">×{d.visitors}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm text-center py-8">No converted locations in this period.</p>
+            )}
+          </ScrollArea>
         </DialogContent>
       </Dialog>
 
