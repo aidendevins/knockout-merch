@@ -668,23 +668,6 @@ export default function DesignStudio() {
           <Eye className="w-4 h-4" />
           <span>Preview</span>
         </button>
-        <button
-          onClick={() => setMobileTab('photos')}
-          className={cn(
-            "flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors relative",
-            mobileTab === 'photos' 
-              ? "text-pink-400 border-b-2 border-pink-500 bg-pink-500/10" 
-              : "text-white/60 hover:text-white/80"
-          )}
-        >
-          <ImageIcon className="w-4 h-4" />
-          <span>Photos</span>
-          {uploadedPhotos.length > 0 && (
-            <span className="absolute top-2 right-4 w-5 h-5 bg-gradient-to-br from-pink-500 to-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
-              {uploadedPhotos.length}
-            </span>
-          )}
-        </button>
       </div>
 
       {/* AI Panel - Desktop */}
@@ -722,6 +705,8 @@ export default function DesignStudio() {
 
         <AIPanel 
           uploadedPhotos={uploadedPhotos}
+          onPhotosChange={setUploadedPhotos}
+          maxPhotos={selectedTemplate?.maxPhotos || 9}
           selectedTemplate={selectedTemplate}
           onImageGenerated={handleImageGenerated}
           generatedImage={generatedImage}
@@ -851,6 +836,8 @@ export default function DesignStudio() {
             )}
             <AIPanel 
               uploadedPhotos={uploadedPhotos}
+              onPhotosChange={setUploadedPhotos}
+              maxPhotos={selectedTemplate?.maxPhotos || 9}
               selectedTemplate={selectedTemplate}
               onImageGenerated={handleImageGenerated}
               generatedImage={generatedImage}
@@ -884,18 +871,6 @@ export default function DesignStudio() {
               onColorChange={setSelectedColor}
               selectedMask={selectedMask}
               setSelectedMask={setSelectedMask}
-              selectedTemplate={selectedTemplate}
-            />
-          </div>
-        )}
-
-        {/* Photos Tab */}
-        {mobileTab === 'photos' && (
-          <div className="h-full">
-            <PhotoUploadPanel
-              photos={uploadedPhotos}
-              onPhotosChange={setUploadedPhotos}
-              maxPhotos={selectedTemplate?.maxPhotos || 9}
               selectedTemplate={selectedTemplate}
             />
           </div>
