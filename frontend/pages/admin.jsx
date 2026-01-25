@@ -77,6 +77,9 @@ export default function Admin() {
   const [convertedLocationsModalOpen, setConvertedLocationsModalOpen] = useState(false);
   const [convertedLocations, setConvertedLocations] = useState([]);
   const [convertedLocationsLoading, setConvertedLocationsLoading] = useState(false);
+  const [restrictedCities, setRestrictedCities] = useState([]);
+  const [newRestrictedCity, setNewRestrictedCity] = useState('');
+  const [addRestrictedCityLoading, setAddRestrictedCityLoading] = useState(false);
 
   // Fetch Gemini API key status on mount
   useEffect(() => {
@@ -103,11 +106,12 @@ export default function Admin() {
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const apiBase = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
       
-      const [summaryRes, eventsRes, locationsRes, productVisitsRes] = await Promise.all([
+      const [summaryRes, eventsRes, locationsRes, productVisitsRes, restrictedRes] = await Promise.all([
         fetch(`${apiBase}/analytics/summary?days=${analyticsDays}`),
         fetch(`${apiBase}/analytics/events?limit=20`),
         fetch(`${apiBase}/analytics/visitors/locations?days=${analyticsDays}`),
-        fetch(`${apiBase}/analytics/product-visits?days=${analyticsDays}&limit=50`)
+        fetch(`${apiBase}/analytics/product-visits?days=${analyticsDays}&limit=50`),
+        fetch(`${apiBase}/analytics/restricted-cities`)
       ]);
 
       if (summaryRes.ok) {
@@ -126,6 +130,10 @@ export default function Admin() {
         const visits = await productVisitsRes.json();
         setProductVisits(visits);
       }
+      if (restrictedRes.ok) {
+        const list = await restrictedRes.json();
+        setRestrictedCities(list);
+      }
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
     } finally {
@@ -136,6 +144,51 @@ export default function Admin() {
   useEffect(() => {
     fetchAnalytics();
   }, [analyticsDays]);
+
+  const addRestrictedCity = async () => {
+    const city = newRestrictedCity.trim();
+    if (!city) return;
+    setAddRestrictedCityLoading(true);
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const apiBase = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
+      const res = await fetch(`${apiBase}/analytics/restricted-cities`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ city }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setNewRestrictedCity('');
+        fetchAnalytics();
+        toast.success(data.message ? 'City already restricted' : 'City added to restricted list');
+      } else toast.error(data.error || 'Failed to add city');
+    } catch (e) {
+      toast.error('Failed to add city');
+      console.error(e);
+    } finally {
+      setAddRestrictedCityLoading(false);
+    }
+  };
+
+  const removeRestrictedCity = async (id) => {
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const apiBase = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
+      const res = await fetch(`${apiBase}/analytics/restricted-cities/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setRestrictedCities((prev) => prev.filter((c) => c.id !== id));
+        fetchAnalytics();
+        toast.success('City removed from restricted list');
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Failed to remove city');
+      }
+    } catch (e) {
+      toast.error('Failed to remove city');
+      console.error(e);
+    }
+  };
 
   const openConvertedLocationsModal = async () => {
     setConvertedLocationsModalOpen(true);
@@ -1653,6 +1706,47 @@ export default function Admin() {
                 </div>
               </div>
 
+              {/* Restricted cities (excluded from funnel); null cities always excluded */}
+              <div className="p-4 rounded-lg bg-gray-900/50 border border-pink-900/30">
+                <p className="text-gray-400 text-sm font-medium mb-2">Restricted cities</p>
+                <p className="text-gray-500 text-xs mb-3">
+                  Cities to exclude from landing → design funnel. Events with no city are always excluded.
+                </p>
+                <div className="flex flex-wrap gap-2 items-center">
+                  <Input
+                    value={newRestrictedCity}
+                    onChange={(e) => setNewRestrictedCity(e.target.value)}
+                    placeholder="e.g. Philadelphia"
+                    className="bg-gray-800 border-pink-900/30 text-white w-40 sm:w-48"
+                    onKeyDown={(e) => e.key === 'Enter' && addRestrictedCity()}
+                  />
+                  <Button
+                    onClick={addRestrictedCity}
+                    disabled={addRestrictedCityLoading || !newRestrictedCity.trim()}
+                    className="bg-pink-600 hover:bg-pink-700"
+                  >
+                    {addRestrictedCityLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add'}
+                  </Button>
+                  {restrictedCities.map((c) => (
+                      <Badge
+                        key={c.id}
+                        variant="secondary"
+                        className="bg-gray-700 text-gray-200 pr-1 pl-2 py-1 flex items-center gap-1"
+                      >
+                        {c.city}
+                        <button
+                          type="button"
+                          onClick={() => removeRestrictedCity(c.id)}
+                          className="rounded-full hover:bg-gray-600 p-0.5"
+                          aria-label={`Remove ${c.city}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                </div>
+              </div>
+
               {analyticsLoading && !analyticsData ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 text-pink-400 animate-spin" />
@@ -1721,7 +1815,7 @@ export default function Admin() {
                         </CardTitle>
                         <p className="text-gray-400 text-sm font-normal mt-1">
                           Visitors who hit the home page and then went to the design studio or created a design.
-                          <span className="text-gray-500 ml-1">Philadelphia, Atlanta, and events without city excluded.</span>
+                          <span className="text-gray-500 ml-1">Restricted cities (above) and events without city excluded.</span>
                         </p>
                       </CardHeader>
                       <CardContent>
@@ -2134,7 +2228,7 @@ export default function Admin() {
               Converted visitors – where they&apos;re from
             </DialogTitle>
             <p className="text-gray-400 text-sm font-normal mt-1">
-              Locations of visitors who hit landing (/) then design studio or created a design. Philadelphia, Atlanta, and no-city excluded.
+              Locations of visitors who hit landing (/) then design studio or created a design. Restricted cities and no-city excluded.
             </p>
           </DialogHeader>
           <ScrollArea className="h-[50vh] pr-4">
