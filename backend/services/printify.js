@@ -39,12 +39,12 @@ const BLUEPRINTS = {
     }]
   },
   hoodie: {
-    id: 448, // Comfort Colors 1467 - Unisex Lightweight Hooded Sweatshirt
+    id: 1528, // Hoodie blueprint
     printProviderId: 99, // Printify Choice
     variants: {
       // TODO: Get exact variant IDs from Printify catalog
       // Use the admin panel to fetch these: https://knockout-merch-production.up.railway.app/admin
-      // Or use Printify API: GET /catalog/blueprints/448/print_providers/99/variants.json
+      // Or use Printify API: GET /catalog/blueprints/1528/print_providers/99/variants.json
       black: {
         'S': null, // Update with actual variant ID
         'M': null,
@@ -514,6 +514,11 @@ async function createProduct({ title, description, imageUrl, productType = 'tshi
     }));
     
     const variantIds = variants.map(v => v.id);
+    
+    // Validate that we have actual variant IDs (not null)
+    if (variantIds.some(id => id === null || id === undefined)) {
+      throw new Error(`Cannot create product: variant IDs are missing for blueprint ${blueprint.id}. Please ensure the blueprint ID is correct and variants are available from Printify API.`);
+    }
     
     // Continue with hardcoded variants...
     const productPayload = {
