@@ -316,20 +316,20 @@ export default function Product() {
   }
 
   return (
-    <div className="min-h-screen bg-black pt-20 pb-12">
-      <div className="max-w-7xl mx-auto px-4">
+    <div className="min-h-screen bg-black pt-16 sm:pt-20 pb-8 sm:pb-12">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4">
         {/* Back Button */}
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6"
+          className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4 sm:mb-6 text-sm sm:text-base"
         >
           <ArrowLeft className="w-4 h-4" />
           Back
         </button>
 
-        <div className="grid lg:grid-cols-2 gap-12">
+        <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12">
           {/* Left - Image Gallery */}
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {/* Main Image */}
             <Card className="relative bg-gray-900 border-gray-800 overflow-hidden aspect-square">
               <AnimatePresence mode="wait">
@@ -339,7 +339,7 @@ export default function Product() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="w-full h-full flex items-center justify-center p-8 bg-gradient-to-br from-gray-800 to-gray-900"
+                  className="w-full h-full flex items-center justify-center p-4 sm:p-8 bg-gradient-to-br from-gray-800 to-gray-900"
                 >
                   {images[currentImageIndex] ? (
                     <img
@@ -348,7 +348,7 @@ export default function Product() {
                       className="max-w-full max-h-full object-contain"
                     />
                   ) : (
-                    <Shirt className="w-32 h-32 text-gray-700" />
+                    <Shirt className="w-24 h-24 sm:w-32 sm:h-32 text-gray-700" />
                   )}
                 </motion.div>
               </AnimatePresence>
@@ -358,22 +358,22 @@ export default function Product() {
                 <>
                   <button
                     onClick={prevImage}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all"
+                    className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all"
                   >
-                    <ChevronLeft className="w-5 h-5" />
+                    <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                   <button
                     onClick={nextImage}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all"
+                    className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all"
                   >
-                    <ChevronRight className="w-5 h-5" />
+                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 </>
               )}
 
               {/* Image Counter */}
               {images.length > 1 && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1 bg-black/70 backdrop-blur-sm rounded-full text-white text-sm">
+                <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 px-2 sm:px-3 py-1 bg-black/70 backdrop-blur-sm rounded-full text-white text-xs sm:text-sm">
                   {currentImageIndex + 1} / {images.length}
                 </div>
               )}
@@ -381,7 +381,7 @@ export default function Product() {
 
             {/* Thumbnail Gallery */}
             {images.length > 1 && (
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-5 sm:grid-cols-4 gap-1.5 sm:gap-2">
                 {images.map((img, idx) => (
                   <button
                     key={idx}
@@ -405,30 +405,30 @@ export default function Product() {
           </div>
 
           {/* Right - Product Info */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Header */}
             <div>
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
                 {design.creator_name && (
-                  <Badge className="bg-gray-800 text-gray-300 border-gray-700">
+                  <Badge className="bg-gray-800 text-gray-300 border-gray-700 text-xs sm:text-sm">
                     <User className="w-3 h-3 mr-1" />
                     {design.creator_name}
                   </Badge>
                 )}
                 {design.sales_count > 0 && (
-                  <Badge className="bg-green-600/10 text-green-400 border-green-600/30">
+                  <Badge className="bg-green-600/10 text-green-400 border-green-600/30 text-xs sm:text-sm">
                     <TrendingUp className="w-3 h-3 mr-1" />
                     {design.sales_count} sold
                   </Badge>
                 )}
               </div>
               
-              <h1 className="text-4xl font-black text-white mb-3 tracking-tight">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white mb-2 sm:mb-3 tracking-tight">
                 {design.title}
               </h1>
               
               {design.prompt_used && (
-                <p className="text-gray-400 leading-relaxed">
+                <p className="text-gray-400 leading-relaxed text-sm sm:text-base">
                   {design.prompt_used}
                 </p>
               )}
@@ -438,30 +438,30 @@ export default function Product() {
 
             {/* Product Type Selection - Now Interactive! */}
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <label className="text-white font-semibold">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <label className="text-white font-semibold text-sm sm:text-base">
                   Product Type
                 </label>
               </div>
-              <div className="flex gap-3">
+              <div className="flex gap-2 sm:gap-3">
                 {PRODUCT_TYPES.map((type) => (
                   <button
                     key={type.value}
                     onClick={() => handleProductTypeChange(type.value)}
                     disabled={isFetchingMockups}
                     className={cn(
-                      "flex-1 py-4 px-4 rounded-xl border-2 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed",
+                      "flex-1 py-3 sm:py-4 px-2 sm:px-4 rounded-lg sm:rounded-xl border-2 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed",
                       selectedProductType === type.value
                         ? "border-pink-500 bg-gradient-to-r from-pink-600/10 to-red-600/10 text-white shadow-lg shadow-pink-600/20"
                         : "border-gray-800 hover:border-gray-700 text-gray-400 bg-gray-900 hover:bg-gray-800"
                     )}
                   >
-                    <div className="flex flex-col items-center gap-1">
-                      <Shirt className="w-5 h-5" />
-                      <span>{type.name}</span>
-                      <span className="text-xs text-gray-500">${type.price}</span>
+                    <div className="flex flex-col items-center gap-0.5 sm:gap-1">
+                      <Shirt className="w-4 h-4 sm:w-5 sm:h-5" />
+                      <span className="text-xs sm:text-sm">{type.name}</span>
+                      <span className="text-[10px] sm:text-xs text-gray-500">${type.price}</span>
                       {selectedProductType === type.value && (
-                        <Check className="w-4 h-4 mt-1" />
+                        <Check className="w-3 h-3 sm:w-4 sm:h-4 mt-0.5" />
                       )}
                     </div>
                   </button>
@@ -473,21 +473,21 @@ export default function Product() {
 
             {/* Color Selection - Now Interactive! */}
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <label className="text-white font-semibold">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <label className="text-white font-semibold text-sm sm:text-base">
                   Color
                 </label>
                 {isFetchingMockups && (
-                  <span className="text-xs text-gray-400 flex items-center gap-1">
+                  <span className="text-[10px] sm:text-xs text-gray-400 flex items-center gap-1">
                     <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    Loading mockups...
+                    Loading...
                   </span>
                 )}
               </div>
-              <div className="flex gap-3">
+              <div className="flex gap-2 sm:gap-3">
                 {/* Filter colors to only show those available for this design */}
                 {COLORS.filter(color => {
                   // If design has available_colors, filter by it
@@ -499,20 +499,20 @@ export default function Product() {
                     onClick={() => handleColorChange(color.value)}
                     disabled={isFetchingMockups}
                     className={cn(
-                      "flex-1 py-4 px-4 rounded-xl border-2 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed",
+                      "flex-1 py-2.5 sm:py-4 px-2 sm:px-4 rounded-lg sm:rounded-xl border-2 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed",
                       selectedColor === color.value
                         ? "border-pink-500 bg-gradient-to-r from-pink-600/10 to-red-600/10 text-white shadow-lg shadow-pink-600/20"
                         : "border-gray-800 hover:border-gray-700 text-gray-400 bg-gray-900 hover:bg-gray-800"
                     )}
                   >
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-1.5 sm:gap-2">
                       <div
-                        className="w-5 h-5 rounded-full border-2 border-gray-600"
+                        className="w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 border-gray-600"
                         style={{ backgroundColor: color.hex }}
                       />
-                      <span>{color.name}</span>
+                      <span className="text-xs sm:text-sm hidden xs:inline">{color.name}</span>
                       {selectedColor === color.value && (
-                        <Check className="w-4 h-4 ml-1" />
+                        <Check className="w-3 h-3 sm:w-4 sm:h-4" />
                       )}
                     </div>
                   </button>
@@ -522,16 +522,16 @@ export default function Product() {
 
             {/* Size Selection */}
             <div>
-              <label className="text-white font-semibold mb-3 block">
+              <label className="text-white font-semibold mb-2 sm:mb-3 block text-sm sm:text-base">
                 Size
               </label>
-              <div className="flex gap-2">
+              <div className="flex gap-1.5 sm:gap-2">
                 {SIZES.map((size) => (
                   <button
                     key={size}
                     onClick={() => setSelectedSize(size)}
                     className={cn(
-                      "flex-1 py-3 px-4 rounded-xl border-2 font-bold transition-all",
+                      "flex-1 py-2.5 sm:py-3 px-2 sm:px-4 rounded-lg sm:rounded-xl border-2 font-bold transition-all text-xs sm:text-sm",
                       selectedSize === size
                         ? "border-red-500 bg-red-500/10 text-white"
                         : "border-gray-800 hover:border-gray-700 text-gray-400 bg-gray-900"
@@ -545,22 +545,22 @@ export default function Product() {
 
             {/* Quantity */}
             <div>
-              <label className="text-white font-semibold mb-3 block">
+              <label className="text-white font-semibold mb-2 sm:mb-3 block text-sm sm:text-base">
                 Quantity
               </label>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 sm:gap-4">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-12 h-12 rounded-xl bg-gray-900 border border-gray-800 hover:border-gray-700 text-white font-bold transition-all"
+                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gray-900 border border-gray-800 hover:border-gray-700 text-white font-bold transition-all"
                 >
                   -
                 </button>
-                <span className="text-2xl font-black text-white w-12 text-center">
+                <span className="text-xl sm:text-2xl font-black text-white w-10 sm:w-12 text-center">
                   {quantity}
                 </span>
                 <button
                   onClick={() => setQuantity(quantity + 1)}
-                  className="w-12 h-12 rounded-xl bg-gray-900 border border-gray-800 hover:border-gray-700 text-white font-bold transition-all"
+                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gray-900 border border-gray-800 hover:border-gray-700 text-white font-bold transition-all"
                 >
                   +
                 </button>
@@ -570,37 +570,37 @@ export default function Product() {
             <Separator className="bg-gray-800" />
 
             {/* Price and Actions */}
-            <div className="space-y-4">
-              <div className="flex items-baseline gap-3">
-                <span className="text-5xl font-black text-white">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex items-baseline gap-2 sm:gap-3">
+                <span className="text-3xl sm:text-4xl lg:text-5xl font-black text-white">
                   ${(currentPrice * quantity).toFixed(2)}
                 </span>
                 {quantity > 1 && (
-                  <span className="text-gray-500">
+                  <span className="text-gray-500 text-sm sm:text-base">
                     ${currentPrice.toFixed(2)} each
                   </span>
                 )}
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-2 sm:gap-3">
                 <Button
                   onClick={handleAddToCart}
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold text-lg py-7 rounded-xl"
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold text-sm sm:text-lg py-5 sm:py-7 rounded-lg sm:rounded-xl"
                 >
-                  <ShoppingCart className="w-5 h-5 mr-2" />
+                  <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
                   Add to Cart
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-14 h-14 p-0 border-gray-800 hover:border-gray-700 rounded-xl"
+                  className="w-12 h-12 sm:w-14 sm:h-14 p-0 border-gray-800 hover:border-gray-700 rounded-lg sm:rounded-xl"
                 >
-                  <Heart className="w-5 h-5 text-gray-400" />
+                  <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                 </Button>
               </div>
 
               <Button
                 variant="outline"
-                className="w-full border-gray-800 hover:border-gray-700 text-white py-6 rounded-xl"
+                className="w-full border-gray-800 hover:border-gray-700 text-white py-4 sm:py-6 rounded-lg sm:rounded-xl text-sm sm:text-base"
               >
                 <Share2 className="w-4 h-4 mr-2" />
                 Share This Design
@@ -608,37 +608,37 @@ export default function Product() {
             </div>
 
             {/* Features */}
-            <Card className="bg-gray-900 border-gray-800 p-6">
+            <Card className="bg-gray-900 border-gray-800 p-4 sm:p-6">
               <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-red-600/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="w-4 h-4 text-red-500" />
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-red-600/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500" />
                   </div>
                   <div>
-                    <p className="text-white font-semibold mb-1">Premium Quality</p>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-white font-semibold mb-0.5 sm:mb-1 text-sm sm:text-base">Premium Quality</p>
+                    <p className="text-gray-400 text-xs sm:text-sm">
                       High-quality print on comfortable, durable fabric
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-red-600/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Check className="w-4 h-4 text-red-500" />
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-red-600/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500" />
                   </div>
                   <div>
-                    <p className="text-white font-semibold mb-1">Fast Shipping</p>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-white font-semibold mb-0.5 sm:mb-1 text-sm sm:text-base">Fast Shipping</p>
+                    <p className="text-gray-400 text-xs sm:text-sm">
                       Ships within 3-5 business days
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-red-600/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Check className="w-4 h-4 text-red-500" />
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-red-600/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500" />
                   </div>
                   <div>
-                    <p className="text-white font-semibold mb-1">30-Day Returns</p>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-white font-semibold mb-0.5 sm:mb-1 text-sm sm:text-base">30-Day Returns</p>
+                    <p className="text-gray-400 text-xs sm:text-sm">
                       Not satisfied? Full refund within 30 days
                     </p>
                   </div>

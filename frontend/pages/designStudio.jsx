@@ -17,7 +17,8 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Sparkles, ImageIcon, Eye } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // Helper to get image URL (use proxy if needed for CORS)
 const getImageUrl = (url) => {
@@ -106,6 +107,9 @@ export default function DesignStudio() {
 
   // Past generations history (session-only, not persisted)
   const [pastGenerations, setPastGenerations] = useState([]);
+
+  // Mobile tab state: 'canvas' | 'design' | 'photos'
+  const [mobileTab, setMobileTab] = useState('design');
 
   // Reuse a past generation
   const handleReusePastGeneration = (generation) => {
@@ -617,7 +621,7 @@ export default function DesignStudio() {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-black via-red-950/20 to-black pt-16 flex">
+    <div className="h-screen bg-gradient-to-br from-black via-red-950/20 to-black pt-14 sm:pt-16 flex flex-col md:flex-row">
       {/* Template Picker Modal */}
       <TemplatePickerModal
         isOpen={showTemplatePicker}
@@ -638,7 +642,52 @@ export default function DesignStudio() {
         resetToFirstStep={resetTemplatePickerToStep1}
       />
 
-      {/* AI Panel */}
+      {/* Mobile Tab Bar */}
+      <div className="md:hidden flex border-b border-pink-900/30 bg-gradient-to-r from-red-950/30 to-black flex-shrink-0">
+        <button
+          onClick={() => setMobileTab('design')}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors",
+            mobileTab === 'design' 
+              ? "text-pink-400 border-b-2 border-pink-500 bg-pink-500/10" 
+              : "text-white/60 hover:text-white/80"
+          )}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>Design</span>
+        </button>
+        <button
+          onClick={() => setMobileTab('canvas')}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors",
+            mobileTab === 'canvas' 
+              ? "text-pink-400 border-b-2 border-pink-500 bg-pink-500/10" 
+              : "text-white/60 hover:text-white/80"
+          )}
+        >
+          <Eye className="w-4 h-4" />
+          <span>Preview</span>
+        </button>
+        <button
+          onClick={() => setMobileTab('photos')}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors relative",
+            mobileTab === 'photos' 
+              ? "text-pink-400 border-b-2 border-pink-500 bg-pink-500/10" 
+              : "text-white/60 hover:text-white/80"
+          )}
+        >
+          <ImageIcon className="w-4 h-4" />
+          <span>Photos</span>
+          {uploadedPhotos.length > 0 && (
+            <span className="absolute top-2 right-4 w-5 h-5 bg-gradient-to-br from-pink-500 to-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
+              {uploadedPhotos.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* AI Panel - Desktop */}
       <div className="w-72 flex-shrink-0 hidden md:block overflow-y-auto">
         {/* Design Limit Counter & Warnings (for guests only) */}
         {!user && (
@@ -741,8 +790,8 @@ export default function DesignStudio() {
         </div>
       </div>
 
-      {/* Main canvas area */}
-      <div className="flex-1 flex flex-col">
+      {/* Main canvas area - Desktop */}
+      <div className="flex-1 hidden md:flex flex-col">
         <ProductCanvas 
           ref={canvasRef}
           generatedImage={generatedImage}
@@ -760,7 +809,7 @@ export default function DesignStudio() {
         />
       </div>
 
-      {/* Right sidebar - Photo Upload */}
+      {/* Right sidebar - Photo Upload - Desktop */}
       <div className="w-64 flex-shrink-0 hidden lg:block">
         <PhotoUploadPanel
           photos={uploadedPhotos}
@@ -768,6 +817,89 @@ export default function DesignStudio() {
           maxPhotos={selectedTemplate?.maxPhotos || 9}
           selectedTemplate={selectedTemplate}
         />
+      </div>
+
+      {/* Mobile Content Area */}
+      <div className="flex-1 md:hidden overflow-y-auto">
+        {/* Design Tab - AI Panel */}
+        {mobileTab === 'design' && (
+          <div className="h-full">
+            {/* Design Limit Counter & Warnings (for guests only) */}
+            {!user && (
+              <div className="px-4 pt-4 pb-3 border-b border-pink-900/20">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-gray-400">Free Designs</span>
+                  <span className="text-sm font-semibold text-white">
+                    {count}/{maxFree}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-pink-500 to-red-500 transition-all duration-300"
+                    style={{ width: `${(count / maxFree) * 100}%` }}
+                  />
+                </div>
+                {isWarning && (
+                  <div className="mt-2 p-2 bg-yellow-900/20 border border-yellow-600/30 rounded-lg flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-yellow-200/80">
+                      {count === 8 ? '2 designs remaining!' : '1 design remaining!'} Create a free account for unlimited.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+            <AIPanel 
+              uploadedPhotos={uploadedPhotos}
+              selectedTemplate={selectedTemplate}
+              onImageGenerated={handleImageGenerated}
+              generatedImage={generatedImage}
+              isGenerating={isGenerating}
+              setIsGenerating={setIsGenerating}
+              isRemovingBackground={isRemovingBackground}
+              cachedGeminiImage={cachedGeminiImage}
+              onRetryBackgroundRemoval={handleRetryBackgroundRemoval}
+              selectedColor={selectedColor}
+              onChangeTemplate={() => {
+                setResetTemplatePickerToStep1(true);
+                setShowTemplatePicker(true);
+              }}
+            />
+          </div>
+        )}
+
+        {/* Canvas/Preview Tab */}
+        {mobileTab === 'canvas' && (
+          <div className="h-full">
+            <ProductCanvas 
+              ref={canvasRef}
+              generatedImage={generatedImage}
+              onSave={handleCreateProduct}
+              isSaving={isCreatingProduct}
+              productType={productType}
+              setProductType={setProductType}
+              canvasData={canvasData}
+              setCanvasData={setCanvasData}
+              selectedColor={selectedColor}
+              onColorChange={setSelectedColor}
+              selectedMask={selectedMask}
+              setSelectedMask={setSelectedMask}
+              selectedTemplate={selectedTemplate}
+            />
+          </div>
+        )}
+
+        {/* Photos Tab */}
+        {mobileTab === 'photos' && (
+          <div className="h-full">
+            <PhotoUploadPanel
+              photos={uploadedPhotos}
+              onPhotosChange={setUploadedPhotos}
+              maxPhotos={selectedTemplate?.maxPhotos || 9}
+              selectedTemplate={selectedTemplate}
+            />
+          </div>
+        )}
       </div>
 
       {/* Background Removal Modal */}
@@ -784,13 +916,6 @@ export default function DesignStudio() {
         isProcessing={isRemovingBackground}
         onChoose={handleBackgroundRemovalChoice}
       />
-
-      {/* Mobile panels - shown on smaller screens */}
-      <div className="fixed bottom-0 left-0 right-0 md:hidden bg-gradient-to-br from-red-950/30 to-black border-t border-pink-900/30 p-4">
-        <p className="text-center text-white/70 text-sm">
-          For the best experience, please use a larger screen
-        </p>
-      </div>
 
       {/* Mockup Preview Modal */}
       <MockupPreviewModal

@@ -227,28 +227,28 @@ export default function StudioCarousel({ designs }) {
             />
             
             {/* Modal Container */}
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 pointer-events-none">
               <motion.div
                 layoutId={`card-${selectedDesign.id}`}
-                className="w-full max-w-4xl max-h-[90vh] overflow-hidden pointer-events-auto"
+                className="w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden pointer-events-auto"
               >
-                <div className="relative bg-gradient-to-b from-gray-900/95 via-gray-900/98 to-black/95 backdrop-blur-xl rounded-2xl overflow-hidden border border-pink-600/30 shadow-2xl shadow-pink-600/20">
+                <div className="relative bg-gradient-to-b from-gray-900/95 via-gray-900/98 to-black/95 backdrop-blur-xl rounded-xl sm:rounded-2xl overflow-hidden border border-pink-600/30 shadow-2xl shadow-pink-600/20">
                   {/* Close button */}
                   <button
                     onClick={() => setSelectedDesign(null)}
-                    className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white/70 hover:text-white transition-colors"
+                    className="absolute top-2 right-2 sm:top-4 sm:right-4 z-20 p-1.5 sm:p-2 rounded-full bg-black/50 hover:bg-black/70 text-white/70 hover:text-white transition-colors"
                   >
                     <X className="w-5 h-5" />
                   </button>
 
-                  <div className="flex flex-col md:flex-row max-h-[90vh] overflow-y-auto">
+                  <div className="flex flex-col md:flex-row max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
                     {/* Left side - Reference Image & Mockups */}
                     <motion.div 
                       layoutId={`card-image-${selectedDesign.id}`}
-                      className="md:w-1/2 bg-gradient-to-br from-gray-800/30 via-red-950/20 to-black/30 p-6 flex flex-col"
+                      className="md:w-1/2 bg-gradient-to-br from-gray-800/30 via-red-950/20 to-black/30 p-3 sm:p-6 flex flex-col"
                     >
                       {/* Main image - shows selected mockup or reference image */}
-                      <div className="aspect-[3/4] flex items-center justify-center relative overflow-hidden rounded-xl">
+                      <div className="aspect-square sm:aspect-[3/4] flex items-center justify-center relative overflow-hidden rounded-lg sm:rounded-xl">
                         {selectedDesign.mockup_urls?.length > 0 ? (
                           <img 
                             src={getImageUrl(selectedDesign.mockup_urls[selectedMockupIndex] || selectedDesign.mockup_urls[0])} 
@@ -265,14 +265,14 @@ export default function StudioCarousel({ designs }) {
                           />
                         ) : (
                           <div className="w-full h-full bg-white/5 rounded-lg flex items-center justify-center">
-                            <span className="text-gray-500">No preview</span>
+                            <span className="text-gray-500 text-sm">No preview</span>
                           </div>
                         )}
                       </div>
 
                       {/* Thumbnail gallery - show mockups if available */}
                       {selectedDesign.mockup_urls?.length > 1 && (
-                        <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
+                        <div className="mt-3 sm:mt-4 flex gap-1.5 sm:gap-2 overflow-x-auto pb-2">
                           {selectedDesign.mockup_urls.slice(0, 6).map((url, idx) => (
                             <motion.div
                               key={idx}
@@ -280,7 +280,7 @@ export default function StudioCarousel({ designs }) {
                               animate={{ opacity: 1, scale: 1 }}
                               transition={{ delay: idx * 0.1 }}
                               onClick={() => setSelectedMockupIndex(idx)}
-                              className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                              className={`flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-md sm:rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
                                 selectedMockupIndex === idx 
                                   ? 'border-pink-500 ring-2 ring-pink-500/30' 
                                   : 'border-pink-900/30 hover:border-pink-600/50'
@@ -298,19 +298,19 @@ export default function StudioCarousel({ designs }) {
                     </motion.div>
 
                     {/* Right side - Details */}
-                    <div className="md:w-1/2 p-6 md:p-8 flex flex-col">
+                    <div className="md:w-1/2 p-4 sm:p-6 md:p-8 flex flex-col">
                       <motion.h2 
                         layoutId={`card-title-${selectedDesign.id}`}
-                        className="text-2xl md:text-3xl font-bold text-white mb-2"
+                        className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2"
                       >
                         {selectedDesign.title}
                       </motion.h2>
 
-                      <div className="flex items-center gap-3 mb-4">
-                        <span className="text-2xl font-bold text-pink-400">
+                      <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                        <span className="text-xl sm:text-2xl font-bold text-pink-400">
                           From $29.99
                         </span>
-                        <Badge className="bg-pink-600/20 text-pink-300 border-pink-600/30">
+                        <Badge className="bg-pink-600/20 text-pink-300 border-pink-600/30 text-xs sm:text-sm">
                           Template
                         </Badge>
                       </div>
@@ -320,30 +320,30 @@ export default function StudioCarousel({ designs }) {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
-                        className="text-white/70 mb-6 leading-relaxed"
+                        className="text-white/70 mb-4 sm:mb-6 leading-relaxed text-sm sm:text-base"
                       >
                         {selectedDesign.description || templateDetails?.description || 'A beautifully crafted template ready for your personalization. Upload your photos and customize to make it uniquely yours.'}
                       </motion.p>
 
                       {/* Template Details */}
-                      <div className="space-y-4 mb-6">
-                        <h4 className="text-sm font-semibold text-white/50 uppercase tracking-wider">
+                      <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
+                        <h4 className="text-xs sm:text-sm font-semibold text-white/50 uppercase tracking-wider">
                           Template Details
                         </h4>
                         
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-2 sm:gap-3">
                           {/* Photos required */}
                           <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.15 }}
-                            className="p-3 rounded-lg bg-white/5 border border-white/10"
+                            className="p-2 sm:p-3 rounded-lg bg-white/5 border border-white/10"
                           >
-                            <div className="flex items-center gap-2 mb-1">
-                              <Camera className="w-4 h-4 text-pink-400" />
-                              <span className="text-xs text-white/50 uppercase">Photos</span>
+                            <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
+                              <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-pink-400" />
+                              <span className="text-[10px] sm:text-xs text-white/50 uppercase">Photos</span>
                             </div>
-                            <div className="text-lg font-semibold text-white">
+                            <div className="text-sm sm:text-lg font-semibold text-white">
                               {loadingDetails ? '...' : (templateDetails?.max_photos || 1)} {(templateDetails?.max_photos || 1) === 1 ? 'photo' : 'photos'}
                             </div>
                           </motion.div>
@@ -353,13 +353,13 @@ export default function StudioCarousel({ designs }) {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2 }}
-                            className="p-3 rounded-lg bg-white/5 border border-white/10"
+                            className="p-2 sm:p-3 rounded-lg bg-white/5 border border-white/10"
                           >
-                            <div className="flex items-center gap-2 mb-1">
-                              <Palette className="w-4 h-4 text-pink-400" />
-                              <span className="text-xs text-white/50 uppercase">Customize</span>
+                            <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
+                              <Palette className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-pink-400" />
+                              <span className="text-[10px] sm:text-xs text-white/50 uppercase">Customize</span>
                             </div>
-                            <div className="text-lg font-semibold text-white">
+                            <div className="text-sm sm:text-lg font-semibold text-white">
                               {loadingDetails ? '...' : (getCustomizationInfo(templateDetails).length || 0)} options
                             </div>
                           </motion.div>
@@ -369,21 +369,21 @@ export default function StudioCarousel({ designs }) {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.25 }}
-                            className="p-3 rounded-lg bg-white/5 border border-white/10"
+                            className="p-2 sm:p-3 rounded-lg bg-white/5 border border-white/10"
                           >
-                            <div className="flex items-center gap-2 mb-1">
-                              <Shirt className="w-4 h-4 text-pink-400" />
-                              <span className="text-xs text-white/50 uppercase">Colors</span>
+                            <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
+                              <Shirt className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-pink-400" />
+                              <span className="text-[10px] sm:text-xs text-white/50 uppercase">Colors</span>
                             </div>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1 sm:gap-1.5">
                               {loadingDetails ? (
-                                <span className="text-lg font-semibold text-white">...</span>
+                                <span className="text-sm sm:text-lg font-semibold text-white">...</span>
                               ) : (
                                 getAvailableColors(templateDetails).map((color) => (
                                   <div
                                     key={color.id}
                                     title={color.name}
-                                    className="w-5 h-5 rounded-full border border-white/20"
+                                    className="w-4 h-4 sm:w-5 sm:h-5 rounded-full border border-white/20"
                                     style={{ backgroundColor: color.hex }}
                                   />
                                 ))
@@ -396,13 +396,13 @@ export default function StudioCarousel({ designs }) {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.3 }}
-                            className="p-3 rounded-lg bg-white/5 border border-white/10"
+                            className="p-2 sm:p-3 rounded-lg bg-white/5 border border-white/10"
                           >
-                            <div className="flex items-center gap-2 mb-1">
-                              <Sparkles className="w-4 h-4 text-pink-400" />
-                              <span className="text-xs text-white/50 uppercase">Powered by</span>
+                            <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
+                              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-pink-400" />
+                              <span className="text-[10px] sm:text-xs text-white/50 uppercase">Powered by</span>
                             </div>
-                            <div className="text-lg font-semibold text-white">
+                            <div className="text-sm sm:text-lg font-semibold text-white">
                               AI Design
                             </div>
                           </motion.div>
@@ -415,16 +415,16 @@ export default function StudioCarousel({ designs }) {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.35 }}
-                          className="mb-6"
+                          className="mb-4 sm:mb-6"
                         >
-                          <h4 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-3">
+                          <h4 className="text-xs sm:text-sm font-semibold text-white/50 uppercase tracking-wider mb-2 sm:mb-3">
                             What You Can Customize
                           </h4>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-1.5 sm:gap-2">
                             {templateDetails.panel_schema.fields.map((field, idx) => (
                               <span 
                                 key={idx}
-                                className="px-3 py-1.5 rounded-full bg-pink-600/10 border border-pink-600/20 text-pink-300 text-sm"
+                                className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-pink-600/10 border border-pink-600/20 text-pink-300 text-xs sm:text-sm"
                               >
                                 {field.label}
                               </span>
@@ -434,19 +434,19 @@ export default function StudioCarousel({ designs }) {
                       )}
 
                       {/* CTA Buttons */}
-                      <div className="mt-auto pt-4 border-t border-white/10 space-y-3">
+                      <div className="mt-auto pt-3 sm:pt-4 border-t border-white/10 space-y-2 sm:space-y-3">
                         <Button
                           onClick={() => {
                             setSelectedDesign(null);
                             // Navigate to design studio with the template pre-selected
                             navigate(`/design?template=${selectedDesign.template_id}`);
                           }}
-                          className="w-full bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white font-semibold py-6 text-lg shadow-lg hover:shadow-pink-600/50 transition-all"
+                          className="w-full bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white font-semibold py-4 sm:py-6 text-sm sm:text-lg shadow-lg hover:shadow-pink-600/50 transition-all"
                         >
                           Customize This Design
-                          <ArrowRight className="w-5 h-5 ml-2" />
+                          <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1.5 sm:ml-2" />
                         </Button>
-                        <p className="text-center text-white/40 text-sm">
+                        <p className="text-center text-white/40 text-xs sm:text-sm">
                           Upload your photos and personalize this template
                         </p>
                       </div>
