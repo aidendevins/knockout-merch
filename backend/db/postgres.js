@@ -344,6 +344,17 @@ async function init() {
       END $$;
     `);
 
+    // Add display_order column for controlling template display order on home page
+    await query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'templates' AND column_name = 'display_order') THEN
+          ALTER TABLE templates ADD COLUMN display_order INTEGER DEFAULT 999;
+        END IF;
+      END $$;
+    `);
+    console.log('✅ Templates table: display_order column added/verified');
+
     // Note: example_image is now uploaded via admin panel and stored in S3 examples folder
     // The static files in /frontend/public/templates/ are legacy and no longer used
 
