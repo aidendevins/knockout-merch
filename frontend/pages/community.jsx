@@ -51,7 +51,7 @@ export default function Community() {
               Fan Designs
             </h1>
             <p className="text-gray-400 text-sm sm:text-lg max-w-xl mx-auto px-4 sm:px-0">
-              Browse knockout designs created by the community. Find your favorite and grab it before it's gone.
+              Browse Valentine's Day designs created by the community. Find your favorite and grab it before it's gone.
             </p>
           </motion.div>
         </div>

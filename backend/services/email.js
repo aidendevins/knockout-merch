@@ -71,7 +71,7 @@ async function sendOrderConfirmation({
           <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); padding: 40px 30px; text-align: center;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: bold;">🥊 KNOCKOUT CLUB</h1>
+              <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: bold;">💝 AI Valentine's Day Shirt Designer</h1>
               <p style="margin: 10px 0 0 0; color: #fecaca; font-size: 16px;">Order Confirmation</p>
             </td>
           </tr>
@@ -81,7 +81,7 @@ async function sendOrderConfirmation({
             <td style="padding: 30px 30px 20px 30px;">
               <h2 style="margin: 0 0 15px 0; color: #111827; font-size: 24px;">Thanks for your order, ${customerName}! 🎉</h2>
               <p style="margin: 0; color: #6b7280; font-size: 16px; line-height: 1.6;">
-                We've received your order and payment. Your knockout merch is on its way!
+                We've received your order and payment. Your Valentine's Day merch is on its way!
               </p>
             </td>
           </tr>
@@ -158,7 +158,7 @@ async function sendOrderConfirmation({
                 Questions about your order? Reply to this email or contact us.
               </p>
               <p style="margin: 0; color: #9ca3af; font-size: 12px;">
-                © 2026 Knockout Club. All rights reserved.
+                © 2026 AI Valentine's Day Shirt Designer. All rights reserved.
               </p>
             </td>
           </tr>

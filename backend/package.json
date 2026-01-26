@@ -1,7 +1,7 @@
 {
   "name": "knockout-merch-backend",
   "version": "1.0.0",
-  "description": "Backend API for Knockout Merch",
+  "description": "Backend API for AI Valentine's Day Shirt Designer",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
