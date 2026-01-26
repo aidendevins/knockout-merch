@@ -30,6 +30,27 @@ router.get('/blueprints', async (req, res) => {
     }
     
     const blueprints = await printify.getBlueprints();
+    
+    // If search query is provided, filter results
+    const search = req.query.search?.toLowerCase();
+    if (search) {
+      const filtered = blueprints.filter(bp => 
+        bp.title?.toLowerCase().includes(search) ||
+        bp.brand?.toLowerCase().includes(search) ||
+        bp.model?.toLowerCase().includes(search) ||
+        bp.description?.toLowerCase().includes(search)
+      );
+      
+      // Return simplified results for easier reading
+      return res.json(filtered.map(bp => ({
+        id: bp.id,
+        title: bp.title,
+        brand: bp.brand,
+        model: bp.model,
+        description: bp.description
+      })));
+    }
+    
     res.json(blueprints);
   } catch (error) {
     console.error('Error fetching blueprints:', error);

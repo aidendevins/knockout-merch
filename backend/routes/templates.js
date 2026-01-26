@@ -41,11 +41,11 @@ router.get('/with-products', async (req, res) => {
   try {
     const printify = require('../services/printify');
     
-    // Get ALL non-hidden templates
+    // Get ALL non-hidden templates ordered by display_order
     const templates = await db.all(`
       SELECT * FROM templates 
       WHERE is_hidden = false
-      ORDER BY created_at ASC
+      ORDER BY display_order ASC, created_at ASC
     `);
     
     // Enrich templates with Printify data where available
@@ -141,6 +141,7 @@ router.post('/', async (req, res) => {
       gradient,
       is_hidden,
       text_behavior,
+      display_order,
     } = req.body;
 
     if (!id || !name) {
@@ -149,8 +150,8 @@ router.post('/', async (req, res) => {
 
     const result = await db.query(
       `INSERT INTO templates 
-       (id, name, description, example_image, reference_image, prompt, panel_schema, upload_tips, max_photos, gradient, is_hidden, text_behavior) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       (id, name, description, example_image, reference_image, prompt, panel_schema, upload_tips, max_photos, gradient, is_hidden, text_behavior, display_order) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        RETURNING *`,
       [
         id,
@@ -165,6 +166,7 @@ router.post('/', async (req, res) => {
         gradient || null,
         is_hidden || false,
         text_behavior || 'none',
+        display_order || 999,
       ]
     );
 
@@ -200,6 +202,7 @@ router.put('/:id', async (req, res) => {
       remove_background,
       printify_product_id,
       text_behavior,
+      display_order,
     } = req.body;
 
     // Check if template exists
@@ -264,6 +267,10 @@ router.put('/:id', async (req, res) => {
     if (text_behavior !== undefined) {
       updates.push(`text_behavior = $${paramCount++}`);
       values.push(text_behavior);
+    }
+    if (display_order !== undefined) {
+      updates.push(`display_order = $${paramCount++}`);
+      values.push(display_order);
     }
 
     // Always update updated_at
@@ -621,8 +628,8 @@ router.post('/sync', async (req, res) => {
           // Create new template
           await db.query(
             `INSERT INTO templates 
-             (id, name, description, example_image, reference_image, prompt, panel_schema, upload_tips, max_photos, gradient, remove_background, text_behavior) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+             (id, name, description, example_image, reference_image, prompt, panel_schema, upload_tips, max_photos, gradient, remove_background, text_behavior, display_order) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
             [
               templateData.id,
               templateData.name,
@@ -636,6 +643,7 @@ router.post('/sync', async (req, res) => {
               templateData.gradient,
               templateData.remove_background,
               templateData.text_behavior,
+              templateData.display_order || 999,
             ]
           );
           results.created.push(template.id);
