@@ -275,7 +275,7 @@ export default function ProductPreview() {
               </h1>
               
               <p className="text-gray-400 leading-relaxed">
-                Your custom knockout design on a premium {productTypeName.toLowerCase()}.
+                Your custom Valentine's Day design on a premium {productTypeName.toLowerCase()}.
                 Made with high-quality materials for comfort and durability.
               </p>
             </div>

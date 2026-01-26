@@ -86,8 +86,8 @@ export default function Checkout() {
 
     // Valid discount codes
     const validCodes = {
-      'KNOCKOUT10': {
-        code: 'KNOCKOUT10',
+      'VALENTINE10': {
+        code: 'VALENTINE10',
         type: 'percentage',
         value: 0.10,
         description: '10% off your order'

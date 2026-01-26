@@ -4,11 +4,11 @@ const db = require('../db/postgres');
 
 const studioDesigns = [
   {
-    title: 'Knockout King',
+    title: 'Valentine\'s Love',
     design_image_url: 'https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=800&h=800&fit=crop',
     mockup_urls: ['https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=800&fit=crop'],
     product_type: 'tshirt',
-    prompt_used: 'Bold knockout typography with boxing gloves',
+    prompt_used: 'Bold Valentine\'s Day typography with hearts and love theme',
     creator_name: 'Studio',
     is_published: false,
     is_featured: false,

@@ -115,10 +115,10 @@ router.post('/create-checkout-session', async (req, res) => {
     if (discountCode) {
       const code = discountCode.toUpperCase();
       
-      if (code === 'KNOCKOUT10') {
+      if (code === 'VALENTINE10') {
         // Create or retrieve coupon for 10% off
         sessionConfig.discounts = [{
-          coupon: await getOrCreateCoupon('KNOCKOUT10', { percent_off: 10 }),
+          coupon: await getOrCreateCoupon('VALENTINE10', { percent_off: 10 }),
         }];
       } else if (code === 'TEST99') {
         // For TEST99, create a coupon that makes total $0.50

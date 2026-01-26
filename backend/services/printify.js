@@ -523,7 +523,7 @@ async function createProduct({ title, description, imageUrl, productType = 'tshi
     // Continue with hardcoded variants...
     const productPayload = {
       title,
-      description: description || `Knockout merch design: ${title}`,
+      description: description || `Valentine's Day design: ${title}`,
       blueprint_id: blueprint.id,
       print_provider_id: blueprint.printProviderId,
       variants,
@@ -614,7 +614,7 @@ async function createProduct({ title, description, imageUrl, productType = 'tshi
 
   const productPayload = {
     title,
-    description: description || `Knockout merch design: ${title}`,
+    description: description || `Valentine's Day design: ${title}`,
     blueprint_id: blueprint.id,
     print_provider_id: blueprint.printProviderId,
     variants,
@@ -742,7 +742,7 @@ async function createOrder({ productId, variantId, quantity, shippingAddress, ex
     method: 'POST',
     body: JSON.stringify({
       external_id: externalId,
-      label: `Knockout Club Order`,
+      label: `Valentine's Day Order`,
       line_items: [
         {
           product_id: productId,

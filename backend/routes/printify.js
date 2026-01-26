@@ -98,7 +98,7 @@ router.get('/blueprints/:blueprintId/providers/:providerId/variants', async (req
 router.get('/shops', async (req, res) => {
   try {
     if (!printify.isConfigured()) {
-      return res.json([{ id: 'mock-shop', name: 'Knockout Club (Development)' }]);
+      return res.json([{ id: 'mock-shop', name: 'AI Valentine\'s Day Shirt Designer (Development)' }]);
     }
     
     const shops = await printify.getShops();
@@ -142,7 +142,7 @@ router.post('/products', async (req, res) => {
       const mockProduct = {
         id: `mock-${Date.now()}`,
         printify_product_id: `mock-${Date.now()}`,
-        title: title || 'Knockout Club Design',
+        title: title || 'Valentine\'s Day Design',
         mockup_urls: [
           `https://via.placeholder.com/800x800/${bgColor}/${textColor}?text=${product_type === 'hoodie' ? 'Hoodie' : 'T-Shirt'}+Front`,
           `https://via.placeholder.com/800x800/${bgColor}/${textColor}?text=${product_type === 'hoodie' ? 'Hoodie' : 'T-Shirt'}+Back`,
