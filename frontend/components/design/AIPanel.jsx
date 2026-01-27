@@ -780,9 +780,9 @@ Now generate the final design using image_1.png (FACE_REFERENCE_IMAGE) for the f
       setPreviousDesigns(prev => [generatedImage, ...prev]);
     }
 
-    // Track Facebook Pixel ViewContent event
+    // Track Facebook Pixel custom event
     if (typeof window !== 'undefined' && window.fbq) {
-      window.fbq('track', 'ViewContent', {
+      window.fbq('trackCustom', 'Customize product', {
         value: 1.00,
       });
     }
