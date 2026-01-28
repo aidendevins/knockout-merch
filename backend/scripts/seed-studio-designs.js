@@ -11,7 +11,7 @@ const studioDesigns = [
     creator_name: 'Studio',
     is_published: false,
     is_featured: false,
-    price: 29.99,
+    price: 19.99,
     sales_count: 0
   },
   {
@@ -23,7 +23,7 @@ const studioDesigns = [
     creator_name: 'Studio',
     is_published: false,
     is_featured: false,
-    price: 49.99,
+    price: 29.99,
     sales_count: 0
   },
   {
@@ -35,7 +35,7 @@ const studioDesigns = [
     creator_name: 'Studio',
     is_published: false,
     is_featured: false,
-    price: 29.99,
+    price: 19.99,
     sales_count: 0
   },
   {
@@ -47,7 +47,7 @@ const studioDesigns = [
     creator_name: 'Studio',
     is_published: false,
     is_featured: false,
-    price: 29.99,
+    price: 19.99,
     sales_count: 0
   },
   {
@@ -59,7 +59,7 @@ const studioDesigns = [
     creator_name: 'Studio',
     is_published: false,
     is_featured: false,
-    price: 49.99,
+    price: 29.99,
     sales_count: 0
   },
   {
@@ -71,7 +71,7 @@ const studioDesigns = [
     creator_name: 'Studio',
     is_published: false,
     is_featured: false,
-    price: 29.99,
+    price: 19.99,
     sales_count: 0
   }
 ];

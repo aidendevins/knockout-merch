@@ -24,8 +24,8 @@ router.get('/blueprints', async (req, res) => {
     if (!printify.isConfigured()) {
       // Return mock blueprints for development
       return res.json([
-        { id: 'tshirt', name: 'T-Shirt', base_price: 29.99 },
-        { id: 'hoodie', name: 'Hoodie', base_price: 49.99 },
+        { id: 'tshirt', name: 'T-Shirt', base_price: 19.99 },
+        { id: 'hoodie', name: 'Hoodie', base_price: 29.99 },
       ]);
     }
     
@@ -299,7 +299,7 @@ router.get('/products/:productId', async (req, res) => {
           'https://via.placeholder.com/800x800/1a1a1a/DC2626?text=T-Shirt+Front',
           'https://via.placeholder.com/800x800/1a1a1a/DC2626?text=T-Shirt+Back',
         ],
-        price: 29.99,
+        price: 19.99,
         product_type: 'tshirt',
         color: 'black',
         is_mock: true,
@@ -310,7 +310,7 @@ router.get('/products/:productId', async (req, res) => {
     const mockupUrls = (productDetails.images || []).map(img => img.src);
     
     // Extract price from variants
-    let price = 29.99;
+    let price = 19.99;
     const variants = productDetails.variants || [];
     if (variants.length > 0 && variants[0].price) {
       price = variants[0].price / 100;
@@ -595,7 +595,7 @@ router.post('/sync-products', async (req, res) => {
         }
 
         // Extract price from variants (use the first variant's price)
-        let price = 29.99;
+        let price = 19.99;
         if (variants.length > 0) {
           const firstVariant = variants[0];
           if (firstVariant.price) {

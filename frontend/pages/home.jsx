@@ -24,7 +24,7 @@ export default function Home() {
           description: template.description,
           mockup_urls: template.mockup_urls || [],
           reference_image: template.example_image || template.reference_image, // Use cover image (example_image) for display, fallback to reference
-          price: template.price || 29.99,
+          price: template.price || 19.99,
           product_type: 'tshirt', // Default
           color: 'black', // Default
           has_printify_product: !!template.printify_product_id, // Track if it has a Printify product

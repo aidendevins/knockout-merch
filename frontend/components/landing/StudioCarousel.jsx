@@ -191,7 +191,7 @@ export default function StudioCarousel({ designs }) {
                   <div className="flex items-center justify-between mt-auto">
                     <div>
                       <span className="text-xl font-bold text-pink-400">
-                        From $29.99
+                        From $19.99
                       </span>
                       {design.sales_count > 0 && (
                         <p className="text-pink-300/60 text-sm mt-1">
@@ -308,7 +308,7 @@ export default function StudioCarousel({ designs }) {
 
                       <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
                         <span className="text-xl sm:text-2xl font-bold text-pink-400">
-                          From $29.99
+                          From $19.99
                         </span>
                         <Badge className="bg-pink-600/20 text-pink-300 border-pink-600/30 text-xs sm:text-sm">
                           Template

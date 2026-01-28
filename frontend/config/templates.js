@@ -919,13 +919,13 @@ export const PRODUCT_TYPES = [
     id: 'tshirt',
     name: 'T-Shirt',
     icon: '👕',
-    basePrice: 29.99,
+    basePrice: 19.99,
   },
   {
     id: 'hoodie',
     name: 'Hoodie',
     icon: '🧥',
-    basePrice: 49.99,
+    basePrice: 29.99,
   },
 ];
 

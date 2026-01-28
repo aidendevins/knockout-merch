@@ -129,7 +129,7 @@ export default function MockupPreview({
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-3xl font-bold text-pink-500">${price?.toFixed(2) || '29.99'}</p>
+                <p className="text-3xl font-bold text-pink-500">${price?.toFixed(2) || '19.99'}</p>
                 <p className="text-white/60 text-sm">+ shipping</p>
               </div>
             </div>

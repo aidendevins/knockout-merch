@@ -76,7 +76,7 @@ export default function FeaturedDesigns({ designs, onViewAll }) {
                     </h3>
                     <div className="flex items-center justify-between">
                       <span className="text-2xl font-black text-white">
-                        ${design.price?.toFixed(2) || '29.99'}
+                        ${design.price?.toFixed(2) || '19.99'}
                       </span>
                       <Button size="sm" className="bg-white text-black hover:bg-gray-100 rounded-full [&_svg]:text-black">
                         <ShoppingBag className="w-4 h-4 mr-2" />

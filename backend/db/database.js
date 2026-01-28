@@ -51,7 +51,7 @@ function createTables() {
         canvas_data TEXT,
         is_published INTEGER DEFAULT 0,
         is_featured INTEGER DEFAULT 0,
-        price REAL DEFAULT 29.99,
+        price REAL DEFAULT 19.99,
         sales_count INTEGER DEFAULT 0,
         product_type TEXT DEFAULT 'tshirt',
         creator_name TEXT,

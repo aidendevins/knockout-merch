@@ -44,7 +44,7 @@
       },
       "price": {
         "type": "number",
-        "default": 29.99,
+        "default": 19.99,
         "description": "Price of the product"
       },
       "sales_count": {
