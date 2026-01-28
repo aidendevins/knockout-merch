@@ -7,7 +7,7 @@ import {
   Upload, Image, Star, StarOff, Loader2, Check, X, Save, Edit, Plus, Trash2,
   ShieldCheck, Package, Users, DollarSign, FileText, Sparkles, Settings, Eye, EyeOff,
   BarChart3, Globe, Monitor, Smartphone, Tablet, MousePointer, TrendingUp,
-  ArrowRight, Home
+  ArrowRight, Home, Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -80,6 +80,10 @@ export default function Admin() {
   const [restrictedCities, setRestrictedCities] = useState([]);
   const [newRestrictedCity, setNewRestrictedCity] = useState('');
   const [addRestrictedCityLoading, setAddRestrictedCityLoading] = useState(false);
+  const [timeMetrics, setTimeMetrics] = useState(null);
+  const [timeDistribution, setTimeDistribution] = useState(null);
+  const [timeDistributionModalOpen, setTimeDistributionModalOpen] = useState(false);
+  const [timeDistributionLoading, setTimeDistributionLoading] = useState(false);
 
   // Fetch Gemini API key status on mount
   useEffect(() => {
@@ -106,12 +110,13 @@ export default function Admin() {
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const apiBase = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
       
-      const [summaryRes, eventsRes, locationsRes, productVisitsRes, restrictedRes] = await Promise.all([
+      const [summaryRes, eventsRes, locationsRes, productVisitsRes, restrictedRes, timeRes] = await Promise.all([
         fetch(`${apiBase}/analytics/summary?days=${analyticsDays}`),
         fetch(`${apiBase}/analytics/events?limit=20`),
         fetch(`${apiBase}/analytics/visitors/locations?days=${analyticsDays}`),
         fetch(`${apiBase}/analytics/product-visits?days=${analyticsDays}&limit=50`),
-        fetch(`${apiBase}/analytics/restricted-cities`)
+        fetch(`${apiBase}/analytics/restricted-cities`),
+        fetch(`${apiBase}/analytics/time-metrics?days=${analyticsDays}`)
       ]);
 
       if (summaryRes.ok) {
@@ -133,6 +138,10 @@ export default function Admin() {
       if (restrictedRes.ok) {
         const list = await restrictedRes.json();
         setRestrictedCities(list);
+      }
+      if (timeRes.ok) {
+        const time = await timeRes.json();
+        setTimeMetrics(time);
       }
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
@@ -206,6 +215,24 @@ export default function Admin() {
       console.error('Failed to fetch converted locations:', e);
     } finally {
       setConvertedLocationsLoading(false);
+    }
+  };
+
+  const openTimeDistributionModal = async (pageUrl) => {
+    setTimeDistributionModalOpen(true);
+    setTimeDistributionLoading(true);
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const apiBase = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
+      const res = await fetch(`${apiBase}/analytics/time-distribution?page_url=${encodeURIComponent(pageUrl)}&days=${analyticsDays}`);
+      if (res.ok) {
+        const data = await res.json();
+        setTimeDistribution(data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch time distribution:', e);
+    } finally {
+      setTimeDistributionLoading(false);
     }
   };
 
@@ -1468,7 +1495,7 @@ export default function Admin() {
                               <span className="text-gray-600">•</span>
                               <span className="text-gray-400 text-xs">{design.color || 'black'}</span>
                               <span className="text-gray-600">•</span>
-                              <span className="text-gray-400 text-xs">${parseFloat(design.price || 29.99).toFixed(2)}</span>
+                              <span className="text-gray-400 text-xs">${parseFloat(design.price || 19.99).toFixed(2)}</span>
                               {design.template_id && (
                                 <>
                                   <span className="text-gray-600">•</span>
@@ -1868,6 +1895,88 @@ export default function Admin() {
                         </div>
                       </CardContent>
                     </Card>
+                  )}
+
+                  {/* Time on Site */}
+                  {timeMetrics && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <Card className="bg-gray-900/50 border-pink-900/30">
+                        <CardHeader>
+                          <CardTitle className="text-white flex items-center gap-2">
+                            <Clock className="w-5 h-5 text-pink-400" />
+                            Time on Site
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-400 text-sm">Avg Session Duration</span>
+                              <span className="text-white font-bold">
+                                {Math.floor(timeMetrics.avg_session_duration_seconds / 60)}m {Math.round(timeMetrics.avg_session_duration_seconds % 60)}s
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-400 text-sm">Avg Page Duration</span>
+                              <span className="text-white font-bold">
+                                {Math.floor(timeMetrics.avg_page_duration_seconds / 60)}m {Math.round(timeMetrics.avg_page_duration_seconds % 60)}s
+                              </span>
+                            </div>
+                            {timeMetrics.session_duration_buckets.length > 0 && (
+                              <div className="pt-2">
+                                <p className="text-gray-500 text-xs mb-2">Session Duration Distribution</p>
+                                <div className="space-y-1">
+                                  {timeMetrics.session_duration_buckets.map((bucket, i) => (
+                                    <div key={i} className="flex items-center justify-between text-sm">
+                                      <span className="text-gray-400">{bucket.bucket}</span>
+                                      <Badge variant="secondary" className="bg-gray-700 text-gray-300">
+                                        {bucket.sessions}
+                                      </Badge>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="bg-gray-900/50 border-pink-900/30">
+                        <CardHeader>
+                          <CardTitle className="text-white flex items-center gap-2">
+                            <Clock className="w-5 h-5 text-pink-400" />
+                            Top Pages by Time Spent
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2 max-h-64 overflow-y-auto">
+                            {timeMetrics.top_pages_by_time.length > 0 ? (
+                              timeMetrics.top_pages_by_time.map((page, i) => (
+                                <div key={i} className="flex items-center justify-between">
+                                  <span className="text-gray-300 text-sm truncate max-w-[200px]" title={page.page_url}>
+                                    {page.page_url || '/'}
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="secondary" className="bg-blue-900/30 text-blue-300 text-xs">
+                                      {page.views} views
+                                    </Badge>
+                                    <button
+                                      onClick={() => openTimeDistributionModal(page.page_url)}
+                                      className="transition-all hover:scale-105"
+                                    >
+                                      <Badge variant="secondary" className="bg-purple-900/30 text-purple-300 text-xs cursor-pointer hover:bg-purple-800/40">
+                                        {Math.floor(page.avg_seconds / 60)}m {Math.round(page.avg_seconds % 60)}s avg
+                                      </Badge>
+                                    </button>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-gray-500 text-sm">Not enough page duration data yet</p>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
                   )}
 
                   {/* Visitors by Location */}
@@ -2285,6 +2394,55 @@ export default function Admin() {
               <p className="text-gray-500 text-sm text-center py-8">No converted locations in this period.</p>
             )}
           </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Time Distribution Modal */}
+      <Dialog open={timeDistributionModalOpen} onOpenChange={setTimeDistributionModalOpen}>
+        <DialogContent className="bg-gray-900 border-pink-900/30 max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Clock className="w-5 h-5 text-pink-400" />
+              Time Spent Distribution
+            </DialogTitle>
+            {timeDistribution && (
+              <p className="text-gray-400 text-sm font-normal mt-1">
+                {timeDistribution.page_url || '/'}
+              </p>
+            )}
+          </DialogHeader>
+          {timeDistributionLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 text-pink-400 animate-spin" />
+            </div>
+          ) : timeDistribution?.distribution?.length > 0 ? (
+            <div className="space-y-4 py-4">
+              {timeDistribution.distribution.map((item, i) => {
+                const maxViews = Math.max(...timeDistribution.distribution.map(d => d.views));
+                const widthPercent = (item.views / maxViews) * 100;
+                return (
+                  <div key={i} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-300 font-medium w-20">{item.bucket}</span>
+                      <span className="text-gray-400">{item.views} views</span>
+                    </div>
+                    <div className="w-full bg-gray-800 rounded-full h-6 overflow-hidden">
+                      <div
+                        className="bg-gradient-to-r from-pink-500 to-purple-500 h-full rounded-full transition-all duration-500 flex items-center justify-end pr-2"
+                        style={{ width: `${widthPercent}%` }}
+                      >
+                        {widthPercent > 20 && (
+                          <span className="text-white text-xs font-bold">{item.views}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-sm text-center py-8">No time distribution data for this page.</p>
+          )}
         </DialogContent>
       </Dialog>
 

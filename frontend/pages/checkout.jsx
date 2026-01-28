@@ -145,10 +145,14 @@ export default function Checkout() {
 
     setIsProcessing(true);
 
+    // Properly construct API URL with /api suffix
+    const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const apiBaseUrl = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
+
     try {
       // If FREE discount code, bypass Stripe and create order directly
       if (appliedDiscount?.code === 'FREE') {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/orders/free`, {
+        const response = await fetch(`${apiBaseUrl}/orders/free`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -174,7 +178,7 @@ export default function Checkout() {
       }
 
       // Create Stripe Checkout Session
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/stripe/create-checkout-session`, {
+      const response = await fetch(`${apiBaseUrl}/stripe/create-checkout-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

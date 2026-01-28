@@ -162,7 +162,7 @@ export default function MockupPreviewModal({
                                             </div>
                                             <div>
                                                 <span className="text-gray-500">Price</span>
-                                                <p className="text-white font-medium">${productData?.price?.toFixed(2) || '29.99'}</p>
+                                                <p className="text-white font-medium">${productData?.price?.toFixed(2) || '19.99'}</p>
                                             </div>
                                             <div>
                                                 <span className="text-gray-500">Mockups</span>

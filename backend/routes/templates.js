@@ -58,7 +58,7 @@ router.get('/with-products', async (req, res) => {
             const mockupUrls = (productDetails.images || []).map(img => img.src);
             
             // Extract price from variants (first variant's price)
-            let price = 29.99;
+            let price = 19.99;
             const variants = productDetails.variants || [];
             if (variants.length > 0 && variants[0].price) {
               price = variants[0].price / 100; // Price is in cents
@@ -79,7 +79,7 @@ router.get('/with-products', async (req, res) => {
           return {
             ...template,
             mockup_urls: [], // No mockups for templates without Printify product
-            price: 29.99, // Default price
+            price: 19.99, // Default price
             display_title: template.name,
           };
         } catch (err) {
@@ -88,7 +88,7 @@ router.get('/with-products', async (req, res) => {
           return {
             ...template,
             mockup_urls: [],
-            price: 29.99,
+            price: 19.99,
             display_title: template.name,
           };
         }

@@ -26,8 +26,8 @@ const COLORS = [
   { name: 'Light Pink', value: 'light-pink', hex: '#fce7f3' },
 ];
 const PRODUCT_TYPES = [
-  { name: 'T-Shirt', value: 'tshirt', price: 29.99 },
-  { name: 'Hoodie', value: 'hoodie', price: 49.99 },
+  { name: 'T-Shirt', value: 'tshirt', price: 19.99 },
+  { name: 'Hoodie', value: 'hoodie', price: 29.99 },
 ];
 
 export default function Product() {
@@ -274,7 +274,7 @@ export default function Product() {
   // Create image gallery (ONLY mockups, no design image)
   const images = currentMockups;
 
-  const currentPrice = PRODUCT_TYPES.find(pt => pt.value === selectedProductType)?.price || 29.99;
+  const currentPrice = PRODUCT_TYPES.find(pt => pt.value === selectedProductType)?.price || 19.99;
 
   const handleAddToCart = () => {
     const productData = {

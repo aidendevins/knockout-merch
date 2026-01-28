@@ -108,7 +108,7 @@ async function init() {
         canvas_data JSONB DEFAULT '{}'::jsonb,
         is_published BOOLEAN DEFAULT FALSE,
         is_featured BOOLEAN DEFAULT FALSE,
-        price DECIMAL(10,2) DEFAULT 29.99,
+        price DECIMAL(10,2) DEFAULT 19.99,
         sales_count INTEGER DEFAULT 0,
         product_type VARCHAR(50) DEFAULT 'tshirt',
         color VARCHAR(20) DEFAULT 'black',

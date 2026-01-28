@@ -141,7 +141,7 @@ router.post('/', optionalAuth, async (req, res) => {
       canvas_data = {},
       is_published = false,
       is_featured = false,
-      price = 29.99,
+      price = 19.99,
       product_type = 'tshirt',
       color = 'black',
       creator_name,

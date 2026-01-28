@@ -418,7 +418,7 @@ export default function DesignStudio() {
         product_type: productType,
         color: selectedColor,
         canvas_data: canvasData,
-        price: productType === 'hoodie' ? 49.99 : 29.99,
+        price: productType === 'hoodie' ? 29.99 : 19.99,
         is_published: false,
         creator_name: user?.full_name || 'Anonymous',
       });

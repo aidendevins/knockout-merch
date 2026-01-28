@@ -51,7 +51,7 @@ The platform allows users to create personalized Valentine's shirts, anniversary
 - ⚡ **Fast**: Design in 60 seconds
 - 🎨 **AI-Powered**: Professional designs from photos
 - 🚚 **Fast Shipping**: Printed in USA, ships quickly
-- 💰 **Affordable**: Starting at $29.99
+- 💰 **Affordable**: Starting at $19.99
 - 🔒 **Secure**: Stripe payment processing
 
 ---
@@ -527,7 +527,7 @@ stills_used           JSONB DEFAULT '[]'
 canvas_data           JSONB DEFAULT '{}'
 is_published          BOOLEAN DEFAULT FALSE
 is_featured           BOOLEAN DEFAULT FALSE
-price                 DECIMAL(10,2) DEFAULT 29.99
+price                 DECIMAL(10,2) DEFAULT 19.99
 sales_count           INTEGER DEFAULT 0
 product_type          VARCHAR(50) DEFAULT 'tshirt'
 color                 VARCHAR(20) DEFAULT 'black'

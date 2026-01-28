@@ -154,7 +154,7 @@ function ProductDisplayCard({
           <span className="text-xl md:text-2xl font-black text-white">
             ${typeof product?.price === 'number' 
               ? product.price.toFixed(2) 
-              : parseFloat(product?.price || 29.99).toFixed(2)}
+              : parseFloat(product?.price || 19.99).toFixed(2)}
           </span>
           {product?.sales_count > 0 && (
             <span className="text-pink-300/60 text-xs">

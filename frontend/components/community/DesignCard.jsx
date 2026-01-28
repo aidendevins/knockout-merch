@@ -94,7 +94,7 @@ export default function DesignCard({ design, index = 0 }) {
               <span className="text-xl font-black text-white">
                 ${typeof design.price === 'number' 
                   ? design.price.toFixed(2) 
-                  : parseFloat(design.price || 29.99).toFixed(2)}
+                  : parseFloat(design.price || 19.99).toFixed(2)}
               </span>
               <Button 
                 size="sm" 

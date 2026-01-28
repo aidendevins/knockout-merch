@@ -508,4 +508,183 @@ router.delete('/restricted-cities/:id', async (req, res) => {
   }
 });
 
+// Time on site metrics (calculated from event timestamps)
+router.get('/time-metrics', async (req, res) => {
+  try {
+    const { days = 30 } = req.query;
+    const daysAgo = new Date();
+    daysAgo.setDate(daysAgo.getDate() - parseInt(days));
+
+    // Average session duration (first to last event per session)
+    const avgSessionDuration = await db.get(`
+      SELECT AVG(duration) as avg_seconds
+      FROM (
+        SELECT 
+          session_id,
+          EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at))) as duration
+        FROM analytics_events
+        WHERE created_at >= $1 AND session_id IS NOT NULL
+        GROUP BY session_id
+        HAVING COUNT(*) > 1
+      ) sessions
+    `, [daysAgo]);
+
+    // Average time per page (time between consecutive page_view events)
+    const avgPageDuration = await db.get(`
+      SELECT AVG(duration) as avg_seconds
+      FROM (
+        SELECT 
+          session_id,
+          page_url,
+          EXTRACT(EPOCH FROM (
+            LEAD(created_at) OVER (PARTITION BY session_id ORDER BY created_at) - created_at
+          )) as duration
+        FROM analytics_events
+        WHERE event_type = 'page_view' AND created_at >= $1
+      ) page_times
+      WHERE duration IS NOT NULL AND duration > 0 AND duration < 3600
+    `, [daysAgo]);
+
+    // Top pages by average time spent
+    const topPagesByTime = await db.all(`
+      SELECT 
+        page_url,
+        COUNT(*) as views,
+        AVG(duration) as avg_seconds,
+        SUM(duration) as total_seconds
+      FROM (
+        SELECT 
+          session_id,
+          page_url,
+          EXTRACT(EPOCH FROM (
+            LEAD(created_at) OVER (PARTITION BY session_id ORDER BY created_at) - created_at
+          )) as duration
+        FROM analytics_events
+        WHERE event_type = 'page_view' AND created_at >= $1
+      ) page_times
+      WHERE duration IS NOT NULL AND duration > 0 AND duration < 3600
+      GROUP BY page_url
+      HAVING COUNT(*) >= 3
+      ORDER BY avg_seconds DESC
+      LIMIT 10
+    `, [daysAgo]);
+
+    // Session duration buckets
+    const sessionBuckets = await db.all(`
+      SELECT 
+        bucket,
+        COUNT(*) as sessions
+      FROM (
+        SELECT 
+          session_id,
+          CASE 
+            WHEN EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at))) < 30 THEN '0-30s'
+            WHEN EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at))) < 60 THEN '30s-1m'
+            WHEN EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at))) < 300 THEN '1-5m'
+            WHEN EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at))) < 600 THEN '5-10m'
+            WHEN EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at))) < 1800 THEN '10-30m'
+            ELSE '30m+'
+          END as bucket
+        FROM analytics_events
+        WHERE created_at >= $1 AND session_id IS NOT NULL
+        GROUP BY session_id
+        HAVING COUNT(*) > 1
+      ) session_durations
+      GROUP BY bucket
+      ORDER BY 
+        CASE bucket
+          WHEN '0-30s' THEN 1
+          WHEN '30s-1m' THEN 2
+          WHEN '1-5m' THEN 3
+          WHEN '5-10m' THEN 4
+          WHEN '10-30m' THEN 5
+          ELSE 6
+        END
+    `, [daysAgo]);
+
+    res.json({
+      avg_session_duration_seconds: parseFloat(avgSessionDuration?.avg_seconds || 0),
+      avg_page_duration_seconds: parseFloat(avgPageDuration?.avg_seconds || 0),
+      top_pages_by_time: topPagesByTime.map(p => ({
+        page_url: p.page_url,
+        views: parseInt(p.views),
+        avg_seconds: parseFloat(p.avg_seconds),
+        total_seconds: parseFloat(p.total_seconds)
+      })),
+      session_duration_buckets: sessionBuckets
+    });
+  } catch (error) {
+    console.error('Time metrics error:', error);
+    res.status(500).json({ error: 'Failed to get time metrics' });
+  }
+});
+
+// Time distribution for a specific page
+router.get('/time-distribution', async (req, res) => {
+  try {
+    const { page_url, days = 30 } = req.query;
+    if (!page_url) {
+      return res.status(400).json({ error: 'page_url is required' });
+    }
+
+    const daysAgo = new Date();
+    daysAgo.setDate(daysAgo.getDate() - parseInt(days));
+
+    // Get time distribution buckets for specific page
+    const distribution = await db.all(`
+      SELECT 
+        bucket,
+        COUNT(*) as views
+      FROM (
+        SELECT 
+          CASE 
+            WHEN duration < 10 THEN '0-10s'
+            WHEN duration < 30 THEN '10-30s'
+            WHEN duration < 60 THEN '30s-1m'
+            WHEN duration < 120 THEN '1-2m'
+            WHEN duration < 300 THEN '2-5m'
+            WHEN duration < 600 THEN '5-10m'
+            ELSE '10m+'
+          END as bucket,
+          duration
+        FROM (
+          SELECT 
+            session_id,
+            page_url,
+            EXTRACT(EPOCH FROM (
+              LEAD(created_at) OVER (PARTITION BY session_id ORDER BY created_at) - created_at
+            )) as duration
+          FROM analytics_events
+          WHERE event_type = 'page_view' 
+            AND created_at >= $1
+            AND page_url = $2
+        ) page_times
+        WHERE duration IS NOT NULL AND duration > 0 AND duration < 3600
+      ) bucketed
+      GROUP BY bucket
+      ORDER BY 
+        CASE bucket
+          WHEN '0-10s' THEN 1
+          WHEN '10-30s' THEN 2
+          WHEN '30s-1m' THEN 3
+          WHEN '1-2m' THEN 4
+          WHEN '2-5m' THEN 5
+          WHEN '5-10m' THEN 6
+          ELSE 7
+        END
+    `, [daysAgo, page_url]);
+
+    res.json({
+      page_url,
+      distribution: distribution.map(d => ({
+        bucket: d.bucket,
+        views: parseInt(d.views)
+      }))
+    });
+  } catch (error) {
+    console.error('Time distribution error:', error);
+    res.status(500).json({ error: 'Failed to get time distribution' });
+  }
+});
+
 module.exports = router;
